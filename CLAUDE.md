@@ -605,7 +605,7 @@ public record AuditLogResponseDTO(
 | `CORS_ALLOWED_ORIGINS` | Origem(ns) permitida(s) para o frontend Angular | `http://localhost:4200` |
 | `FLYWAY_ENABLED` | Habilita execução automática das migrations ao subir a aplicação | `true` |
 
-> Nenhum valor secreto (senha, `JWT_SECRET`) deve ser commitado — usar `.env` local (fora do Git) ou variáveis de ambiente do CI/deploy.
+> Não são utilizados arquivos `.env` neste projeto. A configuração é gerenciada diretamente no `application.properties` utilizando placeholders com valores default para desenvolvimento local (`${VARIAVEL:valor_padrao}`), que podem ser sobrescritos por variáveis de ambiente do sistema operacional, container Docker ou pipeline de CI/CD em produção.
 
 ---
 
