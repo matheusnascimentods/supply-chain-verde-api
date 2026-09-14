@@ -1,4 +1,4 @@
-package br.com.anhembi.supply_chain_verde_api;
+package br.com.anhembi.supplychainverde;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;

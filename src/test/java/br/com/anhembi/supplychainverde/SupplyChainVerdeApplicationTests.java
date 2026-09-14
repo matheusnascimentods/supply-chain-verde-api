@@ -1,4 +1,4 @@
-package br.com.anhembi.supply_chain_verde_api;
+package br.com.anhembi.supplychainverde;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Import;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
-class SupplyChainVerdeApiApplicationTests {
+class SupplyChainVerdeApplicationTests {
 
 	@Test
 	void contextLoads() {

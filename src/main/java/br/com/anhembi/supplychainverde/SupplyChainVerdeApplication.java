@@ -1,13 +1,13 @@
-package br.com.anhembi.supply_chain_verde_api;
+package br.com.anhembi.supplychainverde;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SupplyChainVerdeApiApplication {
+public class SupplyChainVerdeApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SupplyChainVerdeApiApplication.class, args);
+		SpringApplication.run(SupplyChainVerdeApplication.class, args);
 	}
 
 }
