@@ -26,15 +26,15 @@
 *Zero dependências externas. Pode ser feita inteira antes de qualquer outra fase.*
 
 ### Enums (`domain/enums/`)
-- [ ] `CertificationStatus`
-- [ ] `ProductCategory`
-- [ ] `ProductUnit`
-- [ ] `StageType`
-- [ ] `TransportMode`
-- [ ] `FuelType`
-- [ ] `CalculationMethod`
-- [ ] `UserRole`
-- [ ] `AuditAction`
+- [x] `CertificationStatus`
+- [x] `ProductCategory`
+- [x] `ProductUnit`
+- [x] `StageType`
+- [x] `TransportMode`
+- [x] `FuelType`
+- [x] `CalculationMethod`
+- [x] `UserRole`
+- [x] `AuditAction`
 
 ### Value Objects (`domain/valueobject/`) — implementados como `record`
 - [ ] `Cnpj` (com validação no construtor compacto)
