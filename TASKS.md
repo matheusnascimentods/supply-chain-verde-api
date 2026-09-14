@@ -37,8 +37,8 @@
 - [x] `AuditAction`
 
 ### Value Objects (`domain/valueobject/`) — implementados como `record`
-- [ ] `Cnpj` (com validação no construtor compacto)
-- [ ] `EmissionFactor`
+- [x] `Cnpj` (com validação no construtor compacto)
+- [x] `EmissionFactor`
 
 ### Entidades (`domain/entity/`) — na ordem que respeita as referências entre elas
 - [ ] `Address`, `User` (sem dependência de outra entidade)
