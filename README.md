@@ -96,6 +96,12 @@ application     ← Casos de Uso (orquestração), DTOs (records) e Mappers de A
 infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Flyway, Segurança JWT, AOP
 ```
 
+### Status de Implementação
+
+- **Fase 1 — Domain Layer concluída**: enums, value objects, entidades de domínio, interfaces de repositório, serviços de domínio e exceções estão implementados.
+- A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas com persistência ficam para `infrastructure` nas próximas fases.
+- Validação local realizada com `./mvnw -q -DskipTests compile`.
+
 ### Principais Entidades de Domínio
 - **`Supplier`**: Fornecedores cadastrados com CNPJ validado e sede em `Address`.
 - **`Certification`**: Certificações ambientais vinculadas a fornecedores com ciclo de validade.
