@@ -45,8 +45,6 @@ infrastructure  ← Spring, Hibernate, controllers, segurança — implementa in
 - `application` só conhece `domain` (interfaces de repositório, entidades, serviços de domínio).
 - `infrastructure` implementa as interfaces definidas em `domain` (ex: `SupplierRepository` é interface no domain; `SupplierRepositoryImpl` é a implementação concreta com Spring Data JPA).
 
-**Status atual:** a Fase 1 (`domain`) está implementada com enums, value objects, entidades, interfaces de repositório, serviços de domínio e exceções. A camada permanece livre de anotações Spring/JPA; os repositórios concretos ficam para a Fase 3 em `infrastructure/persistence`.
-
 ---
 
 ## 4. Convenções de Código
@@ -147,8 +145,9 @@ src/main/java/br/com/anhembi/supplychainverde/
 
 src/main/resources/
 ├── db/migration/    V1__create_address.sql → V11__create_audit_log.sql (ordem respeita FKs)
-├── application.yml
-└── application-test.yml
+├── application.properties
+├── application-test.properties
+└── .env                              (opcional — só se usado pelo Docker Compose do Postgres local; gitignored)
 
 src/test/java/.../
 ├── domain/          testes unitários (calculators, value objects)     → sufixo *Test.java (Surefire, `mvn test`)
@@ -160,7 +159,211 @@ src/test/java/.../
 
 ---
 
-## 6. Casos de Uso
+---
+
+## 6. Modelo de Dados (ERD)
+
+```mermaid
+erDiagram
+  SUPPLIER ||--o{ CERTIFICATION : has
+  SUPPLIER ||--o{ BATCH : supplies
+  ADDRESS ||--o{ SUPPLIER : locatedAt
+  PRODUCT ||--o{ BATCH : produces
+  BATCH ||--o{ CHAIN : passesThrough
+  ADDRESS ||--o{ CHAIN : origin
+  ADDRESS ||--o{ CHAIN : destination
+  USER ||--o{ CHAIN : responsibleFor
+  CHAIN |o--o| TRANSPORT : uses
+  CHAIN ||--|| CARBONEMISSION : generates
+  SUPPLIER ||--o{ REPORT : hasReports
+  USER ||--o{ AUDITLOG : logs
+
+  SUPPLIER {
+    int supplierId PK
+    string name
+    string cnpj
+    int addressId FK
+  }
+  CERTIFICATION {
+    int certificationId PK
+    int supplierId FK
+    string certification
+    string status
+  }
+  PRODUCT {
+    int productId PK
+    string name
+    string category
+  }
+  BATCH {
+    int batchId PK
+    int productId FK
+    int supplierId FK
+    decimal quantity
+  }
+  ADDRESS {
+    int addressId PK
+    string city
+    string state
+  }
+  CHAIN {
+    int chainId PK
+    int batchId FK
+    int originAddressId FK
+    int destinationAddressId FK
+    int responsibleUserId FK
+    string stageType
+  }
+  TRANSPORT {
+    int transportId PK
+    int chainId FK
+    string transportMode
+    string fuelType
+  }
+  CARBONEMISSION {
+    int emissionId PK
+    int chainId FK
+    decimal co2Kg
+    string calculationMethod
+  }
+  REPORT {
+    int reportId PK
+    int supplierId FK
+    decimal totalCo2Kg
+  }
+  USER {
+    int userId PK
+    string name
+    string role
+  }
+  AUDITLOG {
+    int logId PK
+    int userId FK
+    string action
+  }
+```
+
+> Diagrama simplificado (atributos-chave, sem `ENUM`s completos) — GitHub renderiza esse bloco Mermaid nativamente. Campos completos de cada entidade, com tipos e `ENUM`s exatos, na seção 7 (Entidades de Domínio, código Java) e em `der_supply_chain_verde.puml` / `.mmd`.
+
+## 7. Entidades de Domínio
+
+Classes em `domain/entity/` — Lombok (`@Getter @Setter @Builder`), campos mutáveis (permite update parcial sem reconstruir o objeto inteiro, ver seção 4.2), **nunca `record`**.
+
+**Decisão de design**: entidades referenciam objetos de domínio relacionados diretamente (ex: `Batch.supplier` é um `Supplier`, não um `Long supplierId`) — mais expressivo pra regras de negócio navegarem o grafo sem consulta extra. O `RepositoryImpl` (infraestrutura) é responsável por resolver essas referências ao reconstruir a partir da entidade JPA. Alternativa mais leve (guardar só o ID) é válida se o time preferir evitar o risco de carregar grafos grandes sem querer — mas não é o que está documentado aqui.
+
+```java
+public class Address {
+    private Long addressId;
+    private String street;
+    private String number;
+    private String neighborhood;
+    private String complement;
+    private String zipCode;
+    private String city;
+    private String state;
+}
+
+public class User {
+    private Long userId;
+    private String name;
+    private String email;
+    private String passwordHash;
+    private UserRole role;
+    private LocalDateTime createdAt;
+}
+
+public class Supplier {
+    private Long supplierId;
+    private String name;
+    private Cnpj cnpj;
+    private Address address;
+    private String phone;
+    private LocalDate registeredAt;
+}
+
+public class Product {
+    private Long productId;
+    private String name;
+    private ProductCategory category;
+    private ProductUnit unit;
+    private String description;
+}
+
+public class Certification {
+    private Long certificationId;
+    private Supplier supplier;
+    private String certification;
+    private String issuingBody;
+    private LocalDate issuedAt;
+    private LocalDate expiresAt;
+    private CertificationStatus status;
+}
+
+public class Batch {
+    private Long batchId;
+    private Product product;
+    private Supplier supplier;
+    private BigDecimal quantity;
+    private LocalDate producedAt;
+}
+
+public class Chain {
+    private Long chainId;
+    private Batch batch;
+    private Address originAddress;      // nullable — ver pendência na seção 14
+    private Address destinationAddress; // nullable — ver pendência na seção 14
+    private User responsibleUser;
+    private StageType stageType;
+    private LocalDateTime startedAt;
+    private LocalDateTime endedAt;
+}
+
+public class Transport {
+    private Long transportId;
+    private Chain chain;
+    private TransportMode transportMode;
+    private BigDecimal distance;
+    private FuelType fuelType;
+    private BigDecimal capacity;
+}
+
+public class CarbonEmission {
+    private Long emissionId;
+    private Chain chain;
+    private EmissionFactor emissionFactor;
+    private BigDecimal co2Kg;
+    private CalculationMethod calculationMethod;
+    private LocalDate calculatedAt;
+}
+
+public class Report {
+    private Long reportId;
+    private Supplier supplier;
+    private LocalDate periodStartAt;
+    private LocalDate periodEndAt;
+    private BigDecimal totalCo2Kg;
+    private Integer trackedProductCount;
+    private LocalDateTime generatedAt;
+}
+
+public class AuditLog {
+    private Long logId;
+    private User user;
+    private AuditAction action;
+    private String affectedTable;
+    private LocalDateTime performedAt;
+}
+```
+
+**Notas específicas:**
+- `User.passwordHash` guarda só o hash (Bcrypt, ver seção 9.1) — a senha em texto puro nunca é mantida em nenhuma entidade, existe apenas transitoriamente no `UserRequestDTO`/`LoginRequestDTO` até ser processada.
+- `Supplier.cnpj` usa o value object `Cnpj` (não `String`), validado no próprio construtor compacto (seção 4.2).
+- `CarbonEmission.emissionFactor` usa o value object `EmissionFactor`, não um `BigDecimal` cru — encapsula valor + unidade de referência.
+- Nenhuma entidade tem campo de score de sustentabilidade ou código de rastreamento — ambos são calculados em tempo de execução (regras de negócio 2 e 3, seção 11), nunca persistidos.
+
+---
+
+## 8. Casos de Uso
 
 | Caso de Uso | Descrição |
 |---|---|
@@ -189,27 +392,27 @@ src/test/java/.../
 
 ---
 
-## 7. Rotas da API
+## 9. Rotas da API
 
-### 7.1 Autenticação
+### 9.1 Autenticação
 
 - Modelo: **JWT stateless** — sem sessão guardada no servidor.
 - Fluxo:
-    1. Cliente envia `POST /api/v1/auth/login` com `email` + `password`.
-    2. `AuthenticateUserUseCase` valida a senha (hash comparado via `BcryptPasswordHasher`) e, se correta, `JwtTokenProvider` emite um token assinado com `userId`, `email` e `role` como claims.
-    3. Cliente passa a enviar o token em toda requisição protegida: header `Authorization: Bearer <token>`.
-    4. `JwtAuthenticationFilter` intercepta a requisição, valida assinatura e expiração do token, e popula o contexto de segurança do Spring com o `role` do usuário.
-    5. Controllers restringem acesso por perfil com `@PreAuthorize("hasRole('ADMIN')")` (ou equivalente), conferido contra o `role` do token.
-- Expiração do token controlada por `JWT_EXPIRATION_MS` (ver seção 9). **Sem refresh token implementado** — decisão em aberto (ver seção 11).
+  1. Cliente envia `POST /api/v1/auth/login` com `email` + `password`.
+  2. `AuthenticateUserUseCase` valida a senha (hash comparado via `BcryptPasswordHasher`) e, se correta, `JwtTokenProvider` emite um token assinado com `userId`, `email` e `role` como claims.
+  3. Cliente passa a enviar o token em toda requisição protegida: header `Authorization: Bearer <token>`.
+  4. `JwtAuthenticationFilter` intercepta a requisição, valida assinatura e expiração do token, e popula o contexto de segurança do Spring com o `role` do usuário.
+  5. Controllers restringem acesso por perfil com `@PreAuthorize("hasRole('ADMIN')")` (ou equivalente), conferido contra o `role` do token.
+- Expiração do token controlada por `JWT_EXPIRATION_MS` (ver seção 12). **Sem refresh token implementado** — decisão em aberto (ver seção 14).
 - Duas rotas são **públicas** (sem token, por design): login, e a consulta de rastreabilidade/pegada de carbono via QR Code — o objetivo é transparência pública da jornada do lote.
 
-### 7.2 Convenções Gerais
+### 9.2 Convenções Gerais
 
 - Base path: `/api/v1`
 - `Content-Type: application/json` em todas as rotas.
 - Coluna **Acesso**: `Público` (sem token) · `Autenticado` (qualquer `role` válida) · ou a lista de `role`s permitidas.
 
-### 7.3 Endpoints
+### 9.3 Endpoints
 
 **Auth**
 
@@ -297,16 +500,16 @@ src/test/java/.../
 
 ---
 
-## 8. Contratos (DTOs)
+## 10. Contratos (DTOs)
 
-Definições completas dos DTOs referenciados na seção 7, como `record` (ver seção 4.2). Convenções gerais:
+Definições completas dos DTOs referenciados na seção 9, como `record` (ver seção 4.2). Convenções gerais:
 
 - Endpoints de listagem (`GET` que retornam array) aceitam `page` e `size` como query params — omitidos abaixo por serem transversais.
 - `responsibleUserId` (em `Chain`) e `userId` (em `AuditLog`) **nunca vêm no corpo da requisição** — são preenchidos a partir do usuário autenticado no token JWT, nunca informados pelo cliente (evita que alguém registre uma ação em nome de outro usuário).
 - `emissionFactor` e `co2Kg` **nunca vêm no corpo da requisição** de `CarbonEmission` — são calculados por `CarbonFootprintCalculator` a partir dos dados de `Transport` da etapa e da metodologia escolhida.
 - Tipos seguem o modelo de dados: `DATE` → `LocalDate`, `DATETIME` → `LocalDateTime`, `DECIMAL` → `BigDecimal`.
 
-### 8.1 Auth
+### 10.1 Auth
 
 ```java
 public record LoginRequestDTO(
@@ -321,7 +524,7 @@ public record LoginResponseDTO(
 ) {}
 ```
 
-### 8.2 User
+### 10.2 User
 
 ```java
 public record UserRequestDTO(
@@ -344,7 +547,7 @@ public record UpdateUserRoleRequestDTO(
 ) {}
 ```
 
-### 8.3 Address (compartilhado por Supplier e Chain)
+### 10.3 Address (compartilhado por Supplier e Chain)
 
 ```java
 public record AddressRequestDTO(
@@ -369,7 +572,7 @@ public record AddressResponseDTO(
 ) {}
 ```
 
-### 8.4 Supplier
+### 10.4 Supplier
 
 ```java
 public record SupplierRequestDTO(
@@ -397,7 +600,7 @@ public record SupplierRankingDTO(
 ) {}
 ```
 
-### 8.5 Certification
+### 10.5 Certification
 
 ```java
 public record CertificationRequestDTO(
@@ -423,7 +626,7 @@ public record UpdateCertificationStatusRequestDTO(
 ) {}
 ```
 
-### 8.6 Product
+### 10.6 Product
 
 ```java
 public record ProductRequestDTO(
@@ -442,7 +645,7 @@ public record ProductResponseDTO(
 ) {}
 ```
 
-### 8.7 Batch
+### 10.7 Batch
 
 ```java
 public record BatchRequestDTO(
@@ -473,13 +676,13 @@ public record BatchTraceabilityResponseDTO(
 ) {}
 ```
 
-### 8.8 Chain
+### 10.8 Chain
 
 ```java
 public record ChainRequestDTO(
     Long batchId,
-    Long originAddressId,      // opcional/nullable — ver pendência na seção 12
-    Long destinationAddressId, // opcional/nullable — ver pendência na seção 12
+    Long originAddressId,      // opcional/nullable — ver pendência na seção 14
+    Long destinationAddressId, // opcional/nullable — ver pendência na seção 14
     StageType stageType,
     LocalDateTime startedAt,
     LocalDateTime endedAt
@@ -500,7 +703,7 @@ public record ChainResponseDTO(
 ) {}
 ```
 
-### 8.9 Transport
+### 10.9 Transport
 
 ```java
 public record TransportRequestDTO(
@@ -521,7 +724,7 @@ public record TransportResponseDTO(
 ) {}
 ```
 
-### 8.10 CarbonEmission
+### 10.10 CarbonEmission
 
 ```java
 public record CarbonEmissionRequestDTO(
@@ -545,7 +748,7 @@ public record CarbonFootprintResponseDTO(
 ) {}
 ```
 
-### 8.11 Report
+### 10.11 Report
 
 ```java
 public record ReportRequestDTO(
@@ -565,7 +768,7 @@ public record ReportResponseDTO(
 ) {}
 ```
 
-### 8.12 AuditLog
+### 10.12 AuditLog
 
 ```java
 public record AuditLogResponseDTO(
@@ -579,7 +782,7 @@ public record AuditLogResponseDTO(
 
 ---
 
-## 9. Regras de Negócio
+## 11. Regras de Negócio
 
 1. **Toda etapa da cadeia (`Chain`) exige um usuário responsável** (`responsibleUserId`, FK obrigatória para `User`) — nenhuma etapa pode ser registrada sem rastreabilidade de quem a executou/autorizou.
 2. **O score de sustentabilidade do fornecedor não é armazenado.** É sempre calculado dinamicamente por `RankSuppliersBySustainabilityUseCase`, a partir de certificações válidas e emissões acumuladas — evita dado derivado desatualizado no banco.
@@ -593,7 +796,7 @@ public record AuditLogResponseDTO(
 
 ---
 
-## 10. Variáveis de Ambiente
+## 12. Variáveis de Ambiente
 
 | Variável | Descrição | Exemplo |
 |---|---|---|
@@ -607,11 +810,30 @@ public record AuditLogResponseDTO(
 | `CORS_ALLOWED_ORIGINS` | Origem(ns) permitida(s) para o frontend Angular | `http://localhost:4200` |
 | `FLYWAY_ENABLED` | Habilita execução automática das migrations ao subir a aplicação | `true` |
 
-> Não são utilizados arquivos `.env` neste projeto. A configuração é gerenciada diretamente no `application.properties` utilizando placeholders com valores default para desenvolvimento local (`${VARIAVEL:valor_padrao}`), que podem ser sobrescritos por variáveis de ambiente do sistema operacional, container Docker ou pipeline de CI/CD em produção.
+### Estratégia: placeholders com default no `application.properties`
+
+`application.properties` (commitado) referencia cada variável com a sintaxe `${VAR:default}` — o Spring usa o valor real da variável de ambiente se ela existir, e cai no default (segundo argumento) se não existir:
+
+```properties
+# Valores com default seguro para rodar localmente sem configurar nada:
+server.port=${SERVER_PORT:8080}
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/supply_chain_verde}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:postgres}
+jwt.expiration-ms=${JWT_EXPIRATION_MS:3600000}
+cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+flyway.enabled=${FLYWAY_ENABLED:true}
+
+# Segredos reais — SEM default. Se a variável não existir, o Spring recusa
+# subir a aplicação (fail-fast), em vez de rodar com um valor previsível:
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
+jwt.secret=${JWT_SECRET}
+```
+
+Em desenvolvimento local, `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` precisam ser exportados no shell, definidos na configuração de execução da IDE, ou passados via `env_file` do Docker Compose (para quem já for rodar o Postgres local via Compose). Em produção/CI, as mesmas variáveis vêm da plataforma de deploy (Kubernetes Secrets, secrets do CI/CD, etc.) — nenhum valor secreto é commitado em nenhum arquivo do repositório.
 
 ---
 
-## 11. Comandos Úteis
+## 13. Comandos Úteis
 
 ```bash
 # Build
@@ -632,7 +854,7 @@ mvn verify -Pintegration-test
 
 ---
 
-## 12. Decisões em Aberto
+## 14. Decisões em Aberto
 
 - **`Chain.originAddressId` / `destinationAddressId`**: ainda não decidido se são obrigatórios ou opcionais (nullable). Recomendação registrada em `decisoes-tecnicas-supply-chain-verde.md`: tornar ambos **nullable**, já que nem toda etapa tem as duas pontas preenchidas (ex: produção não tem "origem" anterior).
 - **Estratégia de refresh token**: hoje o JWT expira e o usuário precisa logar novamente; decidir se vale a pena implementar refresh token para melhorar a experiência sem comprometer segurança.
