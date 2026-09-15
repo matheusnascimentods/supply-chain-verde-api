@@ -67,20 +67,20 @@
 
 *Depende de: Fase 1 (schema deve refletir as entidades de domínio). Pode ser feita em paralelo com a Fase 1 por outra pessoa, já que é SQL puro.*
 
-**Decisão pendente antes de começar:** `Chain.originAddressId`/`destinationAddressId` — nullable ou não? (Recomendação registrada: nullable.)
+**Decisão aplicada:** `Chain.originAddressId`/`destinationAddressId` são nullable, já que nem toda etapa tem origem e destino preenchidos.
 
-- [ ] `V1__create_address.sql`
-- [ ] `V2__create_supplier.sql`
-- [ ] `V3__create_certification.sql`
-- [ ] `V4__create_product.sql`
-- [ ] `V5__create_batch.sql`
-- [ ] `V6__create_user.sql`
-- [ ] `V7__create_chain.sql`
-- [ ] `V8__create_transport.sql`
-- [ ] `V9__create_carbon_emission.sql`
-- [ ] `V10__create_report.sql`
-- [ ] `V11__create_audit_log.sql`
-- [ ] Rodar `mvn flyway:migrate` e confirmar todas as tabelas criadas corretamente no Postgres local
+- [x] `V1__create_address.sql`
+- [x] `V2__create_supplier.sql`
+- [x] `V3__create_certification.sql`
+- [x] `V4__create_product.sql`
+- [x] `V5__create_batch.sql`
+- [x] `V6__create_user.sql`
+- [x] `V7__create_chain.sql`
+- [x] `V8__create_transport.sql`
+- [x] `V9__create_carbon_emission.sql`
+- [x] `V10__create_report.sql`
+- [x] `V11__create_audit_log.sql`
+- [x] Rodar `mvn flyway:migrate` e confirmar todas as tabelas criadas corretamente no Postgres local
 
 ---
 
