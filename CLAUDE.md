@@ -45,6 +45,8 @@ infrastructure  ← Spring, Hibernate, controllers, segurança — implementa in
 - `application` só conhece `domain` (interfaces de repositório, entidades, serviços de domínio).
 - `infrastructure` implementa as interfaces definidas em `domain` (ex: `SupplierRepository` é interface no domain; `SupplierRepositoryImpl` é a implementação concreta com Spring Data JPA).
 
+**Status atual:** a Fase 1 (`domain`) está implementada com enums, value objects, entidades, interfaces de repositório, serviços de domínio e exceções. A camada permanece livre de anotações Spring/JPA; os repositórios concretos ficam para a Fase 3 em `infrastructure/persistence`.
+
 ---
 
 ## 4. Convenções de Código

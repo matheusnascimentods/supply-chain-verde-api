@@ -26,40 +26,40 @@
 *Zero dependências externas. Pode ser feita inteira antes de qualquer outra fase.*
 
 ### Enums (`domain/enums/`)
-- [ ] `CertificationStatus`
-- [ ] `ProductCategory`
-- [ ] `ProductUnit`
-- [ ] `StageType`
-- [ ] `TransportMode`
-- [ ] `FuelType`
-- [ ] `CalculationMethod`
-- [ ] `UserRole`
-- [ ] `AuditAction`
+- [x] `CertificationStatus`
+- [x] `ProductCategory`
+- [x] `ProductUnit`
+- [x] `StageType`
+- [x] `TransportMode`
+- [x] `FuelType`
+- [x] `CalculationMethod`
+- [x] `UserRole`
+- [x] `AuditAction`
 
 ### Value Objects (`domain/valueobject/`) — implementados como `record`
-- [ ] `Cnpj` (com validação no construtor compacto)
-- [ ] `EmissionFactor`
+- [x] `Cnpj` (com validação no construtor compacto)
+- [x] `EmissionFactor`
 
 ### Entidades (`domain/entity/`) — na ordem que respeita as referências entre elas
-- [ ] `Address`, `User` (sem dependência de outra entidade)
-- [ ] `Supplier` (referencia `Address`), `Product`
-- [ ] `Certification` (referencia `Supplier`), `Batch` (referencia `Product` + `Supplier`)
-- [ ] `Chain` (referencia `Batch`, `Address` ×2, `User`)
-- [ ] `Transport`, `CarbonEmission` (referenciam `Chain`)
-- [ ] `Report` (referencia `Supplier`)
-- [ ] `AuditLog` (referencia `User`)
+- [x] `Address`, `User` (sem dependência de outra entidade)
+- [x] `Supplier` (referencia `Address`), `Product`
+- [x] `Certification` (referencia `Supplier`), `Batch` (referencia `Product` + `Supplier`)
+- [x] `Chain` (referencia `Batch`, `Address` ×2, `User`)
+- [x] `Transport`, `CarbonEmission` (referenciam `Chain`)
+- [x] `Report` (referencia `Supplier`)
+- [x] `AuditLog` (referencia `User`)
 
 ### Repositórios — apenas interfaces (`domain/repository/`)
-- [ ] Uma interface por entidade: `SupplierRepository`, `CertificationRepository`, `ProductRepository`, `BatchRepository`, `AddressRepository`, `ChainRepository`, `TransportRepository`, `CarbonEmissionRepository`, `ReportRepository`, `UserRepository`, `AuditLogRepository`
+- [x] Uma interface por entidade: `SupplierRepository`, `CertificationRepository`, `ProductRepository`, `BatchRepository`, `AddressRepository`, `ChainRepository`, `TransportRepository`, `CarbonEmissionRepository`, `ReportRepository`, `UserRepository`, `AuditLogRepository`
 
 ### Serviços de Domínio (`domain/service/`)
-- [ ] `PasswordHasher` (interface — implementação concreta fica na Fase 6)
-- [ ] `CarbonFootprintCalculator` (soma emissões de todas as etapas de um lote)
-- [ ] `SustainabilityScoreCalculator` (score do fornecedor: certificações + emissões)
+- [x] `PasswordHasher` (interface — implementação concreta fica na Fase 6)
+- [x] `CarbonFootprintCalculator` (soma emissões de todas as etapas de um lote)
+- [x] `SustainabilityScoreCalculator` (score do fornecedor: certificações + emissões)
 
 ### Exceções (`domain/exception/`)
-- [ ] `DomainException` (classe base)
-- [ ] `SupplierNotFoundException`, `BatchNotFoundException`, `CertificationExpiredException`, `InvalidStageTransitionException`
+- [x] `DomainException` (classe base)
+- [x] `SupplierNotFoundException`, `BatchNotFoundException`, `CertificationExpiredException`, `InvalidStageTransitionException`
 
 ---
 
