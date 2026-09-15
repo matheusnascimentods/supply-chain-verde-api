@@ -41,7 +41,7 @@
 - [x] `EmissionFactor`
 
 ### Entidades (`domain/entity/`) — na ordem que respeita as referências entre elas
-- [ ] `Address`, `User` (sem dependência de outra entidade)
+- [x] `Address`, `User` (sem dependência de outra entidade)
 - [ ] `Supplier` (referencia `Address`), `Product`
 - [ ] `Certification` (referencia `Supplier`), `Batch` (referencia `Product` + `Supplier`)
 - [ ] `Chain` (referencia `Batch`, `Address` ×2, `User`)
