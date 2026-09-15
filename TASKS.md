@@ -50,7 +50,7 @@
 - [ ] `AuditLog` (referencia `User`)
 
 ### Repositórios — apenas interfaces (`domain/repository/`)
-- [ ] Uma interface por entidade: `SupplierRepository`, `CertificationRepository`, `ProductRepository`, `BatchRepository`, `AddressRepository`, `ChainRepository`, `TransportRepository`, `CarbonEmissionRepository`, `ReportRepository`, `UserRepository`, `AuditLogRepository`
+- [x] Uma interface por entidade: `SupplierRepository`, `CertificationRepository`, `ProductRepository`, `BatchRepository`, `AddressRepository`, `ChainRepository`, `TransportRepository`, `CarbonEmissionRepository`, `ReportRepository`, `UserRepository`, `AuditLogRepository`
 
 ### Serviços de Domínio (`domain/service/`)
 - [ ] `PasswordHasher` (interface — implementação concreta fica na Fase 6)
