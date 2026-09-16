@@ -99,8 +99,13 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 ### Status de Implementação
 
 - **Fase 1 — Domain Layer concluída**: enums, value objects, entidades de domínio, interfaces de repositório, serviços de domínio e exceções estão implementados.
-- A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas com persistência ficam para `infrastructure` nas próximas fases.
-- Validação local realizada com `./mvnw -q -DskipTests compile`.
+- **Fase 2 — Migrations concluída**: migrations Flyway versionadas para as 11 tabelas do modelo.
+- **Fase 3 — Persistence Layer concluída**: entidades JPA, repositórios Spring Data, implementações dos repositórios de domínio e mappers JPA.
+- **Fase 4 — Application Layer concluída**: DTOs imutáveis, mappers MapStruct, casos de uso e exceções da aplicação.
+- **Fase 5 — Web Layer concluída**: controllers REST, tratamento global de exceções, CORS e documentação OpenAPI/Swagger.
+- A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
+- A autenticação JWT, o hash BCrypt e as regras de autorização por perfil permanecem na Fase 6.
+- Validação local realizada com `./mvnw --batch-mode verify`.
 
 ### Principais Entidades de Domínio
 - **`Supplier`**: Fornecedores cadastrados com CNPJ validado e sede em `Address`.
@@ -142,6 +147,17 @@ src/main/java/br/com/anhembi/supplychainverde/
 └── SupplyChainVerdeApplication.java
 ```
 
+### Pipeline de Qualidade
+
+Os Pull Requests executam automaticamente:
+
+- build e testes Maven;
+- geração de cobertura JaCoCo, publicada como artifact;
+- revisão de dependências pelo Dependency Review;
+- análise estática de segurança com CodeQL.
+
+O CodeQL usa Java 25 explicitamente e não exige token externo. O Dependency Review depende do Dependency Graph habilitado nas configurações de segurança do repositório.
+
 ---
 
 ## ⚡ Quick Start (com Docker Compose)
@@ -169,6 +185,11 @@ Isso iniciará o PostgreSQL na porta `5432` com o banco `supply_chain_verde`.
 ```
 
 A API estará disponível em: **`http://localhost:8080`**
+
+A documentação interativa OpenAPI/Swagger fica disponível em:
+
+- **`http://localhost:8080/swagger-ui.html`**
+- **`http://localhost:8080/v3/api-docs`**
 
 ---
 
