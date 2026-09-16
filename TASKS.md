@@ -89,16 +89,16 @@
 *Depende de: Fases 1 e 2.*
 
 ### Entidades JPA (`infrastructure/persistence/jpa/`) — classes com Lombok, nunca record
-- [ ] Uma `*JpaEntity` por entidade (11 no total, mesma ordem da Fase 1)
+- [x] Uma `*JpaEntity` por entidade (11 no total, mesma ordem da Fase 1)
 
 ### Repositórios Spring Data (`infrastructure/persistence/repository/`)
-- [ ] Uma `*JpaRepository` (interface) por entidade
+- [x] Uma `*JpaRepository` (interface) por entidade
 
 ### Implementações (`infrastructure/persistence/repositoryimpl/`)
-- [ ] Uma `*RepositoryImpl` por entidade, implementando a interface do domain (Fase 1)
+- [x] Uma `*RepositoryImpl` por entidade, implementando a interface do domain (Fase 1)
 
 ### Mappers JPA (`infrastructure/persistence/mapper/`) — interfaces `@Mapper`
-- [ ] Uma `*JpaMapper` por entidade (JPA entity ↔ domain entity)
+- [x] Uma `*JpaMapper` por entidade (JPA entity ↔ domain entity)
 
 ---
 
