@@ -107,25 +107,25 @@
 *Depende apenas da Fase 1 (domain) — pode ser feita em paralelo com a Fase 3.*
 
 ### DTOs (`application/dto/`) — `record`, ver contratos completos no `CLAUDE.md` (seção 8)
-- [ ] Address, Supplier (+ `SupplierRankingDTO`), Certification, Product, Batch, Chain, Transport, CarbonEmission (+ `CarbonFootprintResponseDTO`), Report, User, Auth
+- [x] Address, Supplier (+ `SupplierRankingDTO`), Certification, Product, Batch, Chain, Transport, CarbonEmission (+ `CarbonFootprintResponseDTO`), Report, User, Auth
 
 ### Mappers de Aplicação (`application/mapper/`) — interfaces `@Mapper`
-- [ ] Uma `*DtoMapper` por entidade (DTO ↔ domain entity)
+- [x] Uma `*DtoMapper` por entidade (DTO ↔ domain entity)
 
 ### Casos de Uso (`application/usecase/`) — ver descrições completas no `CLAUDE.md` (seção 6)
-- [ ] `supplier/`: Register, Update, Get, List, RankBySustainability
-- [ ] `certification/`: Register, UpdateStatus, ListExpiring
-- [ ] `product/`: Register, Update, List
-- [ ] `batch/`: Register, GetTraceability, ListBySupplier
-- [ ] `chain/`: RegisterStage, ListStagesByBatch
-- [ ] `transport/`: Register
-- [ ] `emission/`: Calculate, GetBatchCarbonFootprint
-- [ ] `report/`: Generate, Get, ListBySupplier
-- [ ] `user/`: Register, Authenticate, UpdateRole
-- [ ] `audit/`: ListAuditLogs
+- [x] `supplier/`: Register, Update, Get, List, RankBySustainability
+- [x] `certification/`: Register, UpdateStatus, ListExpiring
+- [x] `product/`: Register, Update, List
+- [x] `batch/`: Register, GetTraceability, ListBySupplier
+- [x] `chain/`: RegisterStage, ListStagesByBatch
+- [x] `transport/`: Register
+- [x] `emission/`: Calculate, GetBatchCarbonFootprint
+- [x] `report/`: Generate, Get, ListBySupplier
+- [x] `user/`: Register, Authenticate, UpdateRole
+- [x] `audit/`: ListAuditLogs
 
 ### Exceções de Aplicação (`application/exception/`)
-- [ ] `ApplicationException` (base), `ValidationException`, `UnauthorizedActionException`
+- [x] `ApplicationException` (base), `ValidationException`, `UnauthorizedActionException`
 
 ---
 
@@ -133,9 +133,9 @@
 
 *Depende de: Fases 3 e 4 completas.*
 
-- [ ] Controllers (`infrastructure/web/controller/`) — um por recurso, seguindo as rotas exatas do `CLAUDE.md` (seção 7): Supplier, Certification, Product, Batch, Chain, Transport, CarbonEmission, Report, User, Auth, AuditLog
-- [ ] `GlobalExceptionHandler` (`infrastructure/web/advice/`) — traduzir exceções de domain/application em status HTTP
-- [ ] `SwaggerConfig`, `CorsConfig`, `WebConfig` (`infrastructure/web/config/`)
+- [x] Controllers (`infrastructure/web/controller/`) — um por recurso, seguindo as rotas exatas do `CLAUDE.md` (seção 7): Supplier, Certification, Product, Batch, Chain, Transport, CarbonEmission, Report, User, Auth, AuditLog
+- [x] `GlobalExceptionHandler` (`infrastructure/web/advice/`) — traduzir exceções de domain/application em status HTTP
+- [x] `SwaggerConfig`, `CorsConfig`, `WebConfig` (`infrastructure/web/config/`)
 
 ---
 
