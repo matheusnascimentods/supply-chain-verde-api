@@ -5,6 +5,8 @@ import br.com.anhembi.supplychainverde.application.dto.auth.LoginResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
+import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
+import br.com.anhembi.supplychainverde.infrastructure.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthenticateUserUseCase {
     private final UserRepository userRepository;
+    private final PasswordHasher passwordHasher;
+    private final JwtTokenProvider jwtTokenProvider;
 
     public LoginResponseDTO execute(LoginRequestDTO request) {
         if (request == null || request.email() == null || request.password() == null) {
@@ -21,9 +25,12 @@ public class AuthenticateUserUseCase {
         }
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UnauthorizedActionException("Credenciais inválidas."));
-        if (!request.password().equals(user.getPassword())) {
+        if (!passwordHasher.matches(request.password(), user.getPassword())) {
             throw new UnauthorizedActionException("Credenciais inválidas.");
         }
-        return new LoginResponseDTO("jwt-token-placeholder", LocalDateTime.now().plusHours(1), user.getRole());
+
+        String token = jwtTokenProvider.generateToken(user);
+        LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
+        return new LoginResponseDTO(token, expiresAt, user.getRole());
     }
 }
