@@ -143,12 +143,12 @@
 
 *Depende de: `User` (Fases 1 e 3) e `PasswordHasher` (interface da Fase 1).*
 
-- [ ] `BcryptPasswordHasher` (implementa `PasswordHasher` do domain)
-- [ ] `JwtTokenProvider` (emissão e validação do token)
-- [ ] `JwtAuthenticationFilter`
-- [ ] `CustomUserDetailsService`
-- [ ] `SecurityConfig` (regras de autorização por `role`, rotas públicas: login + rastreabilidade/pegada de carbono via QR Code)
-- [ ] Testar o fluxo completo: login → token → chamada autenticada → chamada sem token em rota protegida (deve retornar 401/403)
+- [x] `BcryptPasswordHasher` (implementa `PasswordHasher` do domain)
+- [x] `JwtTokenProvider` (emissão e validação do token)
+- [x] `JwtAuthenticationFilter`
+- [x] `CustomUserDetailsService`
+- [x] `SecurityConfig` (regras de autorização por `role`, rotas públicas: login + rastreabilidade/pegada de carbono via QR Code)
+- [x] Testar o fluxo completo: login → token → chamada autenticada → chamada sem token em rota protegida (deve retornar 401/403)
 
 ---
 
