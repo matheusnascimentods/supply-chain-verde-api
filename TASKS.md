@@ -156,8 +156,8 @@
 
 *Depende de: `AuditLog` (Fases 1 e 3).*
 
-- [ ] `AuditLogInterceptor` (AOP, `infrastructure/audit/`) — nenhum caso de uso deve chamar isso manualmente
-- [ ] Validar que uma ação de escrita (ex: criar `Supplier`) gera um registro em `AuditLog` automaticamente
+- [x] `AuditLogInterceptor` (AOP, `infrastructure/audit/`) — nenhum caso de uso deve chamar isso manualmente
+- [x] Validar que uma ação de escrita (ex: criar `Supplier`) gera um registro em `AuditLog` automaticamente
 
 ---
 
