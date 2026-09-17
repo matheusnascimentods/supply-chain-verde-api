@@ -3,6 +3,8 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 import br.com.anhembi.supplychainverde.domain.enums.AuditAction;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,6 +25,7 @@ public class AuditLogJpaEntity {
     private UserJpaEntity user;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "action", nullable = false)
     private AuditAction action;
 

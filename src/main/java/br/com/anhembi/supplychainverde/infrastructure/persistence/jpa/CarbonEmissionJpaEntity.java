@@ -3,6 +3,8 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 import br.com.anhembi.supplychainverde.domain.enums.CalculationMethod;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -30,6 +32,7 @@ public class CarbonEmissionJpaEntity {
     private BigDecimal co2Kg;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "calculation_method", nullable = false)
     private CalculationMethod calculationMethod;
 

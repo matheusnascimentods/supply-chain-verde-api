@@ -165,10 +165,10 @@
 
 *Interligada com as fases anteriores — idealmente feita junto de cada fase, não só no fim.*
 
-- [ ] Testes unitários (`*Test.java`) — `domain/`: `CarbonFootprintCalculator`, `SustainabilityScoreCalculator`, `Cnpj`
-- [ ] Testes unitários (`*Test.java`) — `application/`: cada Use Case, com mocks de repository
-- [ ] Testes de integração (`*IT.java`) — `infrastructure/`: controllers + repositories, com Testcontainers + Postgres real
-- [ ] Dados de teste (seed) para consultas de relatório exigidas no edital
+- [x] Testes unitários (`*Test.java`) — `domain/`: `CarbonFootprintCalculator`, `SustainabilityScoreCalculator`, `Cnpj`
+- [x] Testes unitários (`*Test.java`) — `application/`: cada Use Case, com mocks de repository
+- [x] Testes de integração (`*IT.java`) — `infrastructure/`: controllers + repositories, com Testcontainers + Postgres real
+- [x] Dados de teste (seed) para consultas de relatório exigidas no edital
 
 ---
 
