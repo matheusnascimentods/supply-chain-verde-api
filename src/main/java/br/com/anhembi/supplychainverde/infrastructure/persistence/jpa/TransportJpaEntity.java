@@ -4,6 +4,8 @@ import br.com.anhembi.supplychainverde.domain.enums.FuelType;
 import br.com.anhembi.supplychainverde.domain.enums.TransportMode;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 
 @Entity
@@ -24,6 +26,7 @@ public class TransportJpaEntity {
     private ChainJpaEntity chain;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "transport_mode", nullable = false)
     private TransportMode transportMode;
 
@@ -31,6 +34,7 @@ public class TransportJpaEntity {
     private BigDecimal distance;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "fuel_type", nullable = false)
     private FuelType fuelType;
 
