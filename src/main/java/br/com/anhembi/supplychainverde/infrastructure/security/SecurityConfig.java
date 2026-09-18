@@ -47,6 +47,11 @@ public class SecurityConfig {
                             response.getWriter().write("{\"message\":\"Acesso negado para este perfil.\"}");
                         }))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/traceability").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/carbon-footprint").permitAll()
