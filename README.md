@@ -191,6 +191,16 @@ A documentação interativa OpenAPI/Swagger fica disponível em:
 - **`http://localhost:8080/swagger-ui.html`**
 - **`http://localhost:8080/v3/api-docs`**
 
+### Usuários Seed
+
+As migrations de seed criam usuários para desenvolvimento e demonstração. A senha de todos os usuários seed é:
+
+```text
+rolocompressor06
+```
+
+Essa credencial é exclusiva para o ambiente local/demonstrativo e deve ser substituída antes de qualquer uso em ambiente compartilhado ou de produção.
+
 ---
 
 ## 💻 Comandos Úteis de Desenvolvimento
