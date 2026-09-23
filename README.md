@@ -1,7 +1,7 @@
 # 🌱 Supply Chain Verde — API de Rastreabilidade & Sustentabilidade
 
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Flyway](https://img.shields.io/badge/Flyway-Migrations-CC0200?style=for-the-badge&logo=flyway&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
@@ -23,7 +23,7 @@ sequenceDiagram
     participant AOP as AuditLogInterceptor (AOP)
     participant DB as PostgreSQL
 
-    User->>API: POST /api/v1/chains (Registrar Etapa + Transporte)
+    User->>API: POST /api/v1/batches/{batchId}/stages (Registrar Etapa)
     API->>UC: RegisterChainStageUseCase.execute(dto)
     UC->>Domain: CarbonFootprintCalculator.calculate(distancia, modal, combustivel)
     Domain-->>UC: Emissão Calculada (CO₂ kg + Fator Vigente)
@@ -73,7 +73,7 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 | Camada | Tecnologia |
 |---|---|
 | **Linguagem** | Java 25 (LTS) |
-| **Framework** | Spring Boot 4.1.x (WebMVC, Data JPA, Security, Validation, Actuator) |
+| **Framework** | Spring Boot 4.0.8 (WebMVC, Data JPA, Security, Validation, Actuator) |
 | **Banco de Dados** | PostgreSQL 17 |
 | **Database Migrations** | Flyway (SQL versionado puro) |
 | **Mapeamento Objeto-Objeto** | MapStruct 1.6.3 |
@@ -104,7 +104,9 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Fase 4 — Application Layer concluída**: DTOs imutáveis, mappers MapStruct, casos de uso e exceções da aplicação.
 - **Fase 5 — Web Layer concluída**: controllers REST, tratamento global de exceções, CORS e documentação OpenAPI/Swagger.
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
-- A autenticação JWT, o hash BCrypt e as regras de autorização por perfil permanecem na Fase 6.
+- **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
+- **Fase 7 — Auditoria concluída**: interceptor AOP para registro automático de ações relevantes.
+- **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
 ### Principais Entidades de Domínio
@@ -146,6 +148,16 @@ src/main/java/br/com/anhembi/supplychainverde/
 │
 └── SupplyChainVerdeApplication.java
 ```
+
+## 📚 Documentação do Projeto
+
+| Documento | Conteúdo |
+|---|---|
+| [`docs/spec.md`](docs/spec.md) | Requisitos funcionais, perfis, regras de negócio e fluxos |
+| [`docs/plan.md`](docs/plan.md) | Arquitetura técnica, stack, persistência, segurança e testes |
+| [`docs/reference.md`](docs/reference.md) | Entidades, casos de uso, endpoints, DTOs e configuração |
+| [`docs/tasks.md`](docs/tasks.md) | Checklist de implementação e evolução |
+| [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | Instruções gerais para o GitHub Copilot |
 
 ### Pipeline de Qualidade
 
@@ -237,59 +249,63 @@ docker compose down -v
 | `POST` | `/api/v1/suppliers` | Cadastro de novo fornecedor | `ADMIN`, `MANAGER` |
 | `GET` | `/api/v1/suppliers` | Listagem de fornecedores cadastrados | Autenticado |
 | `GET` | `/api/v1/suppliers/ranking` | Ranking dinâmico por sustentabilidade | Autenticado |
-| `GET` | `/api/v1/suppliers/{id}` | Detalhes do fornecedor | Autenticado |
-| `PUT` | `/api/v1/suppliers/{id}` | Atualização de dados cadastrais | `ADMIN`, `MANAGER` |
+| `GET` | `/api/v1/suppliers/{supplierId}` | Detalhes do fornecedor | Autenticado |
+| `PUT` | `/api/v1/suppliers/{supplierId}` | Atualização de dados cadastrais | `ADMIN`, `MANAGER` |
 
 ### 📜 Certificações (`/api/v1/certifications`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/certifications` | Registro de certificação ambiental | `ADMIN`, `AUDITOR` |
-| `PATCH` | `/api/v1/certifications/{id}/status` | Atualização do status da certificação | `ADMIN`, `AUDITOR` |
-| `GET` | `/api/v1/certifications/expiring` | Consulta de certificações a expirar | `AUDITOR`, `MANAGER` |
+| `POST` | `/api/v1/suppliers/{supplierId}/certifications` | Registro de certificação ambiental | `SUPPLIER`, `ADMIN` |
+| `PATCH` | `/api/v1/certifications/{certificationId}/status` | Atualização do status da certificação | `AUDITOR`, `ADMIN` |
+| `GET` | `/api/v1/certifications/expiring` | Consulta de certificações a expirar | `AUDITOR`, `MANAGER`, `ADMIN` |
 
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/batches` | Criação de novo lote de produto | `SUPPLIER`, `MANAGER` |
-| `GET` | `/api/v1/batches/{id}/traceability` | Jornada completa do lote (QR Code) | **Público** |
-| `GET` | `/api/v1/batches/by-supplier/{supplierId}` | Listagem de lotes por fornecedor | Autenticado |
+| `POST` | `/api/v1/batches` | Criação de novo lote de produto | `SUPPLIER`, `ADMIN` |
+| `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (QR Code) | **Público** |
+| `GET` | `/api/v1/suppliers/{supplierId}/batches` | Listagem de lotes por fornecedor | Autenticado |
 
-### 🔗 Etapas da Cadeia (`/api/v1/chains`)
+### 🔗 Etapas da Cadeia (`/api/v1/batches/{batchId}/stages`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/chains` | Registro de nova etapa na cadeia | Autenticado |
-| `GET` | `/api/v1/chains/by-batch/{batchId}` | Etapas percorridas pelo lote em ordem | Autenticado |
+| `POST` | `/api/v1/batches/{batchId}/stages` | Registro de nova etapa na cadeia | `SUPPLIER`, `MANAGER`, `ADMIN` |
+| `GET` | `/api/v1/batches/{batchId}/stages` | Etapas percorridas pelo lote em ordem | Autenticado |
+| `POST` | `/api/v1/stages/{chainId}/transport` | Registro do transporte da etapa | `SUPPLIER`, `MANAGER`, `ADMIN` |
 
-### 🌿 Emissões de Carbono (`/api/v1/emissions`)
+### 🌿 Emissões de Carbono
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/emissions/calculate` | Cálculo e persistência de emissão de CO₂ | Autenticado |
-| `GET` | `/api/v1/emissions/batch/{batchId}` | Pegada de carbono consolidada do lote | **Público** |
+| `POST` | `/api/v1/stages/{chainId}/emission` | Cálculo e persistência de emissão de CO₂ | `MANAGER`, `ADMIN` |
+| `GET` | `/api/v1/batches/{batchId}/carbon-footprint` | Pegada de carbono consolidada do lote | **Público** |
 
 ### 📊 Relatórios ESG (`/api/v1/reports`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/reports/generate` | Geração de relatório consolidado | `ADMIN`, `AUDITOR` |
-| `GET` | `/api/v1/reports/{id}` | Download / consulta de relatório | Autenticado |
+| `POST` | `/api/v1/suppliers/{supplierId}/reports` | Geração de relatório consolidado | `AUDITOR`, `MANAGER`, `ADMIN` |
+| `GET` | `/api/v1/reports/{reportId}` | Consulta de relatório | `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER` |
+| `GET` | `/api/v1/suppliers/{supplierId}/reports` | Lista relatórios do fornecedor | Conforme proprietário/perfil |
 
 ---
 
 ## 🗂️ Variáveis de Ambiente & Configuração
 
-O projeto dispensa arquivos `.env`. As configurações são centralizadas em [`application.properties`](file:///home/matheusnascimento/IdeaProjects/supply-chain-verde-api/src/main/resources/application.properties) com valores default prontos para ambiente de desenvolvimento local, podendo ser customizadas via variáveis de ambiente:
+O projeto dispensa arquivos `.env` versionados. As configurações são centralizadas em [`application.properties`](src/main/resources/application.properties) e podem ser customizadas via variáveis de ambiente:
 
 | Variável de Ambiente | Descrição | Valor Default (Local) |
 | :--- | :--- | :--- |
 | `SERVER_PORT` | Porta de execução da API | `8080` |
 | `SPRING_DATASOURCE_URL` | URL JDBC do PostgreSQL | `jdbc:postgresql://localhost:5432/supply_chain_verde` |
 | `SPRING_DATASOURCE_USERNAME` | Usuário do banco de dados | `postgres` |
-| `SPRING_DATASOURCE_PASSWORD` | Senha do banco de dados | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | Senha do banco de dados | Configurar localmente; nunca usar default em ambientes compartilhados |
 | `FLYWAY_ENABLED` | Execução automática de migrations Flyway | `true` |
-| `JWT_SECRET` | Chave HMAC de 256 bits para assinatura do token | `404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970` |
+| `JWT_SECRET` | Chave HMAC de 256 bits para assinatura do token | Configurar localmente; obrigatório e forte em ambientes compartilhados |
 | `JWT_EXPIRATION_MS` | Tempo de expiração do token em milissegundos | `3600000` (1 hora) |
 | `CORS_ALLOWED_ORIGINS` | Origem permitida para o frontend cliente | `http://localhost:4200` |
 
 ---
+
+Em desenvolvimento local, defina `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` no ambiente da execução quando necessário. Em ambientes compartilhados ou de produção, esses valores devem ser obrigatoriamente fornecidos por secrets da plataforma e nunca devem ser credenciais previsíveis ou versionadas.
 
 ## 🔒 Segurança & Boas Práticas
 
@@ -313,7 +329,7 @@ O projeto dispensa arquivos `.env`. As configurações são centralizadas em [`a
 
 ## 📄 Licença
 
-Distribuído sob a licença MIT. Veja [`LICENSE.txt`](file:///home/matheusnascimento/IdeaProjects/supply-chain-verde-api/LICENSE.txt) para mais detalhes.
+Distribuído sob a licença MIT. Veja [`LICENSE.txt`](LICENSE.txt) para mais detalhes.
 
 ---
 Feito com ❤️ por [@matheusnascimentods](https://github.com/matheusnascimentods)
