@@ -54,7 +54,8 @@
 ## Fase 5 — Web API
 
 - [x] Criar controllers para todos os recursos.
-- [ ] Implementar e documentar `GET /api/v1/certifications` para listar certificações.
+- [ ] Implementar e documentar `GET /api/v1/certifications` para listar certificações com paginação.
+- [ ] Implementar e documentar `GET /api/v1/batches` para listar todos os lotes com paginação.
 - [x] Criar tratamento global de exceções.
 - [x] Configurar CORS, Web MVC e OpenAPI.
 - [x] Conferir rotas, DTOs e códigos HTTP contra `spec.md`.
