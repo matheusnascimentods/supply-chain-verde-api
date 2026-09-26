@@ -54,6 +54,7 @@
 ## Fase 5 — Web API
 
 - [x] Criar controllers para todos os recursos.
+- [ ] Implementar e documentar `GET /api/v1/certifications` para listar certificações.
 - [x] Criar tratamento global de exceções.
 - [x] Configurar CORS, Web MVC e OpenAPI.
 - [x] Conferir rotas, DTOs e códigos HTTP contra `spec.md`.
@@ -84,6 +85,10 @@
 - [x] Executar `./mvnw --batch-mode verify`.
 - [x] Publicar cobertura JaCoCo no pipeline.
 
+## Fase 10 — Dashboard
+
+- [ ] Criar e documentar a rota `GET /api/v1/dashboard/summary` com os indicadores e lotes recentes necessários à tela de dashboard.
+
 ## Fase 9 — Entregáveis e evolução
 
 - [ ] Formalizar levantamento de requisitos.
@@ -94,4 +99,3 @@
 - [ ] Decidir refresh token.
 - [ ] Decidir mitigação de enumeração de IDs públicos.
 - [ ] Avaliar rate limiting dos endpoints públicos.
-
