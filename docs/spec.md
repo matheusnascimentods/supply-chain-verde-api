@@ -34,6 +34,7 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 - Associar endereço e CNPJ validado ao fornecedor.
 - Registrar certificações ambientais.
 - Atualizar o status de uma certificação.
+- Listar certificações de forma paginada, com limite de itens por página.
 - Consultar certificações próximas do vencimento.
 - Calcular ranking de sustentabilidade sob demanda, sem persistir score derivado.
 
@@ -41,7 +42,7 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 
 - Cadastrar e atualizar produtos com categoria e unidade tipadas.
 - Criar lotes vinculados a produto e fornecedor.
-- Listar lotes de um fornecedor.
+- Listar todos os lotes de forma paginada para os perfis autorizados; fornecedores consultam somente os próprios lotes.
 - Expor a rastreabilidade completa de um lote por endpoint público.
 
 ### 3.4 Etapas, transporte e emissões
@@ -69,9 +70,9 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users/me`, `PATCH /users/{userId}/role` | `admin` ou autenticado |
 | Suppliers | CRUD, ranking e lotes do fornecedor | Conforme RBAC |
-| Certifications | Criar, alterar status e listar expiring | Conforme RBAC |
+| Certifications | `GET /certifications` paginada, criar, alterar status e listar expiring | Conforme RBAC |
 | Products | Criar, atualizar e listar | `admin`, `manager` ou autenticado |
-| Batches | Criar, listar por fornecedor e rastrear | Conforme RBAC; rastreabilidade pública |
+| Batches | Criar, listar todos com paginação, listar por fornecedor e rastrear | Listagem geral: `admin`, `manager`, `auditor`; fornecedor consulta os próprios; rastreabilidade pública |
 | Chains | Criar e listar etapas | Conforme RBAC |
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
@@ -140,3 +141,7 @@ flowchart TD
 - Identificador público UUID separado do ID interno.
 - Painéis analíticos complexos; a API entrega os dados consolidados necessários.
 
+
+## 10. Paginação
+
+As rotas `GET /api/v1/batches` e `GET /api/v1/certifications` devem aceitar `page` (zero-based) e `size` (padrão 20, máximo 100), retornando metadados da página junto aos itens. O limite reduz o volume de dados em cada resposta.

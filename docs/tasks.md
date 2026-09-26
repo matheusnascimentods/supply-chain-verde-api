@@ -58,6 +58,7 @@
 - [ ] Implementar e documentar `GET /api/v1/batches` para listar todos os lotes com paginação.
 - [x] Criar tratamento global de exceções.
 - [x] Configurar CORS, Web MVC e OpenAPI.
+- [ ] Implementar e documentar `GET /api/v1/batches` para listar todos os lotes de forma paginada (`page` zero-based, `size` padrão 20 e máximo 100), restrita a `admin`, `manager` e `auditor`.
 - [x] Conferir rotas, DTOs e códigos HTTP contra `spec.md`.
 
 ## Fase 6 — Segurança

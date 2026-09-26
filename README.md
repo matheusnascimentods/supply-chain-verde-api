@@ -257,12 +257,14 @@ docker compose down -v
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/suppliers/{supplierId}/certifications` | Registro de certificação ambiental | `SUPPLIER`, `ADMIN` |
 | `PATCH` | `/api/v1/certifications/{certificationId}/status` | Atualização do status da certificação | `AUDITOR`, `ADMIN` |
+| `GET` | `/api/v1/certifications?page=0&size=20` | Listagem paginada de certificações (`page` zero-based; `size` padrão 20, máximo 100) | Conforme RBAC |
 | `GET` | `/api/v1/certifications/expiring` | Consulta de certificações a expirar | `AUDITOR`, `MANAGER`, `ADMIN` |
 
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/batches` | Criação de novo lote de produto | `SUPPLIER`, `ADMIN` |
+| `GET` | `/api/v1/batches?page=0&size=20` | Listagem paginada de todos os lotes (`page` zero-based; `size` padrão 20, máximo 100) | `ADMIN`, `MANAGER`, `AUDITOR` |
 | `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (QR Code) | **Público** |
 | `GET` | `/api/v1/suppliers/{supplierId}/batches` | Listagem de lotes por fornecedor | Autenticado |
 
