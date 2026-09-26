@@ -57,6 +57,7 @@
 - [ ] Implementar e documentar `GET /api/v1/certifications` para listar certificações com paginação.
 - [ ] Implementar e documentar `GET /api/v1/batches` para listar todos os lotes com paginação.
 - [ ] Atualizar `GET /api/v1/suppliers/ranking` para aceitar paginação por `limit` e `offset` (`limit` padrão 20, máximo 100; `offset` padrão 0) e incluir `hasNext` na resposta para indicar se há mais resultados, mantendo a ordenação atual do ranking e o acesso autenticado.
+- [ ] Atualizar `GET /api/v1/products` para aceitar `limit` e `offset` (`limit` padrão 20, máximo 100; `offset` padrão 0), incluir `hasNext` na resposta e aceitar busca opcional aplicada antes da paginação, preservando as permissões atuais.
 - [x] Criar tratamento global de exceções.
 - [x] Configurar CORS, Web MVC e OpenAPI.
 - [ ] Implementar e documentar `GET /api/v1/batches` para listar todos os lotes de forma paginada (`page` zero-based, `size` padrão 20 e máximo 100), restrita a `admin`, `manager` e `auditor`.
