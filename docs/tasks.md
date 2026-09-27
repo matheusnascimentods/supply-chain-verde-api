@@ -328,3 +328,47 @@
     }
     ```
   - **Validação/erros:** rejeitar `limit` fora de `1..100` ou `offset` negativo com `400`; `401` sem autenticação; `403` para usuário sem role `ADMIN`.
+
+## Task 17 — Gestão de relatórios paginada e consulta individual
+
+- [ ] Criar e documentar uma listagem geral paginada de relatórios e completar o contrato de consulta individual para a tela de gestão do frontend.
+  - **Listagem:** adicionar `GET /api/v1/reports`, acessível a `ADMIN`, `MANAGER` e `AUDITOR`; aceitar `limit` padrão `20` (máximo `100`) e `offset` padrão `0`.
+  - **Resposta `200` da listagem:** objeto `{ items, limit, offset, hasNext }`. Cada item inclui `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount` e `generatedAt`. O CNPJ e a razão social vêm do fornecedor associado; `totalBatchCount` representa o total de lotes considerados no relatório, não a quantidade de produtos rastreados já representada por `trackedProductCount`.
+  - **Detalhe:** manter `GET /api/v1/reports/{reportId}` e enriquecer seu response com identificação do fornecedor (`supplierCnpj`, `supplierName`) e `totalBatchCount`, além dos campos atuais `reportId`, `supplierId`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `trackedProductCount` e `generatedAt`.
+  - **Schema da listagem:**
+    ```json
+    {
+      "items": [
+        {
+          "reportId": 301,
+          "supplierId": 4,
+          "supplierCnpj": "12.345.678/0001-90",
+          "supplierName": "Fazenda Verde Ltda",
+          "periodStartAt": "2026-08-01",
+          "periodEndAt": "2026-08-31",
+          "totalCo2Kg": 125.75,
+          "totalBatchCount": 12,
+          "generatedAt": "2026-09-01T10:30:00"
+        }
+      ],
+      "limit": 20,
+      "offset": 0,
+      "hasNext": true
+    }
+    ```
+  - **Schema do detalhe:**
+    ```json
+    {
+      "reportId": 301,
+      "supplierId": 4,
+      "supplierCnpj": "12.345.678/0001-90",
+      "supplierName": "Fazenda Verde Ltda",
+      "periodStartAt": "2026-08-01",
+      "periodEndAt": "2026-08-31",
+      "totalCo2Kg": 125.75,
+      "totalBatchCount": 12,
+      "trackedProductCount": 5,
+      "generatedAt": "2026-09-01T10:30:00"
+    }
+    ```
+  - **Validação/erros:** rejeitar `limit` fora de `1..100` ou `offset` negativo com `400`; responder `401` sem autenticação, `403` sem permissão e `404` quando o relatório solicitado não existir.
