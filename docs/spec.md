@@ -34,15 +34,16 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 - Associar endereço e CNPJ validado ao fornecedor.
 - Registrar certificações ambientais.
 - Atualizar o status de uma certificação.
-- Listar certificações de forma paginada, com limite de itens por página.
-- Consultar certificações próximas do vencimento.
+- Listar certificações de forma paginada por `page` e `size`; o filtro opcional `onlyExpiring=true` retorna somente as próximas do vencimento.
+- A listagem paginada com `onlyExpiring` absorve a consulta específica de certificações próximas do vencimento.
 - Calcular ranking de sustentabilidade sob demanda, sem persistir score derivado.
 
 ### 3.3 Produtos e lotes
 
 - Cadastrar e atualizar produtos com categoria e unidade tipadas.
 - Criar lotes vinculados a produto e fornecedor.
-- Listar todos os lotes de forma paginada para os perfis autorizados; fornecedores consultam somente os próprios lotes.
+- Listar lotes de forma paginada por `page` e `size`, com filtro opcional `supplierId`; `admin`, `manager` e `auditor` podem consultar a coleção geral, enquanto `supplier` só pode consultar os próprios lotes.
+- A listagem paginada com filtro de fornecedor absorve a consulta específica de lotes por fornecedor.
 - Expor a rastreabilidade completa de um lote por endpoint público.
 
 ### 3.4 Etapas, transporte e emissões
@@ -57,7 +58,9 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 ### 3.5 Relatórios e auditoria
 
 - Gerar relatório de sustentabilidade por fornecedor e período.
-- Consultar relatório individual e relatórios de um fornecedor.
+- Consultar relatórios em uma coleção paginada com filtro opcional `supplierId`, além de consultar um relatório individual.
+- A coleção paginada substitui a listagem aninhada por fornecedor; `supplier` só pode consultar seus próprios relatórios.
+- As respostas de relatório incluem CNPJ e razão social do fornecedor e total de lotes considerados, além do período, CO₂ total e data de geração.
 - Registrar automaticamente ações relevantes por meio do interceptor de auditoria.
 - Consultar logs de auditoria conforme o perfil autorizado.
 
@@ -70,13 +73,13 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users/me`, `PATCH /users/{userId}/role` | `admin` ou autenticado |
 | Suppliers | CRUD, ranking e lotes do fornecedor | Conforme RBAC |
-| Certifications | `GET /certifications` paginada, criar, alterar status e listar expiring | Conforme RBAC |
+| Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` paginada, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
 | Products | Criar, atualizar e listar | `admin`, `manager` ou autenticado |
-| Batches | Criar, listar todos com paginação, listar por fornecedor e rastrear | Listagem geral: `admin`, `manager`, `auditor`; fornecedor consulta os próprios; rastreabilidade pública |
+| Batches | `GET /batches?page=0&size=20&supplierId={id}` paginada, criar e rastrear | Listagem geral: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios; rastreabilidade pública |
 | Chains | Criar e listar etapas | Conforme RBAC |
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
-| Reports | Gerar e consultar relatórios | Conforme RBAC |
+| Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada, `GET /reports/{reportId}` e `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
 | Audit logs | Listar histórico de ações | `admin`, `auditor` |
 
 Os contratos detalhados de request/response permanecem documentados no `CLAUDE.md`, seção 10, e são a fonte de referência para controllers e consumidores.
@@ -144,4 +147,6 @@ flowchart TD
 
 ## 10. Paginação
 
-As rotas `GET /api/v1/batches` e `GET /api/v1/certifications` devem aceitar `page` (zero-based) e `size` (padrão 20, máximo 100), retornando metadados da página junto aos itens. O limite reduz o volume de dados em cada resposta.
+As rotas `GET /api/v1/batches` e `GET /api/v1/certifications` usam `page` zero-based e `size` (padrão 20, máximo 100), retornando os itens em `content` e os metadados `page`, `size`, `totalElements` e `totalPages`. Certificações aceitam `onlyExpiring` (padrão `false`) e lotes aceitam `supplierId` opcional.
+
+As demais coleções paginadas que usam busca por deslocamento aceitam `limit` (padrão 20, máximo 100) e `offset` (padrão 0), retornam os itens em `items` e incluem `limit`, `offset` e `hasNext`. A listagem de relatórios também aceita `supplierId` opcional. A autorização por fornecedor deve ser aplicada no servidor: um usuário `supplier` não pode consultar dados de outro fornecedor alterando esse filtro.
