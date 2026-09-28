@@ -76,13 +76,13 @@ Entidades principais: `Address`, `User`, `Supplier`, `Certification`, `Product`,
 Cada caso de uso tem responsabilidade única e orquestra portas do domínio:
 
 - `supplier`: cadastro, consulta, atualização e ranking.
-- `certification`: cadastro, status e vencimentos.
+- `certification`: cadastro, status e listagem paginada; o filtro `onlyExpiring` compõe a listagem, substituindo a operação de leitura exclusiva de vencimentos.
 - `product`: cadastro, atualização e listagem.
-- `batch`: cadastro, rastreabilidade e listagem por fornecedor.
+- `batch`: cadastro, rastreabilidade e listagem paginada; a consulta aceita `supplierId` opcional e aplica escopo próprio para o perfil `SUPPLIER`, substituindo a listagem aninhada por fornecedor.
 - `chain`: registro e consulta de etapas.
 - `transport`: registro de transporte.
 - `emission`: cálculo e consolidação de carbono.
-- `report`: geração e consulta de relatórios.
+- `report`: geração, consulta individual e listagem paginada com filtro opcional `supplierId`; o adaptador de leitura reúne dados do fornecedor para compor CNPJ/razão social e calcula o total de lotes do relatório.
 - `user`: cadastro, autenticação e alteração de perfil.
 - `audit`: consulta da trilha de auditoria.
 
@@ -104,6 +104,8 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 - OpenAPI documenta os endpoints em `/swagger-ui.html` e `/v3/api-docs`.
 - `JwtAuthenticationFilter` valida o bearer token e popula o contexto do Spring Security.
 - `SecurityConfig` aplica as regras RBAC e mantém login/rastreabilidade públicos.
+- Consultas paginadas aplicam filtros e autorização antes de limitar/deslocar os resultados; filtros por `supplierId` nunca substituem a validação de propriedade no servidor.
+- Rotas específicas de certificações expirando, lotes por fornecedor e relatórios por fornecedor permanecem compatíveis apenas durante a migração dos clientes para as coleções filtráveis; planejar sua remoção após os consumidores migrarem.
 - `BcryptPasswordHasher` implementa a porta de hash do domínio.
 - `AuditLogInterceptor` registra ações relevantes automaticamente via AOP.
 
@@ -134,4 +136,3 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 - UUID público para evitar enumeração de `batchId`.
 - Plano formal de segurança, backup e recuperação de desastre.
 - Entregáveis acadêmicos de arquitetura de dados e cronograma.
-
