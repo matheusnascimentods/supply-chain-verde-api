@@ -28,7 +28,7 @@ O domínio possui `CertificationStatus`, `ProductCategory`, `ProductUnit`, `Stag
 
 ```text
 supplier: Register, Update, Get, List, RankBySustainability
-certification: Register, UpdateStatus, ListExpiring
+certification: Register, UpdateStatus, ListPage (ListExpiring compatibility route)
 product: Register, Update, List
 batch: Register, GetTraceability, ListBySupplier
 chain: RegisterStage, ListStagesByBatch
@@ -49,7 +49,7 @@ Base path: `/api/v1`.
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users/me`, `PATCH /users/{userId}/role` | Admin ou autenticado |
 | Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers/{supplierId}`, `GET /suppliers/ranking` | Conforme RBAC |
-| Certifications | `GET /certifications?page=0&size=20` (paginada; padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status`, `GET /certifications/expiring` | Conforme RBAC |
+| Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` (paginada; padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status`, `GET /certifications/expiring` (compatibilidade temporária) | Consulta: `AUDITOR`, `MANAGER`, `ADMIN` |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products` | Conforme RBAC |
 | Batches | `POST /batches`, `GET /batches?page=0&size=20` (todos os lotes, paginada; padrão 20, máximo 100), `GET /batches/{batchId}/traceability`, `GET /suppliers/{supplierId}/batches` | Listagem geral para `admin`, `manager` e `auditor`; rastreabilidade pública |
 | Chains | `POST /batches/{batchId}/stages`, `GET /batches/{batchId}/stages` | Conforme RBAC |

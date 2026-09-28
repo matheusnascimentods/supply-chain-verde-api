@@ -176,11 +176,12 @@
 
 ## Task 11 — Listagem paginada de certificações
 
-- [ ] Implementar e documentar `GET /api/v1/certifications`.
+- [x] Implementar e documentar `GET /api/v1/certifications`.
   - **Acesso:** roles `AUDITOR`, `MANAGER` e `ADMIN`, conforme as regras atuais de consulta de certificações.
-  - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`; `onlyExpiring` booleano opcional, padrão `false`, para retornar somente certificações próximas do vencimento.
-  - **Consolidação:** absorver o comportamento de `GET /api/v1/certifications/expiring` nesta listagem. Depois que os consumidores migrarem para `GET /api/v1/certifications?onlyExpiring=true`, remover a rota específica antiga.
-  - **Resposta `200`:** página com `content` (itens com `certificationId`, `supplierId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`), `page`, `size`, `totalElements` e `totalPages`.
+  - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`; `onlyExpiring` booleano opcional, padrão `false`, para retornar certificações com vencimento entre hoje e os próximos 30 dias, inclusive, sem filtrar pelo status.
+  - **Ordenação:** `expiresAt` crescente, com `certificationId` crescente como desempate, para páginas estáveis.
+  - **Consolidação:** a nova listagem absorve a consulta de certificações próximas do vencimento por meio de `onlyExpiring=true`. A rota `GET /api/v1/certifications/expiring` permanece temporariamente por ainda ser consumida pelo frontend; removê-la após a migração desse consumidor.
+  - **Resposta `200`:** página com `content` (itens com `certificationId`, `supplierId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`), `page`, `size`, `totalElements` e `totalPages`. Quando não houver resultados, `content` é vazio e `totalPages` é `0`.
   - **Schema esperado:**
     ```json
     {
@@ -201,7 +202,7 @@
       "totalPages": 3
     }
     ```
-  - **Validação/erros:** rejeitar página negativa ou tamanho fora de `1..100` com `400`; `401` sem autenticação; `403` sem permissão.
+  - **Validação/erros:** rejeitar página negativa, tamanho fora de `1..100` ou valor inválido de `onlyExpiring` com `400`; `401` sem autenticação; `403` sem permissão.
 
 ## Task 12 — Listagem paginada de lotes
 

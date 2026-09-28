@@ -2,6 +2,8 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
 import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.CertificationJpaEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
@@ -16,6 +18,13 @@ public interface CertificationJpaRepository extends JpaRepository<CertificationJ
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     List<CertificationJpaEntity> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
+
+    @EntityGraph(attributePaths = {"supplier", "supplier.address"})
+    Page<CertificationJpaEntity> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = {"supplier", "supplier.address"})
+    Page<CertificationJpaEntity> findAll(Pageable pageable);
 
     long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
 
