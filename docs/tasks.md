@@ -175,8 +175,9 @@
 ## Task 11 — Listagem paginada de certificações
 
 - [ ] Implementar e documentar `GET /api/v1/certifications`.
-  - **Acesso:** usuário autenticado, respeitando o RBAC definido para consultas de certificações.
-  - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`.
+  - **Acesso:** roles `AUDITOR`, `MANAGER` e `ADMIN`, conforme as regras atuais de consulta de certificações.
+  - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`; `onlyExpiring` booleano opcional, padrão `false`, para retornar somente certificações próximas do vencimento.
+  - **Consolidação:** absorver o comportamento de `GET /api/v1/certifications/expiring` nesta listagem. Depois que os consumidores migrarem para `GET /api/v1/certifications?onlyExpiring=true`, remover a rota específica antiga.
   - **Resposta `200`:** página com `content` (itens com `certificationId`, `supplierId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`), `page`, `size`, `totalElements` e `totalPages`.
   - **Schema esperado:**
     ```json
@@ -203,8 +204,9 @@
 ## Task 12 — Listagem paginada de lotes
 
 - [ ] Implementar e documentar `GET /api/v1/batches`.
-  - **Acesso:** roles `ADMIN`, `MANAGER` e `AUDITOR`.
-  - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`.
+  - **Acesso:** `ADMIN`, `MANAGER` e `AUDITOR` podem listar todos os lotes; `SUPPLIER` pode consultar somente os próprios lotes.
+  - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`; `supplierId` opcional para restringir a página aos lotes de um fornecedor.
+  - **Consolidação:** absorver `GET /api/v1/suppliers/{supplierId}/batches` usando o filtro `supplierId`. Preservar o acesso do perfil `SUPPLIER` somente aos próprios lotes, independentemente do filtro informado; perfis administrativos mantêm a consulta global e podem filtrar por fornecedor. Remover a rota aninhada após a migração dos consumidores.
   - **Resposta `200`:** página com `content` (itens com `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `quantity` e `producedAt`), `page`, `size`, `totalElements` e `totalPages`.
   - **Schema esperado:**
     ```json
@@ -332,7 +334,8 @@
 ## Task 17 — Gestão de relatórios paginada e consulta individual
 
 - [ ] Criar e documentar uma listagem geral paginada de relatórios e completar o contrato de consulta individual para a tela de gestão do frontend.
-  - **Listagem:** adicionar `GET /api/v1/reports`, acessível a `ADMIN`, `MANAGER` e `AUDITOR`; aceitar `limit` padrão `20` (máximo `100`) e `offset` padrão `0`.
+  - **Listagem:** adicionar `GET /api/v1/reports`, acessível a `ADMIN`, `MANAGER` e `AUDITOR` para consulta global; `SUPPLIER` pode consultar somente os próprios relatórios. Aceitar `limit` padrão `20` (máximo `100`), `offset` padrão `0` e `supplierId` opcional para filtrar os relatórios de um fornecedor.
+  - **Consolidação:** absorver `GET /api/v1/suppliers/{supplierId}/reports` com o filtro `supplierId`. Preservar a consulta de fornecedor ao perfil `SUPPLIER` somente para os próprios relatórios; perfis administrativos podem consultar todos ou filtrar por fornecedor. Remover a rota aninhada após a migração dos consumidores.
   - **Resposta `200` da listagem:** objeto `{ items, limit, offset, hasNext }`. Cada item inclui `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount` e `generatedAt`. O CNPJ e a razão social vêm do fornecedor associado; `totalBatchCount` representa o total de lotes considerados no relatório, não a quantidade de produtos rastreados já representada por `trackedProductCount`.
   - **Detalhe:** manter `GET /api/v1/reports/{reportId}` e enriquecer seu response com identificação do fornecedor (`supplierCnpj`, `supplierName`) e `totalBatchCount`, além dos campos atuais `reportId`, `supplierId`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `trackedProductCount` e `generatedAt`.
   - **Schema da listagem:**
