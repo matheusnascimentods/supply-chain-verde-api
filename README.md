@@ -238,6 +238,13 @@ docker compose down -v
 
 ## 🔌 API Reference (Principais Recursos)
 
+### 📊 Dashboard (`/api/v1/dashboard`)
+| Método | Rota | Descrição | Acesso |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/dashboard/summary?limit=10` | Indicadores globais e lotes recentes (`limit` padrão 10, máximo 100) | Qualquer usuário autenticado |
+
+O resumo é global para todos os perfis autenticados. `activeBatches` exclui lotes sem etapas e lotes cuja etapa mais recente seja `RETAIL`; a etapa mais recente é determinada por `startedAt`, com `chainId` como desempate. A lista `recentBatches` é ordenada por data de produção decrescente e inclui o status da etapa mais recente; lotes sem etapas não podem ser listados, mas lotes em `RETAIL` podem aparecer como recentes. `expiringCertifications` considera vencimentos de hoje até os próximos 30 dias, inclusive. `suppliers` conta todos os fornecedores cadastrados. `monthlyEmissionKgCo2e` soma `co2Kg` calculado no mês calendário atual conforme `calculatedAt`.
+
 ### 🔐 Autenticação (`/api/v1/auth`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |

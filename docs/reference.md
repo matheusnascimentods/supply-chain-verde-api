@@ -37,6 +37,7 @@ emission: Calculate, GetBatchCarbonFootprint
 report: Generate, Get, ListBySupplier
 user: Register, Authenticate, UpdateRole
 audit: ListAuditLogs
+dashboard: GetSummary
 ```
 
 ## 4. Rotas
@@ -56,6 +57,7 @@ Base path: `/api/v1`.
 | Emissions | `POST /stages/{chainId}/emission`, `GET /batches/{batchId}/carbon-footprint` | Consulta pública de pegada |
 | Reports | `POST /suppliers/{supplierId}/reports`, `GET /reports/{reportId}`, `GET /suppliers/{supplierId}/reports` | Conforme RBAC |
 | Audit | `GET /audit-logs` | Admin e auditor |
+| Dashboard | `GET /dashboard/summary?limit=10` | Qualquer usuário autenticado; dados globais |
 
 ## 5. DTOs e regras de entrada
 
@@ -71,6 +73,9 @@ Base path: `/api/v1`.
 - Emission: `CarbonEmissionRequestDTO`, `CarbonEmissionResponseDTO`, `CarbonFootprintResponseDTO`.
 - Report: `ReportRequestDTO`, `ReportResponseDTO`.
 - Audit: `AuditLogResponseDTO`.
+- Dashboard: `DashboardSummaryResponseDTO`, `RecentBatchSummaryDTO`.
+
+Dashboard aceita `limit` entre `1` e `100` para a lista de lotes recentes; omitido ou nulo usa `10`. A contagem de lotes ativos exige ao menos uma etapa e exclui os lotes cuja etapa mais recente seja `RETAIL`. A última etapa é definida por `startedAt` e, em caso de empate, pelo maior `chainId`. Lotes sem etapas também não aparecem na lista recente, pois não possuem `status`; lotes em `RETAIL` podem aparecer como recentes. As certificações consideradas vencem de hoje até os próximos 30 dias, inclusive. `suppliers` conta todos os fornecedores cadastrados. A emissão mensal soma `co2Kg` por `calculatedAt` dentro do mês calendário corrente e retorna zero quando não há registros.
 
 `responsibleUserId` e `userId` de auditoria vêm do contexto autenticado, nunca do corpo da requisição. `emissionFactor` e `co2Kg` são calculados pelo backend, nunca aceitos do cliente.
 
