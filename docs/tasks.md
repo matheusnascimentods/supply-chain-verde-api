@@ -234,7 +234,8 @@
 
 - [ ] Atualizar e documentar `GET /api/v1/suppliers/ranking`.
   - **Acesso:** usuário autenticado; preservar a ordenação atual do ranking.
-  - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`.
+  - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional. Aplicar o termo antes da paginação para localizar fornecedores por nome (full-text em português) ou CNPJ (correspondência parcial após normalizar para dígitos).
+  - **Busca e índices:** criar uma migration Flyway com coluna `tsvector` gerada a partir do nome (configuração `portuguese`) e índice GIN para full-text; habilitar `pg_trgm` e criar índice GIN trigram para busca parcial de CNPJ normalizado. A consulta por nome deve usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` contra o `tsvector`; a busca de CNPJ deve comparar somente dígitos. Combinar os resultados com `OR`, sem duplicar fornecedores.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `supplierId`, `name`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `hasNext` indica se existe ao menos mais um resultado após o intervalo retornado.
   - **Schema esperado:**
     ```json
@@ -259,7 +260,8 @@
 
 - [ ] Atualizar e documentar `GET /api/v1/products`.
   - **Acesso:** preservar as permissões atuais da listagem de produtos.
-  - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional, aplicado antes da paginação para buscar por nome ou descrição, sem diferenciar maiúsculas de minúsculas.
+  - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional, aplicado antes da paginação para buscar por nome, categoria ou descrição usando full-text em português.
+  - **Busca e índices:** criar migration Flyway com coluna `tsvector` gerada a partir de nome e descrição (tratando descrição nula, com configuração `portuguese`) e índice GIN; tratar categoria separadamente, comparando também seu código/label de domínio sem diferenciar maiúsculas de minúsculas. Usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` na consulta do repository; palavras informadas em qualquer ordem devem poder encontrar o produto; a categoria deve aceitar os termos apresentados na interface e seus códigos da API.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `productId`, `name`, `category`, `unit` e `description`.
   - **Schema esperado:**
     ```json
@@ -284,7 +286,8 @@
 
 - [ ] Atualizar e documentar `GET /api/v1/audit-logs`.
   - **Acesso:** roles `ADMIN` e `AUDITOR`.
-  - **Query:** `from` e `to` obrigatórios, em formato `YYYY-MM-DD` e inclusivos; `action` e `userEmail` opcionais; `limit` padrão `20`, máximo `100`; `offset` padrão `0`.
+  - **Query:** `from` e `to` obrigatórios, em formato `YYYY-MM-DD` e inclusivos; `action` e `userEmail` opcionais; `limit` padrão `20`, máximo `100`; `offset` padrão `0`. O email deve ser correspondência parcial case-insensitive.
+  - **Busca e índices:** criar migration Flyway com índice GIN `pg_trgm` sobre o email do usuário associado ao log (ou coluna de email persistida no log, se esse for o modelo adotado), para acelerar `ILIKE` com curingas antes e depois do termo; evitar full-text para email, pois pontuação e fragmentos de endereço precisam ser preservados.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `logId`, `userId`, `userEmail`, `action`, `affectedTable` e `performedAt` em ISO 8601. `hasNext` indica se há mais registros após o intervalo retornado.
   - **Schema esperado:**
     ```json
@@ -311,6 +314,7 @@
 - [ ] Implementar e documentar `GET /api/v1/users`.
   - **Acesso:** somente role `ADMIN`.
   - **Query:** `email` opcional para filtrar por correspondência parcial, sem diferenciar maiúsculas de minúsculas; `limit` padrão `20`, máximo `100`; `offset` padrão `0`.
+  - **Busca e índices:** criar migration Flyway habilitando `pg_trgm` e um índice GIN trigram sobre o email normalizado; usar correspondência parcial case-insensitive (`ILIKE` com curingas antes e depois do termo). Não usar full-text para endereços de email.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `userId`, `name`, `email`, `role` e `createdAt` em ISO 8601. `hasNext` indica se existe outro usuário após o intervalo retornado.
   - **Schema esperado:**
     ```json
