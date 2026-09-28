@@ -64,6 +64,15 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 - Registrar automaticamente ações relevantes por meio do interceptor de auditoria.
 - Consultar logs de auditoria conforme o perfil autorizado.
 
+### 3.6 Resumo do dashboard
+
+- `GET /api/v1/dashboard/summary` retorna os indicadores globais e os lotes recentes para qualquer usuário autenticado, inclusive `supplier`.
+- `activeBatches` conta lotes que têm etapas registradas e cuja etapa mais recente não é `RETAIL`. A etapa mais recente é determinada por `startedAt`, usando `chainId` como desempate; lotes sem etapas ficam fora da contagem.
+- `expiringCertifications` conta certificações com vencimento entre hoje e os próximos 30 dias, inclusive, sem restringir pelo status.
+- `suppliers` representa todos os fornecedores cadastrados. O domínio não possui um indicador de fornecedor ativo/inativo.
+- `monthlyEmissionKgCo2e` soma as emissões do mês calendário atual usando `calculatedAt`; se não houver emissões no período, retorna zero.
+- `recentBatches` aceita `limit` opcional, padrão `10` e máximo `100`. Os itens são ordenados por `producedAt` decrescente e depois por `batchId` decrescente. Cada item contém produto, fornecedor, quantidade, unidade e o `stage_type` da etapa mais recente como `status`. Lotes sem etapas não são listados; lotes em `RETAIL` podem constar como recentes, embora não sejam ativos.
+
 ## 4. Contratos HTTP principais
 
 Base path: `/api/v1`. Todas as respostas usam JSON.
@@ -81,6 +90,7 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
 | Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada, `GET /reports/{reportId}` e `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
 | Audit logs | Listar histórico de ações | `admin`, `auditor` |
+| Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes | Qualquer usuário autenticado |
 
 Os contratos detalhados de request/response permanecem documentados no `CLAUDE.md`, seção 10, e são a fonte de referência para controllers e consumidores.
 

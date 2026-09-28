@@ -17,6 +17,8 @@ public interface CertificationJpaRepository extends JpaRepository<CertificationJ
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     List<CertificationJpaEntity> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
 
+    long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
+
     @Override
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     List<CertificationJpaEntity> findAll();

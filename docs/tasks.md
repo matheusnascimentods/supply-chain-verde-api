@@ -147,16 +147,18 @@
 
 ## Task 10 — Resumo do dashboard
 
-- [ ] Criar e documentar `GET /api/v1/dashboard/summary`.
-  - **Acesso:** usuário autenticado.
-  - **Parâmetros:** nenhum.
-  - **Resposta `200`:** objeto de resumo com os quatro indicadores já exibidos no dashboard — lotes ativos, certificações expirando, fornecedores ativos e emissão total do mês — e uma lista dos lotes recentes. Cada lote deve conter produto, fornecedor, quantidade e status, suficientes para preencher a tabela da interface.
+- [x] Criar e documentar `GET /api/v1/dashboard/summary`.
+  - **Acesso:** qualquer usuário autenticado. O resumo é global para todos os perfis, inclusive `SUPPLIER`.
+  - **Query:** `limit` opcional para a lista de lotes recentes; padrão `10` quando omitido ou nulo; valores aceitos de `1` a `100`.
+  - **Indicadores:** `activeBatches` conta lotes que têm ao menos uma etapa em `chain` e cuja etapa mais recente não é `RETAIL`. A etapa mais recente é determinada por `startedAt`, com `chainId` como desempate. Lotes sem etapas não contam como ativos. `expiringCertifications` conta certificações com `expiresAt` de hoje até hoje mais 30 dias, inclusive, sem filtro por status. `suppliers` conta todos os fornecedores cadastrados, pois o domínio ainda não possui estado ativo/inativo. `monthlyEmissionKgCo2e` soma `co2Kg` das emissões cujo `calculatedAt` está no mês calendário atual; sem emissões, retorna `0`.
+  - **Lotes recentes:** ordenados por `producedAt` decrescente e `batchId` decrescente como desempate. Cada item contém produto, fornecedor, quantidade, unidade e `status` baseado no `stage_type` mais recente. Lotes sem `chain` não aparecem por não possuírem status; lotes em `RETAIL` podem aparecer nessa lista, embora não contem como ativos.
+  - **Resposta `200`:** objeto com os quatro indicadores e a lista de lotes recentes.
   - **Schema esperado:**
     ```json
     {
       "activeBatches": 24,
       "expiringCertifications": 5,
-      "activeSuppliers": 18,
+      "suppliers": 18,
       "monthlyEmissionKgCo2e": 342.0,
       "recentBatches": [
         {
@@ -165,12 +167,12 @@
           "supplierName": "Fazenda Verde Ltda",
           "quantity": 500.0,
           "unit": "KG",
-          "status": "IN_TRANSIT"
+          "status": "TRANSPORT"
         }
       ]
     }
     ```
-  - **Erros:** `401` sem autenticação; `500` para falha inesperada.
+  - **Erros:** `400` para `limit` fora de `1..100`; `401` sem autenticação; `500` para falha inesperada.
 
 ## Task 11 — Listagem paginada de certificações
 
