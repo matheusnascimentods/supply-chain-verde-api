@@ -3,6 +3,7 @@ package br.com.anhembi.supplychainverde.domain.repository;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
 
 import java.util.List;
+import java.time.LocalDate;
 import java.util.Optional;
 
 public interface BatchRepository {
@@ -21,6 +22,8 @@ public interface BatchRepository {
     List<Batch> findBySupplierId(Long supplierId, int page, int size);
 
     long countBySupplierId(Long supplierId);
+
+    long countBySupplierIdAndProducedAtBetween(Long supplierId, LocalDate from, LocalDate to);
 
     List<Batch> findByProductId(Long productId);
 

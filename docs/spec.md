@@ -82,7 +82,7 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Recurso | Operações | Acesso |
 |---|---|---|
 | Auth | `POST /auth/login` | Público |
-| Users | `POST /users`, `GET /users/me`, `PATCH /users/{userId}/role` | `admin` ou autenticado |
+| Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `admin`; `/me`: autenticado |
 | Suppliers | CRUD; `GET /suppliers/ranking?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext }`, buscando por nome em português ou CNPJ normalizado | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` paginada, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
 | Products | Criar, atualizar e listar | `admin`, `manager` ou autenticado |

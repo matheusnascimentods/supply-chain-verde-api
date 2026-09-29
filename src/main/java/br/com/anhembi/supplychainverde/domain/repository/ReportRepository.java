@@ -13,6 +13,8 @@ public interface ReportRepository {
 
     List<Report> findAll();
 
+    List<Report> findPage(Long supplierId, int limit, int offset);
+
     List<Report> findBySupplierId(Long supplierId);
 
     List<Report> findBySupplierIdAndPeriodBetween(

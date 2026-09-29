@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
+import java.time.LocalDate;
 
 public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> {
     List<BatchJpaEntity> findBySupplierSupplierId(Long supplierId);
@@ -20,6 +21,8 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
     Page<BatchJpaEntity> findBySupplierSupplierId(Long supplierId, Pageable pageable);
 
     long countBySupplierSupplierId(Long supplierId);
+
+    long countBySupplierSupplierIdAndProducedAtBetween(Long supplierId, LocalDate from, LocalDate to);
 
     @Query(value = """
             select count(*)
