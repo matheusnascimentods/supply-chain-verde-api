@@ -50,7 +50,7 @@ Base path: `/api/v1`.
 | Users | `POST /users`, `GET /users/me`, `PATCH /users/{userId}/role` | Admin ou autenticado |
 | Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers/{supplierId}`, `GET /suppliers/ranking?limit=20&offset=0&search={termo}` (paginada; busca por nome/CNPJ) | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` (paginada; padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status`, `GET /certifications/expiring` (compatibilidade temporária) | Consulta: `AUDITOR`, `MANAGER`, `ADMIN` |
-| Products | `POST /products`, `PUT /products/{productId}`, `GET /products` | Conforme RBAC |
+| Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}` (paginada; busca por nome, descrição ou categoria) | Conforme RBAC |
 | Batches | `POST /batches`, `GET /batches?page=0&size=20&supplierId={id}` (paginada; padrão 20, máximo 100), `GET /batches/{batchId}/traceability` | Listagem geral para `admin`, `manager` e `auditor`; `supplier` usa `userId` do token como `supplierId`; rastreabilidade pública |
 | Chains | `POST /batches/{batchId}/stages`, `GET /batches/{batchId}/stages` | Conforme RBAC |
 | Transport | `POST /stages/{chainId}/transport` | Conforme RBAC |

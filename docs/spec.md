@@ -42,6 +42,7 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 ### 3.3 Produtos e lotes
 
 - Cadastrar e atualizar produtos com categoria e unidade tipadas.
+- Listar produtos com `GET /products?limit=20&offset=0&search={termo}`, em páginas de até 100 itens. A busca full-text em português cobre nome e descrição; a categoria também pode ser pesquisada pelo código da API ou pelo rótulo em português, ignorando caixa e acentos. A resposta contém `{ items, limit, offset, hasNext }` e mantém acesso autenticado.
 - Criar lotes vinculados a produto e fornecedor.
 - Listar lotes de forma paginada por `page` e `size`, com filtro opcional `supplierId`; `admin`, `manager` e `auditor` podem consultar a coleção geral, enquanto `supplier` consulta somente os próprios lotes. Como não há associação explícita entre usuário e fornecedor no modelo atual, adota-se a convenção de que o `userId` do token `SUPPLIER` é igual ao `supplierId`; o servidor ignora o filtro recebido desse perfil.
 - A listagem paginada absorve a consulta específica de lotes por fornecedor, substituindo `GET /suppliers/{supplierId}/batches` após a migração do frontend.

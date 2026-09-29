@@ -12,5 +12,9 @@ public interface ProductRepository {
 
     List<Product> findAll();
 
+    List<Product> findAll(int limit, int offset);
+
+    List<Product> findBySearch(String search, String categoryCode, int limit, int offset);
+
     void deleteById(Long productId);
 }

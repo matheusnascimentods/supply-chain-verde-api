@@ -31,6 +31,16 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public List<Product> findAll(int limit, int offset) {
+        return jpaRepository.findPage(limit, offset).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Product> findBySearch(String search, String categoryCode, int limit, int offset) {
+        return jpaRepository.findBySearch(search, categoryCode, limit, offset).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public void deleteById(Long productId) {
         jpaRepository.deleteById(productId);
     }
