@@ -21,7 +21,6 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
     @EntityGraph(attributePaths = "address")
     List<SupplierJpaEntity> findAll();
 
-    @EntityGraph(attributePaths = "address")
     @Query(value = """
             SELECT s.*
             FROM supplier s
