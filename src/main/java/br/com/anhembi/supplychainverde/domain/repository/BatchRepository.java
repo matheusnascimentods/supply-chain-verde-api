@@ -12,7 +12,15 @@ public interface BatchRepository {
 
     List<Batch> findAll();
 
+    List<Batch> findAll(int page, int size);
+
+    long countAll();
+
     List<Batch> findBySupplierId(Long supplierId);
+
+    List<Batch> findBySupplierId(Long supplierId, int page, int size);
+
+    long countBySupplierId(Long supplierId);
 
     List<Batch> findByProductId(Long productId);
 
