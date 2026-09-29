@@ -37,6 +37,12 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     }
 
     @Override
+    public List<Supplier> findBySearch(String search) {
+        String cnpjSearch = search.replaceAll("\\D", "");
+        return jpaRepository.findBySearch(search, cnpjSearch).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public boolean existsByCnpj(Cnpj cnpj) {
         return jpaRepository.existsByCnpj(cnpj.value());
     }

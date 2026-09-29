@@ -15,6 +15,8 @@ public interface SupplierRepository {
 
     List<Supplier> findAll();
 
+    List<Supplier> findBySearch(String search);
+
     boolean existsByCnpj(Cnpj cnpj);
 
     void deleteById(Long supplierId);

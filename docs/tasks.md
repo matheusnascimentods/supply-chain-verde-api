@@ -236,10 +236,11 @@
 
 ## Task 13 — Ranking de fornecedores paginado
 
-- [ ] Atualizar e documentar `GET /api/v1/suppliers/ranking`.
+- [x] Atualizar e documentar `GET /api/v1/suppliers/ranking`.
   - **Acesso:** usuário autenticado; preservar a ordenação atual do ranking.
   - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional. Aplicar o termo antes da paginação para localizar fornecedores por nome (full-text em português) ou CNPJ (correspondência parcial após normalizar para dígitos).
   - **Busca e índices:** criar uma migration Flyway com coluna `tsvector` gerada a partir do nome (configuração `portuguese`) e índice GIN para full-text; habilitar `pg_trgm` e criar índice GIN trigram para busca parcial de CNPJ normalizado. A consulta por nome deve usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` contra o `tsvector`; a busca de CNPJ deve comparar somente dígitos. Combinar os resultados com `OR`, sem duplicar fornecedores.
+  - **Ordenação:** manter `sustainabilityScore` decrescente e usar `supplierId` crescente como desempate estável; aplicar `offset` e `limit` após o ranking dos fornecedores encontrados.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `supplierId`, `name`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `hasNext` indica se existe ao menos mais um resultado após o intervalo retornado.
   - **Schema esperado:**
     ```json
