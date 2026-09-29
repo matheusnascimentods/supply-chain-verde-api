@@ -20,5 +20,13 @@ public interface CertificationRepository {
 
     List<Certification> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
 
+    List<Certification> findAll(int page, int size);
+
+    long countAll();
+
+    List<Certification> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, int page, int size);
+
+    long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
+
     void deleteById(Long certificationId);
 }

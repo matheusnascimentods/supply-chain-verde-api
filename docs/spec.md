@@ -34,8 +34,9 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 - Associar endereço e CNPJ validado ao fornecedor.
 - Registrar certificações ambientais.
 - Atualizar o status de uma certificação.
-- Listar certificações de forma paginada por `page` e `size`; o filtro opcional `onlyExpiring=true` retorna somente as próximas do vencimento.
-- A listagem paginada com `onlyExpiring` absorve a consulta específica de certificações próximas do vencimento.
+- Listar certificações de forma paginada por `page` e `size`; o filtro opcional `onlyExpiring=true` retorna vencimentos entre hoje e os próximos 30 dias, inclusive, sem filtrar pelo status.
+- A listagem paginada com `onlyExpiring` absorve o comportamento da consulta específica de certificações próximas do vencimento. `GET /certifications/expiring` permanece disponível durante a migração de consumidores existentes e será removida depois que o frontend passar a usar `GET /certifications?onlyExpiring=true`.
+- A listagem usa `page` zero-based (padrão `0`) e `size` (padrão `20`, máximo `100`), ordena por `expiresAt` e `certificationId` crescentes e rejeita valores inválidos com `400`.
 - Calcular ranking de sustentabilidade sob demanda, sem persistir score derivado.
 
 ### 3.3 Produtos e lotes
