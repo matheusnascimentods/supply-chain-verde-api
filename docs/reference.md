@@ -51,7 +51,7 @@ Base path: `/api/v1`.
 | Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers/{supplierId}`, `GET /suppliers/ranking` | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` (paginada; padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status`, `GET /certifications/expiring` (compatibilidade temporária) | Consulta: `AUDITOR`, `MANAGER`, `ADMIN` |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products` | Conforme RBAC |
-| Batches | `POST /batches`, `GET /batches?page=0&size=20` (todos os lotes, paginada; padrão 20, máximo 100), `GET /batches/{batchId}/traceability`, `GET /suppliers/{supplierId}/batches` | Listagem geral para `admin`, `manager` e `auditor`; rastreabilidade pública |
+| Batches | `POST /batches`, `GET /batches?page=0&size=20&supplierId={id}` (paginada; padrão 20, máximo 100), `GET /batches/{batchId}/traceability` | Listagem geral para `admin`, `manager` e `auditor`; `supplier` usa `userId` do token como `supplierId`; rastreabilidade pública |
 | Chains | `POST /batches/{batchId}/stages`, `GET /batches/{batchId}/stages` | Conforme RBAC |
 | Transport | `POST /stages/{chainId}/transport` | Conforme RBAC |
 | Emissions | `POST /stages/{chainId}/emission`, `GET /batches/{batchId}/carbon-footprint` | Consulta pública de pegada |

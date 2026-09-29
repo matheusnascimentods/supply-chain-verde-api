@@ -3,6 +3,7 @@ package br.com.anhembi.supplychainverde.application.usecase;
 import br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.auth.LoginRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchRequestDTO;
+import br.com.anhembi.supplychainverde.application.dto.batch.BatchResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.certification.UpdateCertificationStatusRequestDTO;
@@ -15,7 +16,8 @@ import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleReques
 import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
-import br.com.anhembi.supplychainverde.application.usecase.batch.ListBatchesBySupplierUseCase;
+import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
+import br.com.anhembi.supplychainverde.application.usecase.batch.ListBatchesUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.RegisterBatchUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.certification.ListExpiringCertificationsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.certification.RegisterCertificationUseCase;
@@ -104,13 +106,18 @@ class ApplicationUseCasesTest {
         when(products.findById(1L)).thenReturn(Optional.of(product));
         when(suppliers.findById(2L)).thenReturn(Optional.of(supplier));
         when(batches.save(any())).thenReturn(batch);
-        when(batches.findBySupplierId(2L)).thenReturn(List.of(batch));
+        when(batches.findBySupplierId(2L, 0, 20)).thenReturn(List.of(batch));
+        when(batches.countBySupplierId(2L)).thenReturn(1L);
         when(batches.findById(4L)).thenReturn(Optional.of(batch));
         when(chains.findByBatchId(4L)).thenReturn(List.of());
+        BatchDtoMapper batchMapper = mock(BatchDtoMapper.class);
+        when(batchMapper.toDto(batch)).thenReturn(new BatchResponseDTO(
+                4L, 1L, "Café", 2L, "Verde", new BigDecimal("10"), LocalDate.now()
+        ));
 
         assertThat(new RegisterBatchUseCase(batches, products, suppliers)
                 .execute(new BatchRequestDTO(1L, 2L, new BigDecimal("10"), LocalDate.now())).batchId()).isEqualTo(4L);
-        assertThat(new ListBatchesBySupplierUseCase(batches).execute(2L)).hasSize(1);
+        assertThat(new ListBatchesUseCase(batches, batchMapper).execute(0, 20, 2L).content()).hasSize(1);
         assertThat(new GetBatchTraceabilityUseCase(batches, chains).execute(4L).batchId()).isEqualTo(4L);
     }
 

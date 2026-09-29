@@ -271,9 +271,10 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/batches` | Criação de novo lote de produto | `SUPPLIER`, `ADMIN` |
-| `GET` | `/api/v1/batches?page=0&size=20` | Listagem paginada de todos os lotes (`page` zero-based; `size` padrão 20, máximo 100) | `ADMIN`, `MANAGER`, `AUDITOR` |
+| `GET` | `/api/v1/batches?page=0&size=20&supplierId=4` | Listagem paginada (`page` zero-based; `size` padrão 20, máximo 100); `supplierId` filtra a lista para perfis administrativos | `ADMIN`, `MANAGER`, `AUDITOR`, `SUPPLIER` |
 | `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (QR Code) | **Público** |
-| `GET` | `/api/v1/suppliers/{supplierId}/batches` | Listagem de lotes por fornecedor | Autenticado |
+
+Como o modelo atual ainda não possui associação explícita entre usuário e fornecedor, para `SUPPLIER` o backend adota a convenção de que `userId` do token é igual a `supplierId`. O servidor ignora `supplierId` da query para esse perfil e consulta apenas os lotes desse identificador.
 
 ### 🔗 Etapas da Cadeia (`/api/v1/batches/{batchId}/stages`)
 | Método | Rota | Descrição | Acesso |

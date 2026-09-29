@@ -43,8 +43,8 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 
 - Cadastrar e atualizar produtos com categoria e unidade tipadas.
 - Criar lotes vinculados a produto e fornecedor.
-- Listar lotes de forma paginada por `page` e `size`, com filtro opcional `supplierId`; `admin`, `manager` e `auditor` podem consultar a coleção geral, enquanto `supplier` só pode consultar os próprios lotes.
-- A listagem paginada com filtro de fornecedor absorve a consulta específica de lotes por fornecedor.
+- Listar lotes de forma paginada por `page` e `size`, com filtro opcional `supplierId`; `admin`, `manager` e `auditor` podem consultar a coleção geral, enquanto `supplier` consulta somente os próprios lotes. Como não há associação explícita entre usuário e fornecedor no modelo atual, adota-se a convenção de que o `userId` do token `SUPPLIER` é igual ao `supplierId`; o servidor ignora o filtro recebido desse perfil.
+- A listagem paginada absorve a consulta específica de lotes por fornecedor, substituindo `GET /suppliers/{supplierId}/batches` após a migração do frontend.
 - Expor a rastreabilidade completa de um lote por endpoint público.
 
 ### 3.4 Etapas, transporte e emissões
@@ -85,7 +85,7 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Suppliers | CRUD, ranking e lotes do fornecedor | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` paginada, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
 | Products | Criar, atualizar e listar | `admin`, `manager` ou autenticado |
-| Batches | `GET /batches?page=0&size=20&supplierId={id}` paginada, criar e rastrear | Listagem geral: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios; rastreabilidade pública |
+| Batches | `GET /batches?page=0&size=20&supplierId={id}` paginada, criar e rastrear | Listagem: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios pelo `userId` do token; rastreabilidade pública |
 | Chains | Criar e listar etapas | Conforme RBAC |
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |

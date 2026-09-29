@@ -1,7 +1,9 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.BatchJpaEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
@@ -9,6 +11,15 @@ import java.util.List;
 public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> {
     List<BatchJpaEntity> findBySupplierSupplierId(Long supplierId);
     List<BatchJpaEntity> findByProductProductId(Long productId);
+
+    @Override
+    @EntityGraph(attributePaths = {"product", "supplier"})
+    Page<BatchJpaEntity> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"product", "supplier"})
+    Page<BatchJpaEntity> findBySupplierSupplierId(Long supplierId, Pageable pageable);
+
+    long countBySupplierSupplierId(Long supplierId);
 
     @Query(value = """
             select count(*)

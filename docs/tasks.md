@@ -206,10 +206,11 @@
 
 ## Task 12 — Listagem paginada de lotes
 
-- [ ] Implementar e documentar `GET /api/v1/batches`.
-  - **Acesso:** `ADMIN`, `MANAGER` e `AUDITOR` podem listar todos os lotes; `SUPPLIER` pode consultar somente os próprios lotes.
+- [x] Implementar e documentar `GET /api/v1/batches`.
+  - **Acesso:** `ADMIN`, `MANAGER` e `AUDITOR` podem listar todos os lotes; `SUPPLIER` consulta somente os próprios. Como o modelo atual não possui associação explícita entre usuário e fornecedor, esta implementação adota a convenção de que o `userId` do token `SUPPLIER` é igual ao `supplierId`; o servidor ignora `supplierId` enviado por esse perfil.
   - **Query:** `page` zero-based, padrão `0`; `size` padrão `20`, máximo `100`; `supplierId` opcional para restringir a página aos lotes de um fornecedor.
-  - **Consolidação:** absorver `GET /api/v1/suppliers/{supplierId}/batches` usando o filtro `supplierId`. Preservar o acesso do perfil `SUPPLIER` somente aos próprios lotes, independentemente do filtro informado; perfis administrativos mantêm a consulta global e podem filtrar por fornecedor. Remover a rota aninhada após a migração dos consumidores.
+  - **Consolidação:** absorver `GET /api/v1/suppliers/{supplierId}/batches` usando o filtro `supplierId`. O frontend foi migrado para a rota paginada e a rota aninhada foi removida. `SUPPLIER` recebe sempre o filtro do próprio token, independentemente do query param; `ADMIN`, `MANAGER` e `AUDITOR` mantêm consulta global e podem filtrar por fornecedor.
+  - **Ordenação:** `producedAt` decrescente, com `batchId` decrescente como desempate.
   - **Resposta `200`:** página com `content` (itens com `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `quantity` e `producedAt`), `page`, `size`, `totalElements` e `totalPages`.
   - **Schema esperado:**
     ```json
