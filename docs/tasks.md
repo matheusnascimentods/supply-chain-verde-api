@@ -263,10 +263,12 @@
 
 ## Task 14 — Produtos com busca e paginação
 
-- [ ] Atualizar e documentar `GET /api/v1/products`.
+- [x] Atualizar e documentar `GET /api/v1/products`.
   - **Acesso:** preservar as permissões atuais da listagem de produtos.
   - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional, aplicado antes da paginação para buscar por nome, categoria ou descrição usando full-text em português.
   - **Busca e índices:** criar migration Flyway com coluna `tsvector` gerada a partir de nome e descrição (tratando descrição nula, com configuração `portuguese`) e índice GIN; tratar categoria separadamente, comparando também seu código/label de domínio sem diferenciar maiúsculas de minúsculas. Usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` na consulta do repository; palavras informadas em qualquer ordem devem poder encontrar o produto; a categoria deve aceitar os termos apresentados na interface e seus códigos da API.
+  - **Categorias aceitas:** `AGRICULTURE`/`Agricultura`, `LIVESTOCK`/`Pecuária`, `PROCESSED_FOOD`/`Alimentos processados`, `TEXTILE`/`Têxtil`, `FORESTRY`/`Florestal` e `OTHER`/`Outro`; comparação ignora caixa e acentos.
+  - **Ordenação/paginação:** ordenar por `productId` crescente e buscar `limit + 1` registros para determinar `hasNext` sem consulta adicional.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `productId`, `name`, `category`, `unit` e `description`.
   - **Schema esperado:**
     ```json

@@ -259,6 +259,13 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | `GET` | `/api/v1/suppliers/{supplierId}` | Detalhes do fornecedor | Autenticado |
 | `PUT` | `/api/v1/suppliers/{supplierId}` | Atualização de dados cadastrais | `ADMIN`, `MANAGER` |
 
+### 🛒 Produtos (`/api/v1/products`)
+| Método | Rota | Descrição | Acesso |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/products` | Cadastro de produto | `ADMIN`, `MANAGER` |
+| `PUT` | `/api/v1/products/{productId}` | Atualização de produto | `ADMIN`, `MANAGER` |
+| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}` | Listagem paginada; busca full-text por nome/descrição ou por código/rótulo de categoria | Autenticado |
+
 ### 📜 Certificações (`/api/v1/certifications`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
