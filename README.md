@@ -274,6 +274,13 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | `GET` | `/api/v1/certifications?page=0&size=20&onlyExpiring=false` | Listagem paginada; `onlyExpiring=true` filtra vencimentos de hoje até 30 dias (inclusive), sem filtrar por status (`page` zero-based; `size` padrão 20, máximo 100) | `AUDITOR`, `MANAGER`, `ADMIN` |
 | `GET` | `/api/v1/certifications/expiring` | Rota de compatibilidade para consumidores ainda não migrados; remover após a migração do frontend | `AUDITOR`, `MANAGER`, `ADMIN` |
 
+### 🧾 Auditoria (`/api/v1/audit-logs`)
+| Método | Rota | Descrição | Acesso |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` | Lista logs do período inclusivo, com filtros opcionais e paginação | `ADMIN`, `AUDITOR` |
+
+O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSERT`, `UPDATE`, `DELETE` ou `STATUS_CHANGE`. `userEmail` faz busca parcial sem diferenciar caixa. `limit` aceita de 1 a 100 (padrão 20) e `offset` começa em 0.
+
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
