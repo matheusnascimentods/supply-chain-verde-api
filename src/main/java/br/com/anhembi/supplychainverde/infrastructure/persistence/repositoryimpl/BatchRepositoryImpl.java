@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Repository
@@ -56,6 +57,11 @@ public class BatchRepositoryImpl implements BatchRepository {
     @Override
     public long countBySupplierId(Long supplierId) {
         return jpaRepository.countBySupplierSupplierId(supplierId);
+    }
+
+    @Override
+    public long countBySupplierIdAndProducedAtBetween(Long supplierId, LocalDate from, LocalDate to) {
+        return jpaRepository.countBySupplierSupplierIdAndProducedAtBetween(supplierId, from, to);
     }
 
     @Override

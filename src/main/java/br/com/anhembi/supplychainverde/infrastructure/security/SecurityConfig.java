@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/carbon-footprint").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/suppliers").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/suppliers/**").hasAnyRole("ADMIN", "MANAGER")
@@ -75,6 +76,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/stages/*/transport").hasAnyRole("SUPPLIER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/stages/*/emission").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/suppliers/*/reports").hasAnyRole("AUDITOR", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reports").hasAnyRole("AUDITOR", "MANAGER", "ADMIN", "SUPPLIER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/reports/**").hasAnyRole("AUDITOR", "MANAGER", "ADMIN", "SUPPLIER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/audit-logs/**").hasAnyRole("ADMIN", "AUDITOR")
                         .anyRequest().authenticated());
