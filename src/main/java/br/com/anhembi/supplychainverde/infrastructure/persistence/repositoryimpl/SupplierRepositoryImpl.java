@@ -7,6 +7,7 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.Supplie
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.SupplierJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +35,13 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     @Override
     public List<Supplier> findAll() {
         return jpaRepository.findAll().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Supplier> findBySearch(String search) {
+        String cnpjSearch = search.replaceAll("\\D", "");
+        return jpaRepository.findBySearch(search, cnpjSearch).stream().map(mapper::toDomain).toList();
     }
 
     @Override

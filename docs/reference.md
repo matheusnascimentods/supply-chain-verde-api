@@ -48,7 +48,7 @@ Base path: `/api/v1`.
 |---|---|---|
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users/me`, `PATCH /users/{userId}/role` | Admin ou autenticado |
-| Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers/{supplierId}`, `GET /suppliers/ranking` | Conforme RBAC |
+| Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers/{supplierId}`, `GET /suppliers/ranking?limit=20&offset=0&search={termo}` (paginada; busca por nome/CNPJ) | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` (paginada; padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status`, `GET /certifications/expiring` (compatibilidade temporária) | Consulta: `AUDITOR`, `MANAGER`, `ADMIN` |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products` | Conforme RBAC |
 | Batches | `POST /batches`, `GET /batches?page=0&size=20&supplierId={id}` (paginada; padrão 20, máximo 100), `GET /batches/{batchId}/traceability` | Listagem geral para `admin`, `manager` e `auditor`; `supplier` usa `userId` do token como `supplierId`; rastreabilidade pública |

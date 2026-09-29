@@ -255,7 +255,7 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/suppliers` | Cadastro de novo fornecedor | `ADMIN`, `MANAGER` |
 | `GET` | `/api/v1/suppliers` | Listagem de fornecedores cadastrados | Autenticado |
-| `GET` | `/api/v1/suppliers/ranking` | Ranking dinâmico por sustentabilidade | Autenticado |
+| `GET` | `/api/v1/suppliers/ranking?limit=20&offset=0&search={termo}` | Ranking paginado; busca por nome (full-text em português) ou trecho do CNPJ normalizado | Autenticado |
 | `GET` | `/api/v1/suppliers/{supplierId}` | Detalhes do fornecedor | Autenticado |
 | `PUT` | `/api/v1/suppliers/{supplierId}` | Atualização de dados cadastrais | `ADMIN`, `MANAGER` |
 
