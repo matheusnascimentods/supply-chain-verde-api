@@ -91,7 +91,7 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
 | Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada, `GET /reports/{reportId}` e `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
-| Audit logs | Listar histórico de ações | `admin`, `auditor` |
+| Audit logs | `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext }`; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
 | Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes | Qualquer usuário autenticado |
 
 Os contratos detalhados de request/response permanecem documentados no `CLAUDE.md`, seção 10, e são a fonte de referência para controllers e consumidores.

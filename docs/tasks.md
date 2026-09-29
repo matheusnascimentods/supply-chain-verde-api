@@ -117,7 +117,7 @@
 - [x] Validar geração automática de log em operações de escrita.
   - Testes verificam que operações instrumentadas produzem registro e que a ação/tabela são identificadas.
 - [x] Expor consulta autorizada dos logs.
-  - `GET /api/v1/audit-logs` fornece registros a `ADMIN` e `AUDITOR`; response atual usa `logId`, `userId`, `action`, `affectedTable` e `performedAt`.
+  - `GET /api/v1/audit-logs` fornece registros a `ADMIN` e `AUDITOR`; o response atual inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable` e `performedAt`.
 
 ## Fase 8 — Testes e qualidade
 
@@ -291,10 +291,11 @@
 
 ## Task 15 — Auditoria filtrada e paginada
 
-- [ ] Atualizar e documentar `GET /api/v1/audit-logs`.
+- [x] Atualizar e documentar `GET /api/v1/audit-logs`.
   - **Acesso:** roles `ADMIN` e `AUDITOR`.
   - **Query:** `from` e `to` obrigatórios, em formato `YYYY-MM-DD` e inclusivos; `action` e `userEmail` opcionais; `limit` padrão `20`, máximo `100`; `offset` padrão `0`. O email deve ser correspondência parcial case-insensitive.
   - **Busca e índices:** criar migration Flyway com índice GIN `pg_trgm` sobre o email do usuário associado ao log (ou coluna de email persistida no log, se esse for o modelo adotado), para acelerar `ILIKE` com curingas antes e depois do termo; evitar full-text para email, pois pontuação e fragmentos de endereço precisam ser preservados.
+  - **Ordenação/paginação:** ordenar por `performedAt` decrescente e `logId` decrescente como desempate; aplicar `limit + 1` no banco para calcular `hasNext`.
   - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `logId`, `userId`, `userEmail`, `action`, `affectedTable` e `performedAt` em ISO 8601. `hasNext` indica se há mais registros após o intervalo retornado.
   - **Schema esperado:**
     ```json
