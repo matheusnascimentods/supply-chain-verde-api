@@ -433,3 +433,44 @@
   - **Conflito:** os parâmetros `supplierId` e `ranked` são mutuamente exclusivos; rejeitar com `400` qualquer requisição que informe ambos, mesmo quando `ranked=false`. Validar também os valores inválidos dos parâmetros.
   - **Remoção de rotas:** remover `GET /api/v1/suppliers/{supplierId}`, `GET /api/v1/suppliers/ranking` e as rotas `GET /api/v1/reports` e `GET /api/v1/reports/{reportId}`, incluindo implementações, autorização e documentação associadas. Manter a geração de relatórios por `POST /api/v1/suppliers/{supplierId}/reports`.
   - **Compatibilidade:** preservar as regras de autorização, filtros, ordenação, paginação e formatos de resposta existentes para cada comportamento que passar a ser atendido por `GET /api/v1/suppliers`; atualizar OpenAPI e contratos da API.
+
+## Task 23 — Detalhamento dos eventos de auditoria
+
+- [ ] Registrar a entidade afetada e os dados alterados nos eventos de auditoria, expondo essas informações na rota de consulta.
+  - **Schema:** criar migration Flyway aditiva para incluir em `audit_log` o ID da entidade e os dados anteriores/posteriores em `JSONB`. O schema resultante deve conter:
+    ```sql
+    affected_entity_id BIGINT,
+    before_data JSONB,
+    after_data JSONB
+    ```
+    Criar também índice por `(affected_table, affected_entity_id)`. Manter as novas colunas anuláveis para preservar registros históricos que não tenham esses detalhes recuperáveis; novos eventos devem preencher `affected_entity_id`.
+  - **Identificação:** preencher o ID primário da entidade afetada para `INSERT`, `UPDATE`, `DELETE` e `STATUS_CHANGE`; resolver o tipo de entidade de forma explícita e confiável, sem selecionar arbitrariamente um getter terminado em `Id`.
+  - **Conteúdo:** para `UPDATE` e `STATUS_CHANGE`, armazenar em `before_data` e `after_data` objetos JSON com somente os campos alterados e seus valores antes/depois. Para `INSERT`, `before_data` é `NULL` e `after_data` contém os dados auditáveis criados; para `DELETE`, `before_data` contém os dados auditáveis anteriores à exclusão e `after_data` é `NULL`. Representar associações por seus IDs, sem serializar grafos de entidades.
+  - **Privacidade:** excluir senhas, hashes, tokens e outros segredos dos JSONB. Não inventar valores anteriores, posteriores ou IDs que não possam ser recuperados.
+  - **Ações:** garantir a classificação correta entre `INSERT`, `UPDATE`, `DELETE` e `STATUS_CHANGE`, incluindo a detecção de mudanças de status em vez de registrar toda alteração como `UPDATE`.
+  - **Contrato da rota:** manter `GET /api/v1/audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` e os filtros/autorização atuais. Cada item deve incluir `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData` e `afterData` são objetos JSON ou `null`; preservar a paginação da rota, incluindo `items`, `limit`, `offset`, `hasNext` e `totalPages`.
+    ```json
+    {
+      "items": [
+        {
+          "logId": 981,
+          "userId": 7,
+          "userEmail": "ana.souza@empresa.com",
+          "action": "UPDATE",
+          "affectedTable": "suppliers",
+          "affectedEntityId": 42,
+          "beforeData": { "name": "Fazenda Verde" },
+          "afterData": { "name": "Fazenda Verde Ltda" },
+          "performedAt": "2026-09-30T14:32:10"
+        }
+      ],
+      "limit": 20,
+      "offset": 0,
+      "hasNext": false,
+      "totalPages": 1
+    }
+    ```
+  - **Exemplo de row:** um evento de atualização de fornecedor deve ser armazenado com `affected_table = 'suppliers'`, `affected_entity_id = 42`, `before_data = '{"name":"Fazenda Verde"}'::jsonb` e `after_data = '{"name":"Fazenda Verde Ltda"}'::jsonb`, além de `log_id`, `user_id`, `action = 'UPDATE'` e `performed_at`.
+  - **Dados existentes:** revisar e corrigir inconsistências dos registros de auditoria que possam ser determinadas a partir dos dados disponíveis; a migration deve preservar o histórico e deixar nulos os detalhes antigos irrecuperáveis, sem fabricar snapshots.
+  - **Documentação:** atualizar OpenAPI, contratos e exemplos da API para refletir as colunas, campos de resposta e formato JSONB.
+  - **Validação:** verificar a migration em banco limpo e em banco com logs existentes, e conferir que inclusões, atualizações, mudanças de status e exclusões gerem o ID e os dados de antes/depois esperados.
