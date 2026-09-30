@@ -408,3 +408,11 @@
   - **Resposta:** preservar o formato paginado atual, com `content` (itens contendo `certificationId`, `supplierId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`), `page`, `size`, `totalElements` e `totalPages`.
   - **Validação/erros:** rejeitar página negativa, tamanho fora de `1..100` ou status inválido com `400`; responder `401` sem autenticação e `403` sem permissão.
   - **Escopo de documentação:** não é necessário atualizar a documentação do frontend.
+
+## Task 20 — Campo `totalPages` em todas as rotas paginadas
+
+- [ ] Padronizar as respostas de todas as rotas paginadas para incluir o campo `totalPages`.
+  - **Escopo:** identificar todas as rotas da API que retornam resultados paginados, incluindo listagens com `page`/`size` e com `limit`/`offset`.
+  - **Resposta:** incluir `totalPages` no objeto de paginação de cada rota, calculado como o número total de páginas para o tamanho solicitado; retornar `0` quando não houver resultados. Preservar os demais campos e parâmetros existentes, como `content` ou `items`, `page`, `size`, `limit`, `offset`, `totalElements` e `hasNext`.
+  - **Consistência:** garantir que `totalPages` reflita os filtros aplicados e que todas as respostas paginadas usem a mesma regra de cálculo.
+  - **Documentação:** atualizar os contratos e exemplos das rotas afetadas para mostrar `totalPages`.
