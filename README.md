@@ -213,6 +213,8 @@ rolocompressor06
 
 Essa credencial é exclusiva para o ambiente local/demonstrativo e deve ser substituída antes de qualquer uso em ambiente compartilhado ou de produção.
 
+O seed ampliado de demonstração é carregado pelas migrations padrão em `src/main/resources/db/migration`.
+
 ---
 
 ## 💻 Comandos Úteis de Desenvolvimento
