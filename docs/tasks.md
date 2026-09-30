@@ -416,3 +416,20 @@
   - **Resposta:** incluir `totalPages` no objeto de paginação de cada rota, calculado como o número total de páginas para o tamanho solicitado; retornar `0` quando não houver resultados. Preservar os demais campos e parâmetros existentes, como `content` ou `items`, `page`, `size`, `limit`, `offset`, `totalElements` e `hasNext`.
   - **Consistência:** garantir que `totalPages` reflita os filtros aplicados e que todas as respostas paginadas usem a mesma regra de cálculo.
   - **Documentação:** atualizar os contratos e exemplos das rotas afetadas para mostrar `totalPages`.
+
+## Task 21 — Unificação da consulta individual de relatórios
+
+- [ ] Remover `GET /api/v1/reports/{reportId}` e incorporar a consulta individual em `GET /api/v1/reports` por meio do parâmetro opcional `reportId`.
+  - **Listagem:** quando `reportId` não for informado, preservar a listagem paginada atual e seus filtros, parâmetros, formato de resposta e regras de autorização.
+  - **Consulta individual:** quando `reportId` for informado, retornar somente o relatório correspondente no formato de detalhe atual, incluindo `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount`, `trackedProductCount` e `generatedAt`.
+  - **Autorização e erros:** preservar as permissões atuais para relatórios; `SUPPLIER` só pode consultar relatório próprio. Rejeitar `reportId` inválido com `400`, responder `404` quando não existir relatório correspondente e manter `401`/`403` para falhas de autenticação/autorização.
+  - **Remoção:** excluir a rota `GET /api/v1/reports/{reportId}` e sua implementação associada; atualizar OpenAPI, documentação e contratos para usar `GET /api/v1/reports?reportId={reportId}`.
+
+## Task 22 — Consolidação das consultas de fornecedores
+
+- [ ] Concentrar as consultas de fornecedores em `GET /api/v1/suppliers` e remover as rotas GET redundantes.
+  - **Parâmetros:** adicionar `supplierId` opcional para consultar um fornecedor específico e `ranked` opcional (booleano) para solicitar a listagem ranqueada, preservando os filtros e a paginação do ranking atual.
+  - **Comportamento:** sem `supplierId` e sem `ranked=true`, preservar a listagem atual de fornecedores; com `supplierId`, retornar os detalhes do fornecedor; com `ranked=true`, retornar a listagem ranqueada no formato paginado atual.
+  - **Conflito:** os parâmetros `supplierId` e `ranked` são mutuamente exclusivos; rejeitar com `400` qualquer requisição que informe ambos, mesmo quando `ranked=false`. Validar também os valores inválidos dos parâmetros.
+  - **Remoção de rotas:** remover `GET /api/v1/suppliers/{supplierId}`, `GET /api/v1/suppliers/ranking` e as rotas `GET /api/v1/reports` e `GET /api/v1/reports/{reportId}`, incluindo implementações, autorização e documentação associadas. Manter a geração de relatórios por `POST /api/v1/suppliers/{supplierId}/reports`.
+  - **Compatibilidade:** preservar as regras de autorização, filtros, ordenação, paginação e formatos de resposta existentes para cada comportamento que passar a ser atendido por `GET /api/v1/suppliers`; atualizar OpenAPI e contratos da API.
