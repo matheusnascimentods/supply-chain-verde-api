@@ -34,9 +34,9 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 - Associar endereço e CNPJ validado ao fornecedor.
 - Registrar certificações ambientais.
 - Atualizar o status de uma certificação.
-- Listar certificações de forma paginada por `page` e `size`; o filtro opcional `onlyExpiring=true` retorna vencimentos entre hoje e os próximos 30 dias, inclusive, sem filtrar pelo status.
-- A listagem paginada com `onlyExpiring` absorve o comportamento da consulta específica de certificações próximas do vencimento. `GET /certifications/expiring` permanece disponível durante a migração de consumidores existentes e será removida depois que o frontend passar a usar `GET /certifications?onlyExpiring=true`.
-- A listagem usa `page` zero-based (padrão `0`) e `size` (padrão `20`, máximo `100`), ordena por `expiresAt` e `certificationId` crescentes e rejeita valores inválidos com `400`.
+- Listar certificações de forma paginada por `page` e `size`; o filtro opcional `status` aceita qualquer valor de `CertificationStatus` (`ACTIVE`, `EXPIRED`, `SUSPENDED` ou `UNDER_REVIEW`).
+- `GET /certifications/expiring` foi removida. Sem filtro de status, a listagem retorna certificações de todos os status, ordenadas por `issued_at` decrescente e `certificationId` decrescente como desempate.
+- A listagem usa `page` zero-based (padrão `0`) e `size` (padrão `20`, máximo `100`) e rejeita parâmetros inválidos com `400`.
 - Calcular ranking de sustentabilidade sob demanda, sem persistir score derivado.
 
 ### 3.3 Produtos e lotes
@@ -84,7 +84,7 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `admin`; `/me`: autenticado |
 | Suppliers | CRUD; `GET /suppliers/ranking?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext }`, buscando por nome em português ou CNPJ normalizado | Conforme RBAC |
-| Certifications | `GET /certifications?page=0&size=20&onlyExpiring=false` paginada, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
+| Certifications | `GET /certifications?page=0&size=20&status=ACTIVE` paginada com filtro opcional por status, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
 | Products | Criar, atualizar e listar | `admin`, `manager` ou autenticado |
 | Batches | `GET /batches?page=0&size=20&supplierId={id}` paginada, criar e rastrear | Listagem: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios pelo `userId` do token; rastreabilidade pública |
 | Chains | Criar e listar etapas | Conforme RBAC |
@@ -159,6 +159,6 @@ flowchart TD
 
 ## 10. Paginação
 
-As rotas `GET /api/v1/batches` e `GET /api/v1/certifications` usam `page` zero-based e `size` (padrão 20, máximo 100), retornando os itens em `content` e os metadados `page`, `size`, `totalElements` e `totalPages`. Certificações aceitam `onlyExpiring` (padrão `false`) e lotes aceitam `supplierId` opcional.
+As rotas `GET /api/v1/batches` e `GET /api/v1/certifications` usam `page` zero-based e `size` (padrão 20, máximo 100), retornando os itens em `content` e os metadados `page`, `size`, `totalElements` e `totalPages`. Certificações aceitam `status` opcional; lotes aceitam `supplierId` opcional.
 
 As demais coleções paginadas que usam busca por deslocamento aceitam `limit` (padrão 20, máximo 100) e `offset` (padrão 0), retornam os itens em `items` e incluem `limit`, `offset` e `hasNext`. A listagem de relatórios também aceita `supplierId` opcional. A autorização por fornecedor deve ser aplicada no servidor: um usuário `supplier` não pode consultar dados de outro fornecedor alterando esse filtro.

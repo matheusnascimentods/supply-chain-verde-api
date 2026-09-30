@@ -19,7 +19,6 @@ import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceab
 import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import br.com.anhembi.supplychainverde.application.usecase.batch.ListBatchesUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.RegisterBatchUseCase;
-import br.com.anhembi.supplychainverde.application.usecase.certification.ListExpiringCertificationsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.certification.RegisterCertificationUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.certification.UpdateCertificationStatusUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.chain.ListChainStagesByBatchUseCase;
@@ -130,7 +129,6 @@ class ApplicationUseCasesTest {
         when(suppliers.findById(2L)).thenReturn(Optional.of(supplier));
         when(certifications.save(any())).thenReturn(certification);
         when(certifications.findById(5L)).thenReturn(Optional.of(certification));
-        when(certifications.findByExpiresAtBetween(any(), any())).thenReturn(List.of(certification));
 
         CertificationRequestDTO request = new CertificationRequestDTO(2L, "ISO", "ABNT", LocalDate.now(), LocalDate.now().plusDays(10));
         assertThat(new RegisterCertificationUseCase(certifications, suppliers).execute(2L, request).status())
@@ -138,7 +136,6 @@ class ApplicationUseCasesTest {
         assertThat(new UpdateCertificationStatusUseCase(certifications)
                 .execute(5L, new UpdateCertificationStatusRequestDTO(CertificationStatus.SUSPENDED)).status())
                 .isEqualTo(CertificationStatus.SUSPENDED);
-        assertThat(new ListExpiringCertificationsUseCase(certifications).execute()).hasSize(1);
     }
 
     @Test
