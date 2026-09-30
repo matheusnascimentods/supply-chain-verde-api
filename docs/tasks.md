@@ -387,3 +387,14 @@
     }
     ```
   - **Validação/erros:** rejeitar `limit` fora de `1..100` ou `offset` negativo com `400`; responder `401` sem autenticação, `403` sem permissão e `404` quando o relatório solicitado não existir.
+
+## Task 18 — Ampliação dos dados de demonstração
+
+- [ ] Criar migrations Flyway adicionais para popular o banco de desenvolvimento e demonstração com dados variados e coerentes, simulando uso frequente do frontend.
+  - **Usuários:** inserir pelo menos 11 usuários adicionais, com nomes, emails únicos e distribuição representativa entre as roles disponíveis. Credenciais de demonstração devem seguir o mecanismo de hash da aplicação e não armazenar senhas em texto puro.
+  - **Produtos e categorias:** inserir pelo menos 40 produtos com nomes, descrições, unidades e categorias variados. Avaliar a inclusão de novas categorias; se forem adicionadas, atualizar de forma compatível os enums, validações, schema, filtros/busca e documentação da API.
+  - **Fornecedores:** inserir pelo menos 30 fornecedores adicionais, com CNPJs válidos e únicos, endereços, contatos e pontuações consistentes com os dados associados.
+  - **Cobertura relacional:** criar novos registros de lotes, etapas/cadeias, transportes, emissões de carbono, certificações, relatórios e auditoria, além de quaisquer outras tabelas necessárias. Distribuir as relações entre os novos e os registros existentes, mantendo todas as FKs válidas e os cálculos/intervalos coerentes.
+  - **Cenários consultáveis:** incluir certificações vencidas, próximas do vencimento (dentro da janela de 30 dias) e válidas por período maior; gerar também lotes em diferentes etapas, emissões no mês atual e relatórios de períodos variados. As consultas de dashboard, certificações expirando, rastreabilidade, ranking, busca/listagem de produtos e relatórios devem retornar resultados representativos.
+  - **Migrations e ambiente:** manter os seeds reproduzíveis e compatíveis com um banco criado do zero e com as migrations já aplicadas; não depender de IDs fixos que conflitem com os dados existentes, nem duplicar registros ao reiniciar a aplicação. Restringir dados fictícios ao contexto de desenvolvimento/demonstração, conforme a estratégia de configuração do projeto.
+  - **Validação:** confirmar que a sequência Flyway aplica em PostgreSQL limpo e existente e que as rotas relevantes conseguem consultar os novos cenários sem erros de integridade ou incompatibilidade de enum.
