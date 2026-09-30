@@ -17,16 +17,15 @@ public interface CertificationJpaRepository extends JpaRepository<CertificationJ
     List<CertificationJpaEntity> findBySupplierSupplierIdAndStatus(Long supplierId, CertificationStatus status);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
-    List<CertificationJpaEntity> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
-
-    @EntityGraph(attributePaths = {"supplier", "supplier.address"})
-    Page<CertificationJpaEntity> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, Pageable pageable);
+    Page<CertificationJpaEntity> findByStatus(CertificationStatus status, Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     Page<CertificationJpaEntity> findAll(Pageable pageable);
 
     long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
+
+    long countByStatus(CertificationStatus status);
 
     @Override
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})

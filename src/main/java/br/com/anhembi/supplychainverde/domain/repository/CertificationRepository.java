@@ -18,15 +18,15 @@ public interface CertificationRepository {
 
     List<Certification> findBySupplierIdAndStatus(Long supplierId, CertificationStatus status);
 
-    List<Certification> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
-
     List<Certification> findAll(int page, int size);
+
+    List<Certification> findByStatus(CertificationStatus status, int page, int size);
 
     long countAll();
 
-    List<Certification> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, int page, int size);
-
     long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
+
+    long countByStatus(CertificationStatus status);
 
     void deleteById(Long certificationId);
 }

@@ -273,8 +273,7 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/suppliers/{supplierId}/certifications` | Registro de certificação ambiental | `SUPPLIER`, `ADMIN` |
 | `PATCH` | `/api/v1/certifications/{certificationId}/status` | Atualização do status da certificação | `AUDITOR`, `ADMIN` |
-| `GET` | `/api/v1/certifications?page=0&size=20&onlyExpiring=false` | Listagem paginada; `onlyExpiring=true` filtra vencimentos de hoje até 30 dias (inclusive), sem filtrar por status (`page` zero-based; `size` padrão 20, máximo 100) | `AUDITOR`, `MANAGER`, `ADMIN` |
-| `GET` | `/api/v1/certifications/expiring` | Rota de compatibilidade para consumidores ainda não migrados; remover após a migração do frontend | `AUDITOR`, `MANAGER`, `ADMIN` |
+| `GET` | `/api/v1/certifications?page=0&size=20&status=ACTIVE` | Listagem paginada; `status` opcional aceita `ACTIVE`, `EXPIRED`, `SUSPENDED` ou `UNDER_REVIEW`; sem filtro retorna todos os status ordenados por emissão mais recente (`page` zero-based; `size` padrão 20, máximo 100) | `AUDITOR`, `MANAGER`, `ADMIN` |
 
 ### 🧾 Auditoria (`/api/v1/audit-logs`)
 | Método | Rota | Descrição | Acesso |

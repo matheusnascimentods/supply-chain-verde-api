@@ -45,13 +45,13 @@ public class CertificationRepositoryImpl implements CertificationRepository {
     }
 
     @Override
-    public List<Certification> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt) {
-        return jpaRepository.findByExpiresAtBetween(startsAt, endsAt).stream().map(mapper::toDomain).toList();
+    public List<Certification> findAll(int page, int size) {
+        return jpaRepository.findAll(pageRequest(page, size)).stream().map(mapper::toDomain).toList();
     }
 
     @Override
-    public List<Certification> findAll(int page, int size) {
-        return jpaRepository.findAll(pageRequest(page, size)).stream().map(mapper::toDomain).toList();
+    public List<Certification> findByStatus(CertificationStatus status, int page, int size) {
+        return jpaRepository.findByStatus(status, pageRequest(page, size)).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -60,20 +60,19 @@ public class CertificationRepositoryImpl implements CertificationRepository {
     }
 
     @Override
-    public List<Certification> findByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, int page, int size) {
-        return jpaRepository.findByExpiresAtBetween(startsAt, endsAt, pageRequest(page, size))
-                .stream().map(mapper::toDomain).toList();
-    }
-
-    @Override
     public long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt) {
         return jpaRepository.countByExpiresAtBetween(startsAt, endsAt);
     }
 
+    @Override
+    public long countByStatus(CertificationStatus status) {
+        return jpaRepository.countByStatus(status);
+    }
+
     private PageRequest pageRequest(int page, int size) {
         return PageRequest.of(page, size, Sort.by(
-                Sort.Order.asc("expiresAt"),
-                Sort.Order.asc("certificationId")
+                Sort.Order.desc("issuedAt"),
+                Sort.Order.desc("certificationId")
         ));
     }
 
