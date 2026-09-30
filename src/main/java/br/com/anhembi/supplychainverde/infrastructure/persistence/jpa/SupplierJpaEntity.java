@@ -33,6 +33,6 @@ public class SupplierJpaEntity {
     @Column(name = "phone")
     private String phone;
 
-    @Column(name = "registered_at", nullable = false)
+    @Column(name = "registered_at", nullable = false, insertable = false, updatable = false)
     private LocalDate registeredAt;
 }
