@@ -408,3 +408,69 @@
   - **Resposta:** preservar o formato paginado atual, com `content` (itens contendo `certificationId`, `supplierId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`), `page`, `size`, `totalElements` e `totalPages`.
   - **Validação/erros:** rejeitar página negativa, tamanho fora de `1..100` ou status inválido com `400`; responder `401` sem autenticação e `403` sem permissão.
   - **Escopo de documentação:** não é necessário atualizar a documentação do frontend.
+
+## Task 20 — Campo `totalPages` em todas as rotas paginadas
+
+- [ ] Padronizar as respostas de todas as rotas paginadas para incluir o campo `totalPages`.
+  - **Rotas:** `GET /api/v1/batches` e `GET /api/v1/certifications` (paginação `page`/`size`); `GET /api/v1/users`, `GET /api/v1/suppliers/ranking`, `GET /api/v1/products`, `GET /api/v1/audit-logs` e `GET /api/v1/reports` (paginação `limit`/`offset`). Considerar os filtros opcionais de cada rota no cálculo dos totais.
+  - **Resposta:** incluir `totalPages` no objeto de paginação de cada rota, calculado como o número total de páginas para o tamanho solicitado; retornar `0` quando não houver resultados. Preservar os demais campos e parâmetros existentes, como `content` ou `items`, `page`, `size`, `limit`, `offset`, `totalElements` e `hasNext`.
+  - **Consistência:** garantir que `totalPages` reflita os filtros aplicados e que todas as respostas paginadas usem a mesma regra de cálculo.
+  - **Documentação:** atualizar os contratos e exemplos das rotas afetadas para mostrar `totalPages`.
+
+## Task 21 — Unificação da consulta individual de relatórios
+
+- [ ] Remover `GET /api/v1/reports/{reportId}` e incorporar a consulta individual em `GET /api/v1/reports` por meio do parâmetro opcional `reportId`.
+  - **Listagem:** quando `reportId` não for informado, preservar a listagem paginada atual e seus filtros, parâmetros, formato de resposta e regras de autorização.
+  - **Consulta individual:** quando `reportId` for informado, retornar somente o relatório correspondente no formato de detalhe atual, incluindo `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount`, `trackedProductCount` e `generatedAt`.
+  - **Autorização e erros:** preservar as permissões atuais para relatórios; `SUPPLIER` só pode consultar relatório próprio. Rejeitar `reportId` inválido com `400`, responder `404` quando não existir relatório correspondente e manter `401`/`403` para falhas de autenticação/autorização.
+  - **Remoção:** excluir a rota `GET /api/v1/reports/{reportId}` e sua implementação associada; atualizar OpenAPI, documentação e contratos para usar `GET /api/v1/reports?reportId={reportId}`.
+
+## Task 22 — Consolidação das consultas de fornecedores
+
+- [ ] Concentrar as consultas de fornecedores em `GET /api/v1/suppliers` e remover as rotas GET redundantes.
+  - **Parâmetros:** adicionar `supplierId` opcional para consultar um fornecedor específico e `ranked` opcional (booleano) para solicitar a listagem ranqueada, preservando os filtros e a paginação do ranking atual.
+  - **Comportamento:** sem `supplierId` e sem `ranked=true`, preservar a listagem atual de fornecedores; com `supplierId`, retornar os detalhes do fornecedor; com `ranked=true`, retornar a listagem ranqueada no formato paginado atual.
+  - **Conflito:** os parâmetros `supplierId` e `ranked` são mutuamente exclusivos; rejeitar com `400` qualquer requisição que informe ambos, mesmo quando `ranked=false`. Validar também os valores inválidos dos parâmetros.
+  - **Remoção de rotas:** remover `GET /api/v1/suppliers/{supplierId}`, `GET /api/v1/suppliers/ranking` e as rotas `GET /api/v1/reports` e `GET /api/v1/reports/{reportId}`, incluindo implementações, autorização e documentação associadas. Manter a geração de relatórios por `POST /api/v1/suppliers/{supplierId}/reports`.
+  - **Compatibilidade:** preservar as regras de autorização, filtros, ordenação, paginação e formatos de resposta existentes para cada comportamento que passar a ser atendido por `GET /api/v1/suppliers`; atualizar OpenAPI e contratos da API.
+
+## Task 23 — Detalhamento dos eventos de auditoria
+
+- [ ] Registrar a entidade afetada e os dados alterados nos eventos de auditoria, expondo essas informações na rota de consulta.
+  - **Schema:** criar migration Flyway aditiva para incluir em `audit_log` o ID da entidade e os dados anteriores/posteriores em `JSONB`. O schema resultante deve conter:
+    ```sql
+    affected_entity_id BIGINT,
+    before_data JSONB,
+    after_data JSONB
+    ```
+    Criar também índice por `(affected_table, affected_entity_id)`. Manter as novas colunas anuláveis para preservar registros históricos que não tenham esses detalhes recuperáveis; novos eventos devem preencher `affected_entity_id`.
+  - **Identificação:** preencher o ID primário da entidade afetada para `INSERT`, `UPDATE`, `DELETE` e `STATUS_CHANGE`; resolver o tipo de entidade de forma explícita e confiável, sem selecionar arbitrariamente um getter terminado em `Id`.
+  - **Conteúdo:** para `UPDATE` e `STATUS_CHANGE`, armazenar em `before_data` e `after_data` objetos JSON com somente os campos alterados e seus valores antes/depois. Para `INSERT`, `before_data` é `NULL` e `after_data` contém os dados auditáveis criados; para `DELETE`, `before_data` contém os dados auditáveis anteriores à exclusão e `after_data` é `NULL`. Representar associações por seus IDs, sem serializar grafos de entidades.
+  - **Privacidade:** excluir senhas, hashes, tokens e outros segredos dos JSONB. Não inventar valores anteriores, posteriores ou IDs que não possam ser recuperados.
+  - **Ações:** garantir a classificação correta entre `INSERT`, `UPDATE`, `DELETE` e `STATUS_CHANGE`, incluindo a detecção de mudanças de status em vez de registrar toda alteração como `UPDATE`.
+  - **Contrato da rota:** manter `GET /api/v1/audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` e os filtros/autorização atuais. Cada item deve incluir `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData` e `afterData` são objetos JSON ou `null`; preservar a paginação da rota, incluindo `items`, `limit`, `offset`, `hasNext` e `totalPages`.
+    ```json
+    {
+      "items": [
+        {
+          "logId": 981,
+          "userId": 7,
+          "userEmail": "ana.souza@empresa.com",
+          "action": "UPDATE",
+          "affectedTable": "suppliers",
+          "affectedEntityId": 42,
+          "beforeData": { "name": "Fazenda Verde" },
+          "afterData": { "name": "Fazenda Verde Ltda" },
+          "performedAt": "2026-09-30T14:32:10"
+        }
+      ],
+      "limit": 20,
+      "offset": 0,
+      "hasNext": false,
+      "totalPages": 1
+    }
+    ```
+  - **Exemplo de row:** um evento de atualização de fornecedor deve ser armazenado com `affected_table = 'suppliers'`, `affected_entity_id = 42`, `before_data = '{"name":"Fazenda Verde"}'::jsonb` e `after_data = '{"name":"Fazenda Verde Ltda"}'::jsonb`, além de `log_id`, `user_id`, `action = 'UPDATE'` e `performed_at`.
+  - **Dados existentes:** revisar e corrigir inconsistências dos registros de auditoria que possam ser determinadas a partir dos dados disponíveis; a migration deve preservar o histórico e deixar nulos os detalhes antigos irrecuperáveis, sem fabricar snapshots.
+  - **Documentação:** atualizar OpenAPI, contratos e exemplos da API para refletir as colunas, campos de resposta e formato JSONB.
+  - **Validação:** verificar a migration em banco limpo e em banco com logs existentes, e conferir que inclusões, atualizações, mudanças de status e exclusões gerem o ID e os dados de antes/depois esperados.
