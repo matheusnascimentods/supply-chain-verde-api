@@ -412,7 +412,7 @@
 ## Task 20 — Campo `totalPages` em todas as rotas paginadas
 
 - [ ] Padronizar as respostas de todas as rotas paginadas para incluir o campo `totalPages`.
-  - **Escopo:** identificar todas as rotas da API que retornam resultados paginados, incluindo listagens com `page`/`size` e com `limit`/`offset`.
+  - **Rotas:** `GET /api/v1/batches` e `GET /api/v1/certifications` (paginação `page`/`size`); `GET /api/v1/users`, `GET /api/v1/suppliers/ranking`, `GET /api/v1/products`, `GET /api/v1/audit-logs` e `GET /api/v1/reports` (paginação `limit`/`offset`). Considerar os filtros opcionais de cada rota no cálculo dos totais.
   - **Resposta:** incluir `totalPages` no objeto de paginação de cada rota, calculado como o número total de páginas para o tamanho solicitado; retornar `0` quando não houver resultados. Preservar os demais campos e parâmetros existentes, como `content` ou `items`, `page`, `size`, `limit`, `offset`, `totalElements` e `hasNext`.
   - **Consistência:** garantir que `totalPages` reflita os filtros aplicados e que todas as respostas paginadas usem a mesma regra de cálculo.
   - **Documentação:** atualizar os contratos e exemplos das rotas afetadas para mostrar `totalPages`.
