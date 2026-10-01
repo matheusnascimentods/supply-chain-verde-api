@@ -71,9 +71,10 @@ Base path: `/api/v1`.
 - Chain: `ChainRequestDTO`, `ChainResponseDTO`.
 - Transport: `TransportRequestDTO`, `TransportResponseDTO`.
 - Emission: `CarbonEmissionRequestDTO`, `CarbonEmissionResponseDTO`, `CarbonFootprintResponseDTO`.
-- Users: `UserPageDTO` contém `items`, `limit`, `offset`, `hasNext` e `totalPages`; a busca `email` parcial case-insensitive usa o índice GIN trigram `lower(email)`. Limite padrão 20, máximo 100; offset padrão 0.
-- Report: `ReportRequestDTO`, `ReportResponseDTO`, `ReportPageDTO`, `ReportListItemDTO` e `ReportDetailDTO`. A listagem retorna CNPJ e nome do fornecedor, total de lotes produzidos entre as datas do relatório e CO₂ total. A página contém `items`, `limit`, `offset`, `hasNext` e `totalPages`; o total considera o filtro de fornecedor e a autorização aplicada. O detalhe também mantém `trackedProductCount`. Limite padrão 20, máximo 100; offset padrão 0.
-- Audit: `AuditLogPageDTO` contém `items`, `limit`, `offset`, `hasNext` e `totalPages`; a contagem considera intervalo, ação e email do usuário. `AuditLogResponseDTO` representa cada registro.
+- Paginação por deslocamento: as rotas de usuários, ranking de fornecedores, produtos, relatórios e auditoria retornam `OffsetPageResponseDTO<T>`, com `items`, `limit`, `offset`, `hasNext` e `totalPages`. A fábrica do DTO deriva `hasNext` e `totalPages` da contagem filtrada total e dos parâmetros recebidos.
+- Users: `UserResponseDTO` representa cada usuário; a busca `email` parcial case-insensitive usa o índice GIN trigram `lower(email)`. Limite padrão 20, máximo 100; offset padrão 0.
+- Report: `ReportRequestDTO`, `ReportResponseDTO`, `ReportListItemDTO` e `ReportDetailDTO`. A listagem retorna CNPJ e nome do fornecedor, total de lotes produzidos entre as datas do relatório e CO₂ total; o total considera o filtro de fornecedor e a autorização aplicada. O detalhe também mantém `trackedProductCount`. Limite padrão 20, máximo 100; offset padrão 0.
+- Audit: `AuditLogResponseDTO` representa cada registro; a contagem considera intervalo, ação e email do usuário.
 
 As demais respostas offset-paginadas de produtos e ranking de fornecedores também contêm `items`, `limit`, `offset`, `hasNext` e `totalPages`. O total de páginas é calculado sobre todos os resultados após a aplicação dos filtros e é `0` quando a consulta não retorna registros.
 - Dashboard: `DashboardSummaryResponseDTO`, `RecentBatchSummaryDTO`.

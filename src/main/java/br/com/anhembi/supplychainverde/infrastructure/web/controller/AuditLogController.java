@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
-import br.com.anhembi.supplychainverde.application.dto.audit.AuditLogPageDTO;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
+import br.com.anhembi.supplychainverde.application.dto.audit.AuditLogResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.domain.enums.AuditAction;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,7 +24,7 @@ public class AuditLogController {
 
     @GetMapping
     @Operation(summary = "Listar logs de auditoria", description = "Filtra logs por período, ação e email, com paginação.")
-    public AuditLogPageDTO list(
+    public OffsetPageResponseDTO<AuditLogResponseDTO> list(
             @RequestParam("from") LocalDate from,
             @RequestParam("to") LocalDate to,
             @RequestParam(name = "action", required = false) AuditAction action,

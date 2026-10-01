@@ -1,4 +1,4 @@
-package br.com.anhembi.supplychainverde.application;
+package br.com.anhembi.supplychainverde.application.pagination;
 
 public final class PageCount {
     private PageCount() {}

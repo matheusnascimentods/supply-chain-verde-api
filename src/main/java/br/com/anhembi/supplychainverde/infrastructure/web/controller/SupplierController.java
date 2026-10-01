@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
-import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingPageDTO;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
+import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.supplier.*;
@@ -46,7 +47,7 @@ public class SupplierController {
 
     @GetMapping("/ranking")
     @Operation(summary = "Ranquear fornecedores", description = "Busca e pagina fornecedores ordenados pelo desempenho de sustentabilidade.")
-    public SupplierRankingPageDTO ranking(
+    public OffsetPageResponseDTO<SupplierRankingDTO> ranking(
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @RequestParam(required = false) String search

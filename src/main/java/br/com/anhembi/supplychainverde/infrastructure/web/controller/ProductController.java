@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
 import br.com.anhembi.supplychainverde.application.dto.product.*;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.product.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +34,7 @@ public class ProductController {
 
     @GetMapping
     @Operation(summary = "Listar produtos", description = "Busca e pagina produtos por nome, descrição ou categoria.")
-    public ProductPageDTO list(
+    public OffsetPageResponseDTO<ProductResponseDTO> list(
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @RequestParam(required = false) String search

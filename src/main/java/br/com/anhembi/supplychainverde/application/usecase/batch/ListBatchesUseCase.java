@@ -1,7 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.batch;
 
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchPageResponseDTO;
-import br.com.anhembi.supplychainverde.application.PageCount;
+import br.com.anhembi.supplychainverde.application.pagination.PageCount;
 import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import lombok.RequiredArgsConstructor;

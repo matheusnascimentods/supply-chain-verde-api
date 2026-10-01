@@ -1,7 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.certification;
 
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationPageResponseDTO;
-import br.com.anhembi.supplychainverde.application.PageCount;
+import br.com.anhembi.supplychainverde.application.pagination.PageCount;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
