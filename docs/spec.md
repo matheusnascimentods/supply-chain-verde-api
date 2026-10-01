@@ -63,7 +63,8 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 - Consultar relatórios pela coleção `GET /reports`: sem `reportId`, retorna a coleção paginada com filtro opcional `supplierId`; com `reportId`, retorna o detalhe individual.
 - A coleção paginada substitui a listagem aninhada por fornecedor; `supplier` só pode consultar seus próprios relatórios.
 - As respostas de relatório incluem CNPJ e razão social do fornecedor e total de lotes considerados, além do período, CO₂ total e data de geração.
-- Registrar automaticamente ações relevantes por meio do interceptor de auditoria.
+- Registrar automaticamente alterações de dados por triggers PostgreSQL em uma tabela de auditoria mantida pelo banco.
+- Propagar o ID do usuário autenticado no contexto da transação; a API não cria linhas de auditoria e consulta os eventos persistidos pelo banco.
 - Consultar logs de auditoria conforme o perfil autorizado.
 
 ### 3.6 Resumo do dashboard
@@ -91,22 +92,35 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
 | Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada com `{ items, limit, offset, hasNext, totalPages }`; `GET /reports?reportId={id}` retorna detalhe; `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
-| Audit logs | `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext, totalPages }`; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
+| Audit logs | Triggers do PostgreSQL escrevem os eventos; a API expõe somente `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0`, com `{ items, limit, offset, hasNext, totalPages }`; cada item inclui entidade e snapshots JSON; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
 | Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes | Qualquer usuário autenticado |
 
-Os contratos detalhados de request/response permanecem documentados no `CLAUDE.md`, seção 10, e são a fonte de referência para controllers e consumidores.
+Os contratos detalhados de request/response estão em [`reference.md`](reference.md), neste documento e nos DTOs/OpenAPI da API.
 
 ## 5. Regras de negócio
 
 1. Toda etapa possui usuário responsável.
 2. Score de sustentabilidade não é armazenado; é calculado quando solicitado.
 3. O lote é identificado publicamente pelo `batchId`; não há código de rastreamento adicional persistido.
-4. Auditoria é transversal e automática; casos de uso não gravam `AuditLog` manualmente.
+4. O PostgreSQL é responsável por gravar auditoria via triggers. A API define `app.user_id` na transação antes da primeira escrita; não há interceptor nem repositório de aplicação que insira logs.
 5. Endereços são entidades referenciadas, não texto duplicado em fornecedores ou etapas.
 6. Toda emissão registra metodologia e fator vigente para manter histórico auditável.
 7. Valores fechados usam enums tipados.
 8. Perfis controlam autorização dos endpoints.
 9. A exposição de IDs sequenciais em rotas públicas é um risco conhecido; rate limiting ou identificador público não sequencial são evoluções futuras.
+
+### 5.1 Auditoria mantida pelo PostgreSQL
+
+- Triggers por linha nas tabelas de negócio registram `INSERT`, `UPDATE` e `DELETE` na tabela `audit_log`; updates sem mudança efetiva não geram evento. Atualizações que alterem os campos de estado definidos para a entidade usam `STATUS_CHANGE`.
+- A tabela mantém `log_id`, `user_id`, `action`, `affected_table`, `affected_entity_id`, `before_data`, `after_data` e `performed_at`. Os snapshots são JSONB, incluem apenas colunas alteradas e representam FKs como IDs. Campos de autenticação, hashes, tokens e outros segredos são excluídos por lista explícita nas funções de trigger.
+- `INSERT` grava `before_data = NULL` e os dados auditáveis em `after_data`; `DELETE` faz o inverso; `UPDATE`/`STATUS_CHANGE` grava somente as chaves alteradas nos dois snapshots. Valores são obtidos de `OLD`/`NEW`, nunca reconstruídos a partir do estado atual.
+- Antes da primeira escrita da requisição, a API define `app.user_id` com `set_config('app.user_id', :userId, true)` dentro da transação que fará a escrita. O terceiro argumento `true` torna o valor local à transação: não se usa variável de sessão persistente nem cache compartilhado entre requisições.
+- A definição do contexto e todas as escritas auditadas devem compartilhar a mesma transação e conexão física. Escritas sem ator autenticado recebem identidade de serviço definida para o processo ou ator nulo conforme política; não podem herdar identidade de outra transação.
+- `app.user_id` é contexto propagado pela API, não uma identidade autenticada independentemente pelo banco. A conexão do banco é privada à aplicação; clientes não recebem credenciais SQL. A role de aplicação não pode inserir, atualizar ou excluir diretamente linhas de `audit_log`; triggers usam uma função controlada, com `search_path` fixo e privilégios mínimos.
+- A tabela nova inicia vazia. O histórico da tabela substituída não é copiado; essa perda é deliberada e deve constar no release/migration notes. Seeds não devem inventar eventos de negócio; somente operações executadas após a instalação das triggers entram na trilha.
+- A API mantém a consulta paginada e autorização de `GET /api/v1/audit-logs`. O frontend não envia `userId` para auditar; apenas apresenta `userId`/email retornados e os snapshots recebidos.
+
+O desenho e suas consequências operacionais estão registrados em [`adr/0001-auditoria-no-postgresql.md`](adr/0001-auditoria-no-postgresql.md).
 
 ## 6. Fluxos principais
 
