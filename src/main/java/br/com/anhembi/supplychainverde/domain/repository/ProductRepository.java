@@ -14,7 +14,11 @@ public interface ProductRepository {
 
     List<Product> findAll(int limit, int offset);
 
+    long countAll();
+
     List<Product> findBySearch(String search, String categoryCode, int limit, int offset);
+
+    long countBySearch(String search, String categoryCode);
 
     void deleteById(Long productId);
 }

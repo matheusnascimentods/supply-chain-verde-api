@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.batch;
 
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchPageResponseDTO;
+import br.com.anhembi.supplychainverde.application.PageCount;
 import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class ListBatchesUseCase {
         long totalElements = supplierId == null
                 ? batchRepository.countAll()
                 : batchRepository.countBySupplierId(supplierId);
-        int totalPages = totalElements == 0 ? 0 : Math.toIntExact((totalElements - 1) / size + 1);
+        int totalPages = PageCount.totalPages(totalElements, size);
 
         return new BatchPageResponseDTO(
                 batches.stream().map(mapper::toDto).toList(),

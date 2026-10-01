@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.application.usecase.report;
 
 import br.com.anhembi.supplychainverde.application.dto.report.ReportListItemDTO;
 import br.com.anhembi.supplychainverde.application.dto.report.ReportPageDTO;
+import br.com.anhembi.supplychainverde.application.PageCount;
 import br.com.anhembi.supplychainverde.domain.entity.Report;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
@@ -19,12 +20,13 @@ public class ListReportsUseCase {
 
     public ReportPageDTO execute(Long supplierId, int limit, int offset) {
         List<Report> reports = reportRepository.findPage(supplierId, limit + 1, offset);
+        long totalElements = reportRepository.countPage(supplierId);
         boolean hasNext = reports.size() > limit;
         List<ReportListItemDTO> items = reports.stream()
                 .limit(limit)
                 .map(this::toResponse)
                 .toList();
-        return new ReportPageDTO(items, limit, offset, hasNext);
+        return new ReportPageDTO(items, limit, offset, hasNext, PageCount.totalPages(totalElements, limit));
     }
 
     private ReportListItemDTO toResponse(Report report) {

@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingPageDTO;
+import br.com.anhembi.supplychainverde.application.PageCount;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
@@ -42,7 +43,8 @@ public class RankSuppliersBySustainabilityUseCase {
                 rankings.subList(fromIndex, toIndex),
                 limit,
                 offset,
-                toIndex < rankings.size()
+                toIndex < rankings.size(),
+                PageCount.totalPages(rankings.size(), limit)
         );
     }
 

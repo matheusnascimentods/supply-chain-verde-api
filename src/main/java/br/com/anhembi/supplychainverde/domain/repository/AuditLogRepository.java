@@ -27,4 +27,6 @@ public interface AuditLogRepository {
             int limit,
             int offset
     );
+
+    long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail);
 }

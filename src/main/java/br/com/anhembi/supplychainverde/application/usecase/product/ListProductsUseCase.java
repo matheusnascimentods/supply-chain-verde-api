@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.application.usecase.product;
 
 import br.com.anhembi.supplychainverde.application.dto.product.ProductResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.product.ProductPageDTO;
+import br.com.anhembi.supplychainverde.application.PageCount;
 import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
@@ -27,13 +28,16 @@ public class ListProductsUseCase {
         List<Product> products = term.isEmpty()
                 ? productRepository.findAll(limit + 1, offset)
                 : productRepository.findBySearch(term, categoryCode, limit + 1, offset);
+        long totalElements = term.isEmpty()
+                ? productRepository.countAll()
+                : productRepository.countBySearch(term, categoryCode);
         boolean hasNext = products.size() > limit;
         List<ProductResponseDTO> items = products.stream()
                 .limit(limit)
                 .map(this::toResponse)
                 .toList();
 
-        return new ProductPageDTO(items, limit, offset, hasNext);
+        return new ProductPageDTO(items, limit, offset, hasNext, PageCount.totalPages(totalElements, limit));
     }
 
     private String categoryCode(String search) {

@@ -36,8 +36,18 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public long countAll() {
+        return jpaRepository.countAllProducts();
+    }
+
+    @Override
     public List<Product> findBySearch(String search, String categoryCode, int limit, int offset) {
         return jpaRepository.findBySearch(search, categoryCode, limit, offset).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public long countBySearch(String search, String categoryCode) {
+        return jpaRepository.countBySearch(search, categoryCode);
     }
 
     @Override

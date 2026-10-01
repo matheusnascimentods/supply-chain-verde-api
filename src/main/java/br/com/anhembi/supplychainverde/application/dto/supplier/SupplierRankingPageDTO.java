@@ -6,5 +6,6 @@ public record SupplierRankingPageDTO(
         List<SupplierRankingDTO> items,
         int limit,
         int offset,
-        boolean hasNext
+        boolean hasNext,
+        int totalPages
 ) {}

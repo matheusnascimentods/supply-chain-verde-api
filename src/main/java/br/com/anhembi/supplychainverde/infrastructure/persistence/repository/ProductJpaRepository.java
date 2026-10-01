@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Long> {
+    @Query(value = "SELECT COUNT(*) FROM product", nativeQuery = true)
+    long countAllProducts();
+
     @Query(value = """
             SELECT product_id, name, category, unit, description
             FROM product
@@ -29,5 +32,16 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
             @Param("categoryCode") String categoryCode,
             @Param("limit") int limit,
             @Param("offset") int offset
+    );
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM product p
+            WHERE p.search_vector @@ websearch_to_tsquery('portuguese', :search)
+               OR (:categoryCode <> '' AND lower(p.category::text) = lower(:categoryCode))
+            """, nativeQuery = true)
+    long countBySearch(
+            @Param("search") String search,
+            @Param("categoryCode") String categoryCode
     );
 }

@@ -6,5 +6,6 @@ public record AuditLogPageDTO(
         List<AuditLogResponseDTO> items,
         int limit,
         int offset,
-        boolean hasNext
+        boolean hasNext,
+        int totalPages
 ) {}

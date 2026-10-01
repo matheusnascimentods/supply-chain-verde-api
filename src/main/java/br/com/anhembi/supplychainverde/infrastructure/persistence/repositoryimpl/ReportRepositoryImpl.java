@@ -61,6 +61,19 @@ public class ReportRepositoryImpl implements ReportRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public long countPage(Long supplierId) {
+        String jpql = supplierId == null
+                ? "SELECT COUNT(report) FROM ReportJpaEntity report"
+                : "SELECT COUNT(report) FROM ReportJpaEntity report WHERE report.supplier.supplierId = :supplierId";
+        var query = entityManager.createQuery(jpql, Long.class);
+        if (supplierId != null) {
+            query.setParameter("supplierId", supplierId);
+        }
+        return query.getSingleResult();
+    }
+
+    @Override
     public List<Report> findBySupplierId(Long supplierId) {
         return jpaRepository.findBySupplierSupplierId(supplierId).stream().map(mapper::toDomain).toList();
     }

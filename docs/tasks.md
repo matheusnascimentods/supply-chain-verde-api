@@ -241,7 +241,7 @@
   - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional. Aplicar o termo antes da paginação para localizar fornecedores por nome (full-text em português) ou CNPJ (correspondência parcial após normalizar para dígitos).
   - **Busca e índices:** criar uma migration Flyway com coluna `tsvector` gerada a partir do nome (configuração `portuguese`) e índice GIN para full-text; habilitar `pg_trgm` e criar índice GIN trigram para busca parcial de CNPJ normalizado. A consulta por nome deve usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` contra o `tsvector`; a busca de CNPJ deve comparar somente dígitos. Combinar os resultados com `OR`, sem duplicar fornecedores.
   - **Ordenação:** manter `sustainabilityScore` decrescente e usar `supplierId` crescente como desempate estável; aplicar `offset` e `limit` após o ranking dos fornecedores encontrados.
-  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `supplierId`, `name`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `hasNext` indica se existe ao menos mais um resultado após o intervalo retornado.
+  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext, totalPages }`; cada item contém `supplierId`, `name`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `hasNext` indica se existe ao menos mais um resultado após o intervalo retornado; `totalPages` considera todos os fornecedores que correspondem à busca.
   - **Schema esperado:**
     ```json
     {
@@ -256,7 +256,8 @@
       ],
       "limit": 20,
       "offset": 0,
-      "hasNext": true
+      "hasNext": true,
+      "totalPages": 3
     }
     ```
   - **Validação/erros:** rejeitar `limit` fora de `1..100` ou `offset` negativo com `400`; `401` sem autenticação.
@@ -268,8 +269,8 @@
   - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional, aplicado antes da paginação para buscar por nome, categoria ou descrição usando full-text em português.
   - **Busca e índices:** criar migration Flyway com coluna `tsvector` gerada a partir de nome e descrição (tratando descrição nula, com configuração `portuguese`) e índice GIN; tratar categoria separadamente, comparando também seu código/label de domínio sem diferenciar maiúsculas de minúsculas. Usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` na consulta do repository; palavras informadas em qualquer ordem devem poder encontrar o produto; a categoria deve aceitar os termos apresentados na interface e seus códigos da API.
   - **Categorias aceitas:** `AGRICULTURE`/`Agricultura`, `LIVESTOCK`/`Pecuária`, `PROCESSED_FOOD`/`Alimentos processados`, `TEXTILE`/`Têxtil`, `FORESTRY`/`Florestal` e `OTHER`/`Outro`; comparação ignora caixa e acentos.
-  - **Ordenação/paginação:** ordenar por `productId` crescente e buscar `limit + 1` registros para determinar `hasNext` sem consulta adicional.
-  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `productId`, `name`, `category`, `unit` e `description`.
+  - **Ordenação/paginação:** ordenar por `productId` crescente e buscar `limit + 1` registros para determinar `hasNext`; calcular `totalPages` com a contagem total que corresponde à busca aplicada.
+  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext, totalPages }`; cada item contém `productId`, `name`, `category`, `unit` e `description`.
   - **Schema esperado:**
     ```json
     {
@@ -284,7 +285,8 @@
       ],
       "limit": 20,
       "offset": 0,
-      "hasNext": false
+      "hasNext": false,
+      "totalPages": 1
     }
     ```
   - **Validação/erros:** rejeitar `limit` fora de `1..100` ou `offset` negativo com `400`; `401` sem autenticação e `403` sem permissão.
@@ -295,8 +297,8 @@
   - **Acesso:** roles `ADMIN` e `AUDITOR`.
   - **Query:** `from` e `to` obrigatórios, em formato `YYYY-MM-DD` e inclusivos; `action` e `userEmail` opcionais; `limit` padrão `20`, máximo `100`; `offset` padrão `0`. O email deve ser correspondência parcial case-insensitive.
   - **Busca e índices:** criar migration Flyway com índice GIN `pg_trgm` sobre o email do usuário associado ao log (ou coluna de email persistida no log, se esse for o modelo adotado), para acelerar `ILIKE` com curingas antes e depois do termo; evitar full-text para email, pois pontuação e fragmentos de endereço precisam ser preservados.
-  - **Ordenação/paginação:** ordenar por `performedAt` decrescente e `logId` decrescente como desempate; aplicar `limit + 1` no banco para calcular `hasNext`.
-  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `logId`, `userId`, `userEmail`, `action`, `affectedTable` e `performedAt` em ISO 8601. `hasNext` indica se há mais registros após o intervalo retornado.
+  - **Ordenação/paginação:** ordenar por `performedAt` decrescente e `logId` decrescente como desempate; aplicar `limit + 1` no banco para calcular `hasNext` e contar os registros após todos os filtros para calcular `totalPages`.
+  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext, totalPages }`; cada item contém `logId`, `userId`, `userEmail`, `action`, `affectedTable` e `performedAt` em ISO 8601. `hasNext` indica se há mais registros após o intervalo retornado.
   - **Schema esperado:**
     ```json
     {
@@ -312,7 +314,8 @@
       ],
       "limit": 20,
       "offset": 0,
-      "hasNext": true
+      "hasNext": true,
+      "totalPages": 2
     }
     ```
   - **Validação/erros:** `400` para datas ausentes/inválidas, `from` posterior a `to`, ação inválida, `limit` fora de `1..100` ou `offset` negativo; `401` sem autenticação; `403` sem role autorizada.
@@ -323,7 +326,7 @@
   - **Acesso:** somente role `ADMIN`.
   - **Query:** `email` opcional para filtrar por correspondência parcial, sem diferenciar maiúsculas de minúsculas; `limit` padrão `20`, máximo `100`; `offset` padrão `0`.
   - **Busca e índices:** criar migration Flyway habilitando `pg_trgm` e um índice GIN trigram sobre o email normalizado; usar correspondência parcial case-insensitive (`ILIKE` com curingas antes e depois do termo). Não usar full-text para endereços de email.
-  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext }`; cada item contém `userId`, `name`, `email`, `role` e `createdAt` em ISO 8601. `hasNext` indica se existe outro usuário após o intervalo retornado.
+  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext, totalPages }`; cada item contém `userId`, `name`, `email`, `role` e `createdAt` em ISO 8601. `hasNext` indica se existe outro usuário após o intervalo retornado; `totalPages` considera o filtro de email quando informado.
   - **Schema esperado:**
     ```json
     {
@@ -338,7 +341,8 @@
       ],
       "limit": 20,
       "offset": 0,
-      "hasNext": false
+      "hasNext": false,
+      "totalPages": 1
     }
     ```
   - **Validação/erros:** rejeitar `limit` fora de `1..100` ou `offset` negativo com `400`; `401` sem autenticação; `403` para usuário sem role `ADMIN`.
@@ -348,7 +352,7 @@
 - [x] Criar e documentar uma listagem geral paginada de relatórios e completar o contrato de consulta individual para a tela de gestão do frontend.
   - **Listagem:** adicionar `GET /api/v1/reports`, acessível a `ADMIN`, `MANAGER` e `AUDITOR` para consulta global; `SUPPLIER` pode consultar somente os próprios relatórios. Aceitar `limit` padrão `20` (máximo `100`), `offset` padrão `0` e `supplierId` opcional para filtrar os relatórios de um fornecedor.
   - **Consolidação:** `GET /api/v1/reports` absorve a listagem por fornecedor com o filtro `supplierId`. Preservar a consulta de fornecedor ao perfil `SUPPLIER` somente para os próprios relatórios; perfis administrativos podem consultar todos ou filtrar por fornecedor. A antiga rota aninhada `GET /api/v1/suppliers/{supplierId}/reports` foi removida.
-  - **Resposta `200` da listagem:** objeto `{ items, limit, offset, hasNext }`. Cada item inclui `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount` e `generatedAt`. O CNPJ e a razão social vêm do fornecedor associado; `totalBatchCount` representa o total de lotes considerados no relatório, não a quantidade de produtos rastreados já representada por `trackedProductCount`.
+  - **Resposta `200` da listagem:** objeto `{ items, limit, offset, hasNext, totalPages }`. Cada item inclui `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount` e `generatedAt`. O CNPJ e a razão social vêm do fornecedor associado; `totalBatchCount` representa o total de lotes considerados no relatório, não a quantidade de produtos rastreados já representada por `trackedProductCount`. `totalPages` deve considerar o filtro de fornecedor e as regras de autorização aplicadas.
   - **Detalhe:** manter `GET /api/v1/reports/{reportId}` e enriquecer seu response com identificação do fornecedor (`supplierCnpj`, `supplierName`) e `totalBatchCount`, além dos campos atuais `reportId`, `supplierId`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `trackedProductCount` e `generatedAt`.
   - **Schema da listagem:**
     ```json
@@ -368,7 +372,8 @@
       ],
       "limit": 20,
       "offset": 0,
-      "hasNext": true
+      "hasNext": true,
+      "totalPages": 2
     }
     ```
   - **Schema do detalhe:**
@@ -411,7 +416,7 @@
 
 ## Task 20 — Campo `totalPages` em todas as rotas paginadas
 
-- [ ] Padronizar as respostas de todas as rotas paginadas para incluir o campo `totalPages`.
+- [x] Padronizar as respostas de todas as rotas paginadas para incluir o campo `totalPages`.
   - **Rotas:** `GET /api/v1/batches` e `GET /api/v1/certifications` (paginação `page`/`size`); `GET /api/v1/users`, `GET /api/v1/suppliers/ranking`, `GET /api/v1/products`, `GET /api/v1/audit-logs` e `GET /api/v1/reports` (paginação `limit`/`offset`). Considerar os filtros opcionais de cada rota no cálculo dos totais.
   - **Resposta:** incluir `totalPages` no objeto de paginação de cada rota, calculado como o número total de páginas para o tamanho solicitado; retornar `0` quando não houver resultados. Preservar os demais campos e parâmetros existentes, como `content` ou `items`, `page`, `size`, `limit`, `offset`, `totalElements` e `hasNext`.
   - **Consistência:** garantir que `totalPages` reflita os filtros aplicados e que todas as respostas paginadas usem a mesma regra de cálculo.

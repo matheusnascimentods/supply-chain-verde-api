@@ -89,4 +89,33 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
 
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail) {
+        StringBuilder jpql = new StringBuilder("""
+                SELECT COUNT(auditLog)
+                FROM AuditLogJpaEntity auditLog
+                JOIN auditLog.user auditUser
+                WHERE auditLog.performedAt >= :from
+                  AND auditLog.performedAt < :toExclusive
+                """);
+        if (action != null) {
+            jpql.append(" AND auditLog.action = :action");
+        }
+        if (userEmail != null && !userEmail.isBlank()) {
+            jpql.append(" AND LOWER(auditUser.email) LIKE :userEmailPattern");
+        }
+
+        TypedQuery<Long> query = entityManager.createQuery(jpql.toString(), Long.class)
+                .setParameter("from", from.atStartOfDay())
+                .setParameter("toExclusive", to.plusDays(1).atStartOfDay());
+        if (action != null) {
+            query.setParameter("action", action);
+        }
+        if (userEmail != null && !userEmail.isBlank()) {
+            query.setParameter("userEmailPattern", "%" + userEmail.toLowerCase(Locale.ROOT) + "%");
+        }
+        return query.getSingleResult();
+    }
 }
