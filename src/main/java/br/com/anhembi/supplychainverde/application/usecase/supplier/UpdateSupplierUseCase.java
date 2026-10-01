@@ -12,6 +12,7 @@ import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class UpdateSupplierUseCase {
     private final SupplierRepository supplierRepository;
     private final AddressRepository addressRepository;
 
+    @Transactional
     public SupplierResponseDTO execute(Long supplierId, SupplierRequestDTO request) {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new SupplierNotFoundException(supplierId));

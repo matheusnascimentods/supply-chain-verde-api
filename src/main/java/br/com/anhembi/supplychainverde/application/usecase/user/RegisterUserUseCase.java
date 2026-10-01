@@ -8,6 +8,7 @@ import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -17,6 +18,7 @@ public class RegisterUserUseCase {
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
 
+    @Transactional
     public UserResponseDTO execute(UserRequestDTO request) {
         if (request == null) throw new ValidationException("Dados do usuário são obrigatórios.");
         User user = User.builder()

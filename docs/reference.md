@@ -75,7 +75,7 @@ Base path: `/api/v1`.
 }
 ```
 
-Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos updates, os dois objetos contêm somente valores de colunas que mudaram. A trigger converte associações em IDs e aplica allowlist que exclui segredos. `STATUS_CHANGE` é usado somente quando um dos campos de estado configurados para a entidade realmente mudou. Veja a [ADR de auditoria no PostgreSQL](adr/0001-auditoria-no-postgresql.md) para propagação do ator e detalhe da persistência.
+Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos updates, os dois objetos contêm somente valores de colunas que mudaram. FKs são armazenadas como IDs; a trigger remove colunas sensíveis conhecidas, incluindo senha/hash, tokens, segredos e credenciais. `STATUS_CHANGE` é usado somente quando um dos campos de estado configurados para a entidade realmente mudou. Veja a [ADR de auditoria no PostgreSQL](adr/0001-auditoria-no-postgresql.md) para propagação do ator e detalhe da persistência.
 
 ## 5. DTOs e regras de entrada
 

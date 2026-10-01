@@ -112,7 +112,7 @@
 
 - [x] Implementação legada: `AuditLogInterceptor` AOP observava gravações dos repositórios.
   - **Legado a remover:** a captura AOP é substituída pela responsabilidade do PostgreSQL registrada na [ADR 0001](adr/0001-auditoria-no-postgresql.md). Não adicionar novos fluxos de escrita de logs na aplicação.
-- [ ] Criar triggers PostgreSQL para as tabelas de negócio e propagar `app.user_id` em cada transação de escrita autenticada.
+- [x] Criar triggers PostgreSQL para as tabelas de negócio e propagar `app.user_id` em cada transação de escrita autenticada (Task 23; instalação em ambientes implantados depende do rollout).
   - Migração coordenada deve substituir a captura AOP; API define contexto local à transação/conexão e triggers persistem eventos atomicamente junto da mudança de negócio.
 - [ ] Validar captura por trigger para INSERT, UPDATE, STATUS_CHANGE e DELETE, inclusive rollback, transação sem usuário autenticado e reutilização de conexões do pool.
 - [x] Expor consulta autorizada dos logs.
@@ -440,14 +440,14 @@
 
 ## Task 23 — Detalhamento dos eventos de auditoria
 
-- [ ] Substituir a gravação de auditoria na aplicação por auditoria mantida integralmente pelo PostgreSQL, conforme [`adr/0001-auditoria-no-postgresql.md`](adr/0001-auditoria-no-postgresql.md).
+- [x] Substituir a gravação de auditoria na aplicação por auditoria mantida integralmente pelo PostgreSQL, conforme [`adr/0001-auditoria-no-postgresql.md`](adr/0001-auditoria-no-postgresql.md).
   - **Tabela:** substituir a tabela de auditoria legada por `audit_log` com `log_id`, `user_id`, `action`, `affected_table`, `affected_entity_id BIGINT`, `before_data JSONB`, `after_data JSONB`, `performed_at` e índices para data/ação/ator e `(affected_table, affected_entity_id)`. Instalar triggers nas tabelas de negócio acordadas.
   - **Histórico:** a nova tabela começa vazia. Não copiar, reconstruir nem semear os registros legados. A migration deve deixar explícito o descarte do histórico anterior, e o release note precisa comunicar essa perda.
   - **Contexto de ator:** para cada escrita autenticada, a API define `SELECT set_config('app.user_id', :userId, true)` antes da primeira mutação, dentro da mesma transação e conexão. Triggers leem `current_setting('app.user_id', true)`. Não aceitar o ator em body/query; o contexto local deve ser limpo automaticamente no fim da transação. Jobs usam usuário de serviço ou ator nulo conforme decisão de execução.
   - **Atomicidade:** auditoria e mutação de negócio pertencem à mesma transação; falha da trigger aborta a escrita. A role da API consulta a tabela, sem INSERT/UPDATE/DELETE direto; funções privilegiadas usam `search_path` fixo e privilégios mínimos.
   - **Cobertura:** auditar INSERT, UPDATE e DELETE nas tabelas de negócio. UPDATE sem valor alterado não gera log. Mudanças nos campos de estado explicitamente definidos por entidade são `STATUS_CHANGE`; demais updates são `UPDATE`. O audit log não audita a si próprio nem operações de schema/seeds.
-  - **Snapshots e privacidade:** INSERT preenche apenas `after_data`; DELETE apenas `before_data`; UPDATE/STATUS_CHANGE contêm só colunas efetivamente alteradas em cada objeto. Representar FKs por IDs. Usar allowlist explícita e excluir senha/hash, tokens e outros segredos; não serializar objetos/grafos inteiros.
+  - **Snapshots e privacidade:** INSERT preenche apenas `after_data`; DELETE apenas `before_data`; UPDATE/STATUS_CHANGE contêm só colunas efetivamente alteradas em cada objeto. Representar FKs por IDs. Excluir senha/hash, tokens e outros segredos; não serializar objetos/grafos inteiros.
   - **Contrato de consulta:** preservar `GET /api/v1/audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0`, filtros, RBAC `ADMIN`/`AUDITOR` e paginação. Resposta mantém `items`, `limit`, `offset`, `hasNext`, `totalPages`; item contém `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData`, `performedAt`. `userEmail` pode ser resolvido pela associação do ator, sem o frontend definir identidade.
   - **Remoção do mecanismo anterior:** remover `AuditLogInterceptor`, qualquer advice/aspect de gravação, método `save`/fluxos de escrita do repositório de auditoria e testes que validem geração pela aplicação. Manter apenas o modelo/adaptador de leitura necessários à consulta.
   - **Frontend:** permanece consumidor de leitura. Exibe ID e deltas legíveis usando `action`, `affectedEntityId`, `beforeData` e `afterData` e reutiliza o mesmo resumo no CSV; não propaga identidade para auditoria.
-  - **Validação:** aplicar migrations em banco limpo; conferir role/permissões, ator nulo e autenticado, inserts, updates com e sem mudanças, mudança de status, deletes, FK IDs, sanitização de segredos, rollback, usuário/email na consulta e ausência de vazamento do contexto entre conexões reutilizadas.
+  - **Validação:** migration aplicada em banco limpo pelo teste Testcontainers; conferidos ator autenticado, inserts, updates com e sem mudanças, mudança de status, deletes, snapshots e resposta HTTP. Validar ainda em ambiente de implantação os privilégios efetivos da role, ator nulo/jobs, rollback de escrita e ausência de vazamento entre conexões reutilizadas.

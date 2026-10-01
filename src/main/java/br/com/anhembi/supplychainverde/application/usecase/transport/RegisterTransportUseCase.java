@@ -9,6 +9,7 @@ import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
 import br.com.anhembi.supplychainverde.domain.repository.TransportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +17,7 @@ public class RegisterTransportUseCase {
     private final TransportRepository transportRepository;
     private final ChainRepository chainRepository;
 
+    @Transactional
     public TransportResponseDTO execute(TransportRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de transporte é obrigatória.");
         Chain chain = chainRepository.findById(request.chainId())

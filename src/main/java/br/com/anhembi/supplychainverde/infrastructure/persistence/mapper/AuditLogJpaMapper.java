@@ -7,5 +7,4 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "spring", uses = UserJpaMapper.class)
 public interface AuditLogJpaMapper {
     AuditLog toDomain(AuditLogJpaEntity entity);
-    AuditLogJpaEntity toJpaEntity(AuditLog domain);
 }

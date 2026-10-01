@@ -11,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class RegisterSupplierUseCase {
     private final SupplierRepository supplierRepository;
     private final AddressRepository addressRepository;
 
+    @Transactional
     public SupplierResponseDTO execute(SupplierRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de fornecedor é obrigatória.");
         if (request.address() == null) throw new ValidationException("Endereço do fornecedor é obrigatório.");

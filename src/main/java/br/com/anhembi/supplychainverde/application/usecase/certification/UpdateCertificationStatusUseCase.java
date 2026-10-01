@@ -7,12 +7,14 @@ import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class UpdateCertificationStatusUseCase {
     private final CertificationRepository certificationRepository;
 
+    @Transactional
     public CertificationResponseDTO execute(Long certificationId, UpdateCertificationStatusRequestDTO request) {
         if (request == null || request.status() == null) {
             throw new ValidationException("Status da certificação é obrigatório.");

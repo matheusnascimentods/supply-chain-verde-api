@@ -9,17 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 public class ListAuditLogsUseCase {
     private final AuditLogRepository auditLogRepository;
-
-    public List<AuditLogResponseDTO> execute() {
-        return auditLogRepository.findAll().stream().map(this::toResponse).toList();
-    }
 
     public OffsetPageResponseDTO<AuditLogResponseDTO> execute(
             LocalDate from,
@@ -35,9 +30,9 @@ public class ListAuditLogsUseCase {
         String emailFilter = userEmail == null || userEmail.isBlank()
                 ? null
                 : userEmail.trim().toLowerCase(Locale.ROOT);
-        List<AuditLog> logs = auditLogRepository.findByFilters(from, to, action, emailFilter, limit, offset);
+        var logs = auditLogRepository.findByFilters(from, to, action, emailFilter, limit, offset);
         long totalElements = auditLogRepository.countByFilters(from, to, action, emailFilter);
-        List<AuditLogResponseDTO> items = logs.stream().map(this::toResponse).toList();
+        var items = logs.stream().map(this::toResponse).toList();
         return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
     }
 
@@ -48,6 +43,9 @@ public class ListAuditLogsUseCase {
                 auditLog.getUser() != null ? auditLog.getUser().getEmail() : null,
                 auditLog.getAction(),
                 auditLog.getAffectedTable(),
+                auditLog.getAffectedEntityId(),
+                auditLog.getBeforeData(),
+                auditLog.getAfterData(),
                 auditLog.getPerformedAt()
         );
     }

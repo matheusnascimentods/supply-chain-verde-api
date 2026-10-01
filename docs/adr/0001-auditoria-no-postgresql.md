@@ -14,7 +14,7 @@ A tabela substituta começará vazia. Os registros legados não serão copiados 
 
 ## Status
 
-**Decidida; implementação pendente.** Esta ADR registra o desenho-alvo. Até a Task 23 ser implementada e implantada, o runtime ainda usa `AuditLogInterceptor` e a tabela atual; triggers e `app.user_id` não devem ser presumidos como ativos.
+**Decidida; implementação concluída, implantação pendente.** A migration V29, as triggers, a propagação transacional do ator e o adaptador somente leitura foram implementados e validados em PostgreSQL via Testcontainers. A aplicação em ambientes implantados depende da execução da migration; até lá, esta ADR não afirma que triggers ou `app.user_id` estejam ativos nesses ambientes.
 
 ## Group
 
@@ -49,7 +49,7 @@ Dados, integração e segurança.
 
 Selecionamos triggers porque a fonte mais próxima da alteração é o banco: `OLD` e `NEW` permitem obter os valores reais antes/depois e a transação garante que evento e mudança persistam ou sejam revertidos juntos. Isso remove o interceptor e reduz duplicação de lógica de captura na API; também cobre operações que chegam ao banco sem atravessar os casos de uso, desde que usem tabelas e triggers cobertas.
 
-O custo total muda para o lado operacional do PostgreSQL: funções, allowlists de campos, permissões, índices e cobertura das tabelas passam a exigir revisão e versionamento disciplinados. A propagação do ator é uma responsabilidade pequena e explícita da API. Essa troca é adequada porque o projeto já usa PostgreSQL e Flyway. Apagar o histórico legado simplifica o novo formato, mas é uma consequência deliberada e irreversível que deve ser comunicada.
+O custo total muda para o lado operacional do PostgreSQL: funções, política de exclusão de campos sensíveis, permissões, índices e cobertura das tabelas passam a exigir revisão e versionamento disciplinados. A propagação do ator é uma responsabilidade pequena e explícita da API. Essa troca é adequada porque o projeto já usa PostgreSQL e Flyway. Apagar o histórico legado simplifica o novo formato, mas é uma consequência deliberada e irreversível que deve ser comunicada.
 
 ## Implications
 
@@ -67,7 +67,7 @@ Esse valor é uma declaração da API, não uma identidade que o PostgreSQL aute
 - UPDATE e STATUS_CHANGE: os objetos contêm somente campos efetivamente alterados, com os valores de `OLD` e `NEW`.
 - DELETE: `before_data` contém os dados auditáveis anteriores; `after_data = NULL`.
 - `STATUS_CHANGE` só se aplica quando uma coluna de estado definida para aquela tabela muda; as demais atualizações são `UPDATE`. Updates sem mudanças efetivas não geram evento.
-- Segredos são excluídos por allowlist explícita. Não serializar linhas ou associações indiscriminadamente.
+- A trigger remove explicitamente colunas sensíveis conhecidas (senha/hash, tokens, segredo, autorização e credenciais). Como snapshots vêm da linha e FKs são escalares, não são serializados grafos de objetos da aplicação. A lista de exclusão deve acompanhar qualquer novo campo sensível no schema.
 
 As triggers devem cobrir a lista acordada de tabelas de negócio, não auditar a própria `audit_log` e não produzir eventos artificiais para seeds ou DDL. Funções com privilégio elevado devem fixar `search_path` e usar privilégios mínimos. A API mantém filtros, RBAC e paginação da rota de leitura; o frontend permanece consumidor do contrato HTTP.
 
@@ -110,5 +110,6 @@ A implementação deve validar em PostgreSQL limpo: INSERT, UPDATE sem mudança,
 ## Notes
 
 - O contrato de propagação assume PostgreSQL; outros SGBDs exigiriam mecanismo equivalente e uma decisão específica de escopo transacional.
-- A lista exata de tabelas auditadas, as colunas que representam estado em cada tabela e a política de ator para cada job devem ser resolvidas na implementação da Task 23.
-- Esta ADR não afirma que a migration destrutiva ou as triggers já foram executadas.
+- A lista implementada inclui address, users, supplier, certification, product, batch, chain, transport, carbon_emission e report; `status` de certification e `stage_type` de chain classificam `STATUS_CHANGE`.
+- A migration V29 requer que o usuário executor do Flyway tenha permissão para criar/alterar a role `supply_chain_audit_owner`; a aplicação concede SELECT à role SQL corrente usada durante a migration. Confirmar que essa role corresponde ao principal runtime em cada ambiente.
+- A migration destrutiva foi validada em banco limpo no teste de integração; a instalação em ambientes implantados ainda depende do rollout.

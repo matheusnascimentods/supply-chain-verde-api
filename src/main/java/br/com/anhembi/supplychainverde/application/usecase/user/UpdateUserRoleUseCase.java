@@ -7,12 +7,14 @@ import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class UpdateUserRoleUseCase {
     private final UserRepository userRepository;
 
+    @Transactional
     public UserResponseDTO execute(Long userId, UpdateUserRoleRequestDTO request) {
         if (request == null || request.role() == null) throw new ValidationException("Perfil do usuário é obrigatório.");
         User user = userRepository.findById(userId)

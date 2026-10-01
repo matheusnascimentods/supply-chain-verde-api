@@ -14,6 +14,7 @@ import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class RegisterChainStageUseCase {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
 
+    @Transactional
     public ChainResponseDTO execute(Long batchId, Long responsibleUserId, ChainRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de etapa é obrigatória.");
         Batch batch = batchRepository.findById(batchId)

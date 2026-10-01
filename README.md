@@ -105,7 +105,7 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Fase 5 — Web Layer concluída**: controllers REST, tratamento global de exceções, CORS e documentação OpenAPI/Swagger.
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
 - **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
-- **Auditoria — desenho atualizado**: captura por triggers PostgreSQL; a substituição do interceptor legado está especificada na [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md) e requer migration coordenada.
+- **Auditoria — implementação atual**: captura por triggers PostgreSQL na migration V29; aplicação nos ambientes depende do rollout coordenado descrito na [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
@@ -284,7 +284,7 @@ O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSE
 
 Cada item retornado inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData`/`afterData` são snapshots JSONB com apenas valores alterados e associações como IDs; podem ser `null` quando a operação não tem aquele lado (INSERT/DELETE). Segredos não podem ser incluídos nos snapshots.
 
-A captura é responsabilidade do PostgreSQL, não de um interceptor Java. Triggers escrevem eventos na mesma transação que altera a linha. Antes da primeira escrita, a API propaga o `userId` autenticado com `set_config('app.user_id', :userId, true)` na mesma conexão/transação; as triggers leem `current_setting('app.user_id', true)`. Isso é contexto transacional, não cache de sessão. A role da API consulta logs, mas não os insere diretamente. A migração planejada substitui o histórico e inicia a nova tabela vazia; nenhum evento anterior será inferido ou copiado. Veja [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md).
+A captura é responsabilidade do PostgreSQL, não de um interceptor Java. Triggers escrevem eventos na mesma transação que altera a linha. Antes da primeira escrita, a API propaga o `userId` autenticado com `set_config('app.user_id', :userId, true)` na mesma conexão/transação; as triggers leem `current_setting('app.user_id', true)`. Isso é contexto transacional, não cache de sessão. A role da API consulta logs, mas não os insere diretamente. A migration V29 substitui o histórico e inicia a nova tabela vazia; nenhum evento anterior será inferido ou copiado. O executor Flyway precisa criar a role de owner das triggers e o principal runtime precisa corresponder à role que recebe SELECT. Veja [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md).
 
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |

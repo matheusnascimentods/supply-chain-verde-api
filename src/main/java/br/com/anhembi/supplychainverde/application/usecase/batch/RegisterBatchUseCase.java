@@ -11,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class RegisterBatchUseCase {
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
 
+    @Transactional
     public BatchResponseDTO execute(BatchRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de lote é obrigatória.");
         Product product = productRepository.findById(request.productId())
