@@ -236,12 +236,12 @@
 
 ## Task 13 — Ranking de fornecedores paginado
 
-- [x] Atualizar e documentar `GET /api/v1/suppliers/ranking`.
+- [x] Atualizar e documentar o ranking de fornecedores, atualmente servido por `GET /api/v1/suppliers?ranked=true`.
   - **Acesso:** usuário autenticado; preservar a ordenação atual do ranking.
   - **Query:** `limit` padrão `20`, máximo `100`; `offset` padrão `0`; `search` opcional. Aplicar o termo antes da paginação para localizar fornecedores por nome (full-text em português) ou CNPJ (correspondência parcial após normalizar para dígitos).
   - **Busca e índices:** criar uma migration Flyway com coluna `tsvector` gerada a partir do nome (configuração `portuguese`) e índice GIN para full-text; habilitar `pg_trgm` e criar índice GIN trigram para busca parcial de CNPJ normalizado. A consulta por nome deve usar `websearch_to_tsquery` usando a configuração de idioma `portuguese` e o parâmetro `:search` contra o `tsvector`; a busca de CNPJ deve comparar somente dígitos. Combinar os resultados com `OR`, sem duplicar fornecedores.
   - **Ordenação:** manter `sustainabilityScore` decrescente e usar `supplierId` crescente como desempate estável; aplicar `offset` e `limit` após o ranking dos fornecedores encontrados.
-  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext, totalPages }`; cada item contém `supplierId`, `name`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `hasNext` indica se existe ao menos mais um resultado após o intervalo retornado; `totalPages` considera todos os fornecedores que correspondem à busca.
+  - **Resposta `200`:** objeto `{ items, limit, offset, hasNext, totalPages }`; cada item contém `supplierId`, `name`, `cnpj`, `address`, `phone`, `registeredAt`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. A listagem sem `ranked=true` usa os mesmos campos nos objetos. `hasNext` indica se existe ao menos mais um resultado após o intervalo retornado; `totalPages` considera todos os fornecedores que correspondem à busca.
   - **Schema esperado:**
     ```json
     {
@@ -353,7 +353,7 @@
   - **Listagem:** adicionar `GET /api/v1/reports`, acessível a `ADMIN`, `MANAGER` e `AUDITOR` para consulta global; `SUPPLIER` pode consultar somente os próprios relatórios. Aceitar `limit` padrão `20` (máximo `100`), `offset` padrão `0` e `supplierId` opcional para filtrar os relatórios de um fornecedor.
   - **Consolidação:** `GET /api/v1/reports` absorve a listagem por fornecedor com o filtro `supplierId`. Preservar a consulta de fornecedor ao perfil `SUPPLIER` somente para os próprios relatórios; perfis administrativos podem consultar todos ou filtrar por fornecedor. A antiga rota aninhada `GET /api/v1/suppliers/{supplierId}/reports` foi removida.
   - **Resposta `200` da listagem:** objeto `{ items, limit, offset, hasNext, totalPages }`. Cada item inclui `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount` e `generatedAt`. O CNPJ e a razão social vêm do fornecedor associado; `totalBatchCount` representa o total de lotes considerados no relatório, não a quantidade de produtos rastreados já representada por `trackedProductCount`. `totalPages` deve considerar o filtro de fornecedor e as regras de autorização aplicadas.
-  - **Detalhe:** manter `GET /api/v1/reports/{reportId}` e enriquecer seu response com identificação do fornecedor (`supplierCnpj`, `supplierName`) e `totalBatchCount`, além dos campos atuais `reportId`, `supplierId`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `trackedProductCount` e `generatedAt`.
+  - **Detalhe:** enriquecer o response com identificação do fornecedor (`supplierCnpj`, `supplierName`) e `totalBatchCount`, além dos campos atuais `reportId`, `supplierId`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `trackedProductCount` e `generatedAt`. A consulta individual foi posteriormente consolidada em `GET /api/v1/reports?reportId={reportId}` pela Task 21.
   - **Schema da listagem:**
     ```json
     {
@@ -417,14 +417,14 @@
 ## Task 20 — Campo `totalPages` em todas as rotas paginadas
 
 - [x] Padronizar as respostas de todas as rotas paginadas para incluir o campo `totalPages`.
-  - **Rotas:** `GET /api/v1/batches` e `GET /api/v1/certifications` (paginação `page`/`size`); `GET /api/v1/users`, `GET /api/v1/suppliers/ranking`, `GET /api/v1/products`, `GET /api/v1/audit-logs` e `GET /api/v1/reports` (paginação `limit`/`offset`). Considerar os filtros opcionais de cada rota no cálculo dos totais.
+  - **Rotas:** `GET /api/v1/batches` e `GET /api/v1/certifications` (paginação `page`/`size`); `GET /api/v1/users`, `GET /api/v1/suppliers?ranked=true`, `GET /api/v1/products`, `GET /api/v1/audit-logs` e `GET /api/v1/reports` (paginação `limit`/`offset`). Considerar os filtros opcionais de cada rota no cálculo dos totais.
   - **Resposta:** incluir `totalPages` no objeto de paginação de cada rota, calculado como o número total de páginas para o tamanho solicitado; retornar `0` quando não houver resultados. Preservar os demais campos e parâmetros existentes, como `content` ou `items`, `page`, `size`, `limit`, `offset`, `totalElements` e `hasNext`.
   - **Consistência:** garantir que `totalPages` reflita os filtros aplicados e que todas as respostas paginadas usem a mesma regra de cálculo.
   - **Documentação:** atualizar os contratos e exemplos das rotas afetadas para mostrar `totalPages`.
 
 ## Task 21 — Unificação da consulta individual de relatórios
 
-- [ ] Remover `GET /api/v1/reports/{reportId}` e incorporar a consulta individual em `GET /api/v1/reports` por meio do parâmetro opcional `reportId`.
+- [x] Remover `GET /api/v1/reports/{reportId}` e incorporar a consulta individual em `GET /api/v1/reports` por meio do parâmetro opcional `reportId`.
   - **Listagem:** quando `reportId` não for informado, preservar a listagem paginada atual e seus filtros, parâmetros, formato de resposta e regras de autorização.
   - **Consulta individual:** quando `reportId` for informado, retornar somente o relatório correspondente no formato de detalhe atual, incluindo `reportId`, `supplierId`, `supplierCnpj`, `supplierName`, `periodStartAt`, `periodEndAt`, `totalCo2Kg`, `totalBatchCount`, `trackedProductCount` e `generatedAt`.
   - **Autorização e erros:** preservar as permissões atuais para relatórios; `SUPPLIER` só pode consultar relatório próprio. Rejeitar `reportId` inválido com `400`, responder `404` quando não existir relatório correspondente e manter `401`/`403` para falhas de autenticação/autorização.
@@ -432,7 +432,7 @@
 
 ## Task 22 — Consolidação das consultas de fornecedores
 
-- [ ] Concentrar as consultas de fornecedores em `GET /api/v1/suppliers` e remover as rotas GET redundantes.
+- [x] Concentrar as consultas de fornecedores em `GET /api/v1/suppliers` e remover as rotas GET redundantes.
   - **Parâmetros:** adicionar `supplierId` opcional para consultar um fornecedor específico e `ranked` opcional (booleano) para solicitar a listagem ranqueada, preservando os filtros e a paginação do ranking atual.
   - **Comportamento:** sem `supplierId` e sem `ranked=true`, preservar a listagem atual de fornecedores; com `supplierId`, retornar os detalhes do fornecedor; com `ranked=true`, retornar a listagem ranqueada no formato paginado atual.
   - **Conflito:** os parâmetros `supplierId` e `ranked` são mutuamente exclusivos; rejeitar com `400` qualquer requisição que informe ambos, mesmo quando `ranked=false`. Validar também os valores inválidos dos parâmetros.

@@ -75,14 +75,14 @@ Entidades principais: `Address`, `User`, `Supplier`, `Certification`, `Product`,
 
 Cada caso de uso tem responsabilidade única e orquestra portas do domínio:
 
-- `supplier`: cadastro, consulta, atualização e ranking.
+- `supplier`: cadastro, atualização e consultas unificadas em `GET /suppliers` (lista, detalhe por `supplierId` e ranking por `ranked=true`).
 - `certification`: cadastro, status e listagem paginada com filtro opcional por status; as certificações mais recentes são exibidas primeiro quando não há filtro.
 - `product`: cadastro, atualização e listagem.
 - `batch`: cadastro, rastreabilidade e listagem paginada; a consulta aceita `supplierId` opcional e aplica escopo próprio para o perfil `SUPPLIER`, substituindo a listagem aninhada por fornecedor.
 - `chain`: registro e consulta de etapas.
 - `transport`: registro de transporte.
 - `emission`: cálculo e consolidação de carbono.
-- `report`: geração, consulta individual e listagem paginada com filtro opcional `supplierId`; o adaptador de leitura reúne dados do fornecedor para compor CNPJ/razão social e calcula o total de lotes do relatório.
+- `report`: geração e consultas unificadas em `GET /reports` (listagem paginada com filtro `supplierId` ou detalhe por `reportId`); o adaptador de leitura reúne dados do fornecedor para compor CNPJ/razão social e calcula o total de lotes do relatório.
 - `user`: cadastro, autenticação e alteração de perfil.
 - `audit`: consulta da trilha de auditoria.
 

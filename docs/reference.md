@@ -48,14 +48,14 @@ Base path: `/api/v1`.
 |---|---|---|
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`), `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `ADMIN`; `/me`: autenticado; demais conforme RBAC |
-| Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers/{supplierId}`, `GET /suppliers/ranking?limit=20&offset=0&search={termo}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`; busca por nome/CNPJ) | Conforme RBAC |
+| Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`; busca por nome/CNPJ). Tanto a lista quanto cada item ranqueado expõem dados cadastrais e métricas de sustentabilidade | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE` (paginada; filtro de status opcional, padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status` | Consulta: `AUDITOR`, `MANAGER`, `ADMIN` |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`; busca por nome, descrição ou categoria) | Conforme RBAC |
 | Batches | `POST /batches`, `GET /batches?page=0&size=20&supplierId={id}` (paginada; padrão 20, máximo 100), `GET /batches/{batchId}/traceability` | Listagem geral para `admin`, `manager` e `auditor`; `supplier` usa `userId` do token como `supplierId`; rastreabilidade pública |
 | Chains | `POST /batches/{batchId}/stages`, `GET /batches/{batchId}/stages` | Conforme RBAC |
 | Transport | `POST /stages/{chainId}/transport` | Conforme RBAC |
 | Emissions | `POST /stages/{chainId}/emission`, `GET /batches/{batchId}/carbon-footprint` | Consulta pública de pegada |
-| Reports | `POST /suppliers/{supplierId}/reports`, `GET /reports?limit=20&offset=0&supplierId={id}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`), `GET /reports/{reportId}` | Listagem global: `ADMIN`, `MANAGER`, `AUDITOR`; `SUPPLIER` somente os próprios |
+| Reports | `POST /suppliers/{supplierId}/reports`, `GET /reports?limit=20&offset=0&supplierId={id}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`), `GET /reports?reportId={id}` (detalhe) | Listagem global: `ADMIN`, `MANAGER`, `AUDITOR`; `SUPPLIER` somente os próprios |
 | Audit | `GET /audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`; período obrigatório, ação/email opcionais) | Admin e auditor |
 | Dashboard | `GET /dashboard/summary?limit=10` | Qualquer usuário autenticado; dados globais |
 
@@ -71,7 +71,7 @@ Base path: `/api/v1`.
 - Chain: `ChainRequestDTO`, `ChainResponseDTO`.
 - Transport: `TransportRequestDTO`, `TransportResponseDTO`.
 - Emission: `CarbonEmissionRequestDTO`, `CarbonEmissionResponseDTO`, `CarbonFootprintResponseDTO`.
-- Paginação por deslocamento: as rotas de usuários, ranking de fornecedores, produtos, relatórios e auditoria retornam `OffsetPageResponseDTO<T>`, com `items`, `limit`, `offset`, `hasNext` e `totalPages`. A fábrica do DTO deriva `hasNext` e `totalPages` da contagem filtrada total e dos parâmetros recebidos.
+- Paginação por deslocamento: as rotas de usuários, ranking de fornecedores (`GET /suppliers?ranked=true`), produtos, relatórios e auditoria retornam `OffsetPageResponseDTO<T>`, com `items`, `limit`, `offset`, `hasNext` e `totalPages`. A fábrica do DTO deriva `hasNext` e `totalPages` da contagem filtrada total e dos parâmetros recebidos.
 - Users: `UserResponseDTO` representa cada usuário; a busca `email` parcial case-insensitive usa o índice GIN trigram `lower(email)`. Limite padrão 20, máximo 100; offset padrão 0.
 - Report: `ReportRequestDTO`, `ReportResponseDTO`, `ReportListItemDTO` e `ReportDetailDTO`. A listagem retorna CNPJ e nome do fornecedor, total de lotes produzidos entre as datas do relatório e CO₂ total; o total considera o filtro de fornecedor e a autorização aplicada. O detalhe também mantém `trackedProductCount`. Limite padrão 20, máximo 100; offset padrão 0.
 - Audit: `AuditLogResponseDTO` representa cada registro; a contagem considera intervalo, ação e email do usuário.
@@ -81,7 +81,9 @@ As demais respostas offset-paginadas de produtos e ranking de fornecedores tamb�
 
 Dashboard aceita `limit` entre `1` e `100` para a lista de lotes recentes; omitido ou nulo usa `10`. A contagem de lotes ativos exige ao menos uma etapa e exclui os lotes cuja etapa mais recente seja `RETAIL`. A última etapa é definida por `startedAt` e, em caso de empate, pelo maior `chainId`. Lotes sem etapas também não aparecem na lista recente, pois não possuem `status`; lotes em `RETAIL` podem aparecer como recentes. As certificações consideradas vencem de hoje até os próximos 30 dias, inclusive. `suppliers` conta todos os fornecedores cadastrados. A emissão mensal soma `co2Kg` por `calculatedAt` dentro do mês calendário corrente e retorna zero quando não há registros.
 
-Na listagem e consulta individual de relatórios, `SUPPLIER` tem o `supplierId` limitado ao `userId` do token; filtros de fornecedor enviados por esse perfil são ignorados. A antiga rota aninhada `GET /suppliers/{supplierId}/reports` foi removida; use `GET /reports?supplierId={id}`.
+Na listagem e consulta individual de relatórios, `SUPPLIER` tem o `supplierId` limitado ao `userId` do token; filtros de fornecedor enviados por esse perfil são ignorados. A consulta individual usa `GET /reports?reportId={id}` e valida a propriedade do relatório. A antiga rota aninhada `GET /suppliers/{supplierId}/reports` foi removida; use `GET /reports?supplierId={id}`.
+
+As consultas de fornecedores usam `GET /suppliers`: sem parâmetros retorna a lista; `supplierId` retorna o detalhe; `ranked=true` retorna o ranking paginado e aceita `limit`, `offset` e `search`. A lista e os itens do ranking usam a mesma estrutura com `supplierId`, `name`, `cnpj`, `address`, `phone`, `registeredAt`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `supplierId` e `ranked` não podem ser enviados juntos, mesmo com `ranked=false`.
 
 `responsibleUserId` e `userId` de auditoria vêm do contexto autenticado, nunca do corpo da requisição. `emissionFactor` e `co2Kg` são calculados pelo backend, nunca aceitos do cliente.
 
