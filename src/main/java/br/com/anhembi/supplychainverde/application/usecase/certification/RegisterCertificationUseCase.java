@@ -11,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class RegisterCertificationUseCase {
     private final CertificationRepository certificationRepository;
     private final SupplierRepository supplierRepository;
 
+    @Transactional
     public CertificationResponseDTO execute(Long supplierId, CertificationRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de certificação é obrigatória.");
         Supplier supplier = supplierRepository.findById(supplierId)

@@ -12,6 +12,7 @@ import br.com.anhembi.supplychainverde.domain.repository.TransportRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ public class CalculateCarbonEmissionUseCase {
     private final ChainRepository chainRepository;
     private final TransportRepository transportRepository;
 
+    @Transactional
     public CarbonEmissionResponseDTO execute(Long chainId, CarbonEmissionRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de emissão é obrigatória.");
         Chain chain = chainRepository.findById(chainId)

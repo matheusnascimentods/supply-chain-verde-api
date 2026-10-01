@@ -8,6 +8,7 @@ import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class GenerateSustainabilityReportUseCase {
     private final ReportRepository reportRepository;
     private final SupplierRepository supplierRepository;
 
+    @Transactional
     public ReportResponseDTO execute(Long supplierId, ReportRequestDTO request) {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new IllegalArgumentException("Fornecedor não encontrado: " + supplierId));

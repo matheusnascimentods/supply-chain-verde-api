@@ -7,12 +7,14 @@ import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class RegisterProductUseCase {
     private final ProductRepository productRepository;
 
+    @Transactional
     public ProductResponseDTO execute(ProductRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de produto é obrigatória.");
 

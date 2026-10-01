@@ -110,14 +110,13 @@
 
 ## Fase 7 — Auditoria
 
-- [x] Implementar `AuditLogInterceptor`.
-  - Interceptor transversal observa operações anotadas e registra usuário, ação, tabela afetada e horário da execução.
-- [x] Garantir que casos de uso não gravem auditoria manualmente.
-  - Persistência dos logs fica fora dos fluxos de negócio, evitando duplicidade e dependência de auditoria em cada caso de uso.
-- [x] Validar geração automática de log em operações de escrita.
-  - Testes verificam que operações instrumentadas produzem registro e que a ação/tabela são identificadas.
+- [x] Implementação legada: `AuditLogInterceptor` AOP observava gravações dos repositórios.
+  - **Legado a remover:** a captura AOP é substituída pela responsabilidade do PostgreSQL registrada na [ADR 0001](adr/0001-auditoria-no-postgresql.md). Não adicionar novos fluxos de escrita de logs na aplicação.
+- [x] Criar triggers PostgreSQL para as tabelas de negócio e propagar `app.user_id` em cada transação de escrita autenticada (Task 23; instalação em ambientes implantados depende do rollout).
+  - Migração coordenada deve substituir a captura AOP; API define contexto local à transação/conexão e triggers persistem eventos atomicamente junto da mudança de negócio.
+- [ ] Validar captura por trigger para INSERT, UPDATE, STATUS_CHANGE e DELETE, inclusive rollback, transação sem usuário autenticado e reutilização de conexões do pool.
 - [x] Expor consulta autorizada dos logs.
-  - `GET /api/v1/audit-logs` fornece registros a `ADMIN` e `AUDITOR`; o response atual inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable` e `performedAt`.
+  - `GET /api/v1/audit-logs` fornece registros a `ADMIN` e `AUDITOR`; a API é somente leitora da trilha gerada pelo banco.
 
 ## Fase 8 — Testes e qualidade
 
@@ -441,41 +440,14 @@
 
 ## Task 23 — Detalhamento dos eventos de auditoria
 
-- [ ] Registrar a entidade afetada e os dados alterados nos eventos de auditoria, expondo essas informações na rota de consulta.
-  - **Schema:** criar migration Flyway aditiva para incluir em `audit_log` o ID da entidade e os dados anteriores/posteriores em `JSONB`. O schema resultante deve conter:
-    ```sql
-    affected_entity_id BIGINT,
-    before_data JSONB,
-    after_data JSONB
-    ```
-    Criar também índice por `(affected_table, affected_entity_id)`. Manter as novas colunas anuláveis para preservar registros históricos que não tenham esses detalhes recuperáveis; novos eventos devem preencher `affected_entity_id`.
-  - **Identificação:** preencher o ID primário da entidade afetada para `INSERT`, `UPDATE`, `DELETE` e `STATUS_CHANGE`; resolver o tipo de entidade de forma explícita e confiável, sem selecionar arbitrariamente um getter terminado em `Id`.
-  - **Conteúdo:** para `UPDATE` e `STATUS_CHANGE`, armazenar em `before_data` e `after_data` objetos JSON com somente os campos alterados e seus valores antes/depois. Para `INSERT`, `before_data` é `NULL` e `after_data` contém os dados auditáveis criados; para `DELETE`, `before_data` contém os dados auditáveis anteriores à exclusão e `after_data` é `NULL`. Representar associações por seus IDs, sem serializar grafos de entidades.
-  - **Privacidade:** excluir senhas, hashes, tokens e outros segredos dos JSONB. Não inventar valores anteriores, posteriores ou IDs que não possam ser recuperados.
-  - **Ações:** garantir a classificação correta entre `INSERT`, `UPDATE`, `DELETE` e `STATUS_CHANGE`, incluindo a detecção de mudanças de status em vez de registrar toda alteração como `UPDATE`.
-  - **Contrato da rota:** manter `GET /api/v1/audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` e os filtros/autorização atuais. Cada item deve incluir `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData` e `afterData` são objetos JSON ou `null`; preservar a paginação da rota, incluindo `items`, `limit`, `offset`, `hasNext` e `totalPages`.
-    ```json
-    {
-      "items": [
-        {
-          "logId": 981,
-          "userId": 7,
-          "userEmail": "ana.souza@empresa.com",
-          "action": "UPDATE",
-          "affectedTable": "suppliers",
-          "affectedEntityId": 42,
-          "beforeData": { "name": "Fazenda Verde" },
-          "afterData": { "name": "Fazenda Verde Ltda" },
-          "performedAt": "2026-09-30T14:32:10"
-        }
-      ],
-      "limit": 20,
-      "offset": 0,
-      "hasNext": false,
-      "totalPages": 1
-    }
-    ```
-  - **Exemplo de row:** um evento de atualização de fornecedor deve ser armazenado com `affected_table = 'suppliers'`, `affected_entity_id = 42`, `before_data = '{"name":"Fazenda Verde"}'::jsonb` e `after_data = '{"name":"Fazenda Verde Ltda"}'::jsonb`, além de `log_id`, `user_id`, `action = 'UPDATE'` e `performed_at`.
-  - **Dados existentes:** revisar e corrigir inconsistências dos registros de auditoria que possam ser determinadas a partir dos dados disponíveis; a migration deve preservar o histórico e deixar nulos os detalhes antigos irrecuperáveis, sem fabricar snapshots.
-  - **Documentação:** atualizar OpenAPI, contratos e exemplos da API para refletir as colunas, campos de resposta e formato JSONB.
-  - **Validação:** verificar a migration em banco limpo e em banco com logs existentes, e conferir que inclusões, atualizações, mudanças de status e exclusões gerem o ID e os dados de antes/depois esperados.
+- [x] Substituir a gravação de auditoria na aplicação por auditoria mantida integralmente pelo PostgreSQL, conforme [`adr/0001-auditoria-no-postgresql.md`](adr/0001-auditoria-no-postgresql.md).
+  - **Tabela:** substituir a tabela de auditoria legada por `audit_log` com `log_id`, `user_id`, `action`, `affected_table`, `affected_entity_id BIGINT`, `before_data JSONB`, `after_data JSONB`, `performed_at` e índices para data/ação/ator e `(affected_table, affected_entity_id)`. Instalar triggers nas tabelas de negócio acordadas.
+  - **Histórico:** a nova tabela começa vazia. Não copiar, reconstruir nem semear os registros legados. A migration deve deixar explícito o descarte do histórico anterior, e o release note precisa comunicar essa perda.
+  - **Contexto de ator:** para cada escrita autenticada, a API define `SELECT set_config('app.user_id', :userId, true)` antes da primeira mutação, dentro da mesma transação e conexão. Triggers leem `current_setting('app.user_id', true)`. Não aceitar o ator em body/query; o contexto local deve ser limpo automaticamente no fim da transação. Jobs usam usuário de serviço ou ator nulo conforme decisão de execução.
+  - **Atomicidade:** auditoria e mutação de negócio pertencem à mesma transação; falha da trigger aborta a escrita. A role da API consulta a tabela, sem INSERT/UPDATE/DELETE direto; funções privilegiadas usam `search_path` fixo e privilégios mínimos.
+  - **Cobertura:** auditar INSERT, UPDATE e DELETE nas tabelas de negócio. UPDATE sem valor alterado não gera log. Mudanças nos campos de estado explicitamente definidos por entidade são `STATUS_CHANGE`; demais updates são `UPDATE`. O audit log não audita a si próprio nem operações de schema/seeds.
+  - **Snapshots e privacidade:** INSERT preenche apenas `after_data`; DELETE apenas `before_data`; UPDATE/STATUS_CHANGE contêm só colunas efetivamente alteradas em cada objeto. Representar FKs por IDs. Excluir senha/hash, tokens e outros segredos; não serializar objetos/grafos inteiros.
+  - **Contrato de consulta:** preservar `GET /api/v1/audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0`, filtros, RBAC `ADMIN`/`AUDITOR` e paginação. Resposta mantém `items`, `limit`, `offset`, `hasNext`, `totalPages`; item contém `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData`, `performedAt`. `userEmail` pode ser resolvido pela associação do ator, sem o frontend definir identidade.
+  - **Remoção do mecanismo anterior:** remover `AuditLogInterceptor`, qualquer advice/aspect de gravação, método `save`/fluxos de escrita do repositório de auditoria e testes que validem geração pela aplicação. Manter apenas o modelo/adaptador de leitura necessários à consulta.
+  - **Frontend:** permanece consumidor de leitura. Exibe ID e deltas legíveis usando `action`, `affectedEntityId`, `beforeData` e `afterData` e reutiliza o mesmo resumo no CSV; não propaga identidade para auditoria.
+  - **Validação:** migration aplicada em banco limpo pelo teste Testcontainers; conferidos ator autenticado, inserts, updates com e sem mudanças, mudança de status, deletes, snapshots e resposta HTTP. Validar ainda em ambiente de implantação os privilégios efetivos da role, ator nulo/jobs, rollback de escrita e ausência de vazamento entre conexões reutilizadas.

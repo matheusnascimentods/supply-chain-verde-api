@@ -234,13 +234,18 @@ class ApplicationUseCasesTest {
     void shouldMapAuditLogs() {
         AuditLogRepository logs = mock(AuditLogRepository.class);
         User user = User.builder().userId(11L).build();
-        AuditLog log = AuditLog.builder().logId(12L).user(user).action(AuditAction.INSERT).affectedTable("supplier").build();
-        when(logs.findAll()).thenReturn(List.of(log));
+        AuditLog log = AuditLog.builder().logId(12L).user(user).action(AuditAction.INSERT)
+                .affectedTable("supplier").affectedEntityId(42L).build();
+        when(logs.findByFilters(any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(List.of(log));
+        when(logs.countByFilters(any(), any(), any(), any())).thenReturn(1L);
 
-        assertThat(new ListAuditLogsUseCase(logs).execute()).singleElement()
+        assertThat(new ListAuditLogsUseCase(logs).execute(LocalDate.now(), LocalDate.now(), null, null, 20, 0).items()).singleElement()
                 .satisfies(dto -> {
                     assertThat(dto.logId()).isEqualTo(12L);
                     assertThat(dto.userId()).isEqualTo(11L);
+                    assertThat(dto.affectedEntityId()).isEqualTo(42L);
+                    assertThat(dto.beforeData()).isNull();
+                    assertThat(dto.afterData()).isNull();
                 });
     }
 }

@@ -93,7 +93,7 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 - Cada entidade de domínio possui uma `*JpaEntity`.
 - Cada entidade possui um repositório Spring Data e uma implementação do contrato de domínio.
 - Mappers JPA isolam o modelo relacional do modelo de negócio.
-- Flyway cria o schema em ordem de dependência, de `V1__create_address.sql` a `V11__create_audit_log.sql`.
+- Flyway cria e evolui o schema em ordem de versão; migrations posteriores incluem seeds e índices. A tabela `audit_log` e as funções/triggers de captura também são versionadas pelo Flyway.
 - Seeds de desenvolvimento ficam nas migrations `V12` a `V22`.
 - `originAddressId` e `destinationAddressId` de `Chain` são nullable.
 
@@ -107,7 +107,7 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 - Consultas paginadas aplicam filtros e autorização antes de limitar/deslocar os resultados; filtros por `supplierId` nunca substituem a validação de propriedade no servidor.
 - Rotas específicas de certificações expirando, lotes por fornecedor e relatórios por fornecedor permanecem compatíveis apenas durante a migração dos clientes para as coleções filtráveis; planejar sua remoção após os consumidores migrarem.
 - `BcryptPasswordHasher` implementa a porta de hash do domínio.
-- `AuditLogInterceptor` registra ações relevantes automaticamente via AOP.
+- Auditoria é mantida pelo PostgreSQL: triggers gravam as alterações de negócio; a API estabelece `app.user_id` com escopo local à transação de escrita e consulta `audit_log` sem inserir eventos. Ver [ADR 0001](adr/0001-auditoria-no-postgresql.md) para identidade, limites de confiança, snapshots, permissões e troca sem backfill do histórico.
 
 ## 8. Convenções
 
@@ -127,7 +127,7 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 - Unitários: value objects, serviços de domínio e casos de uso com mocks.
 - Integração: controllers, JPA e migrations contra PostgreSQL via Testcontainers.
 - `mvn test` cobre testes unitários; `mvn verify` também gera cobertura JaCoCo e executa a validação completa.
-- Fluxos críticos: login, autorização, cadastro de lote, etapa/transporte/emissão, rastreabilidade pública e auditoria automática.
+- Fluxos críticos: login, autorização, cadastro de lote, etapa/transporte/emissão, rastreabilidade pública e auditoria transacional no PostgreSQL.
 
 ## 11. Decisões em aberto
 

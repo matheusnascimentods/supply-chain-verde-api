@@ -20,15 +20,15 @@ sequenceDiagram
     participant API as API (Controller)
     participant UC as Application (Use Case)
     participant Domain as Domain Services
-    participant AOP as AuditLogInterceptor (AOP)
     participant DB as PostgreSQL
 
     User->>API: POST /api/v1/batches/{batchId}/stages (Registrar Etapa)
     API->>UC: RegisterChainStageUseCase.execute(dto)
     UC->>Domain: CarbonFootprintCalculator.calculate(distancia, modal, combustivel)
     Domain-->>UC: Emissão Calculada (CO₂ kg + Fator Vigente)
+    API->>DB: set_config('app.user_id', userId, true) na transação
     UC->>DB: Persistir Chain, Transport e CarbonEmission
-    AOP-->>DB: Gravação Automática de AuditLog (Sem ação manual)
+    DB-->>DB: Triggers gravam eventos e snapshots atomicamente
     API-->>User: 201 Created (Dados da Etapa e Pegada de Carbono)
 
     Auditor->>API: GET /api/v1/batches/{batchId}/traceability (QR Code)
@@ -55,13 +55,13 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 - **Cálculo de Emissão Confiável**: Emissões calculadas por modais e combustíveis com fixação da metodologia e fator de emissão vigente para auditoria contábil retroativa imutável.
 - **Validação de Certificações**: Monitoramento proativo de certificações ativas, vencidas ou suspensas de fornecedores.
 - **Ranking Dinâmico de Sustentabilidade**: Cálculo de score sob demanda com base em certificações ativas e histórico de emissões, evitando dados derivados desatualizados no banco.
-- **Auditoria Automática**: Captura transversal via AOP (`AuditLogInterceptor`), garantindo trilha de auditoria para todas as operações críticas.
+- **Auditoria Automática**: Triggers PostgreSQL registram alterações nas tabelas de negócio; a API fornece o ator autenticado no contexto local da transação e apenas consulta os eventos.
 
 ---
 
 ## 🎯 Diferenciais
 - **Clean Architecture Pura**: Camada de domínio agnóstica a frameworks e bibliotecas externas.
-- **Auditoria Transversal Zero-Boilerplate**: Nenhum caso de uso manipula logs de auditoria manualmente; o `AuditLogInterceptor` (AOP) cuida da persistência automática.
+- **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSONB; consulte [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e as garantias transacionais.
 - **Imutabilidade Histórica de Emissões**: Mudanças em tabelas de referência de emissão não afetam registros históricos passados, garantindo conformidade com normas ESG.
 - **Rastreabilidade Pública via QR Code**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
 - **Configuração Sem Arquivos `.env`**: Configuração centralizada em `application.properties` utilizando placeholders flexíveis (`${VAR:default}`), pronta para rodar localmente ou em contêineres sem necessidade de arquivos `.env`.
@@ -105,7 +105,7 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Fase 5 — Web Layer concluída**: controllers REST, tratamento global de exceções, CORS e documentação OpenAPI/Swagger.
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
 - **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
-- **Fase 7 — Auditoria concluída**: interceptor AOP para registro automático de ações relevantes.
+- **Auditoria — implementação atual**: captura por triggers PostgreSQL na migration V29; aplicação nos ambientes depende do rollout coordenado descrito na [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
@@ -143,7 +143,7 @@ src/main/java/br/com/anhembi/supplychainverde/
 │   ├── web/                     # Controllers REST, ExceptionHandler e Configs Web
 │   ├── persistence/             # JPA Entities, Repositories Spring Data e Mappers JPA
 │   ├── security/                # JWT Provider, Filtro, BCrypt e SecurityConfig
-│   ├── audit/                   # Interceptor AOP para auditoria automática
+│   ├── audit/                   # Consulta da auditoria; captura fica nas triggers PostgreSQL
 │   └── config/                  # Beans de configuração da aplicação
 │
 └── SupplyChainVerdeApplication.java
@@ -282,6 +282,10 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 
 O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSERT`, `UPDATE`, `DELETE` ou `STATUS_CHANGE`. `userEmail` faz busca parcial sem diferenciar caixa. `limit` aceita de 1 a 100 (padrão 20) e `offset` começa em 0.
 
+Cada item retornado inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData`/`afterData` são snapshots JSONB com apenas valores alterados e associações como IDs; podem ser `null` quando a operação não tem aquele lado (INSERT/DELETE). Segredos não podem ser incluídos nos snapshots.
+
+A captura é responsabilidade do PostgreSQL, não de um interceptor Java. Triggers escrevem eventos na mesma transação que altera a linha. Antes da primeira escrita, a API propaga o `userId` autenticado com `set_config('app.user_id', :userId, true)` na mesma conexão/transação; as triggers leem `current_setting('app.user_id', true)`. Isso é contexto transacional, não cache de sessão. A role da API consulta logs, mas não os insere diretamente. A migration V29 substitui o histórico e inicia a nova tabela vazia; nenhum evento anterior será inferido ou copiado. O executor Flyway precisa criar a role de owner das triggers e o principal runtime precisa corresponder à role que recebe SELECT. Veja [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md).
+
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
@@ -337,7 +341,7 @@ Em desenvolvimento local, defina `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` no 
 - **Autenticação Stateless**: Tokens JWT assinados com HMAC-SHA256, transportando `userId`, `email` e `role`.
 - **Controle de Acesso Baseado em Perfis (RBAC)**: Validação estrita por papéis (`ADMIN`, `AUDITOR`, `SUPPLIER`, `MANAGER`).
 - **Criptografia Segura de Senhas**: Hashes gerados via `BCryptPasswordEncoder` através da abstração `PasswordHasher`.
-- **Proteção de Integridade & Auditoria**: Rastreamento imutável de transações via `AuditLogInterceptor` em AOP, gravando usuário, ação, tabela e timestamp.
+- **Proteção de Integridade & Auditoria**: Triggers PostgreSQL registram usuário, ação, tabela/entidade e snapshots. A aplicação define `app.user_id` na transação e não escreve diretamente em `audit_log`.
 - **Clean Architecture & DDD**: Desacoplamento completo entre modelo relacional de banco e entidades de negócio.
 
 ---
