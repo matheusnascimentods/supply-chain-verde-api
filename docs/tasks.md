@@ -431,7 +431,7 @@
   - **Parâmetros:** adicionar `supplierId` opcional para consultar um fornecedor específico e `ranked` opcional (booleano) para solicitar a listagem ranqueada, preservando os filtros e a paginação do ranking atual.
   - **Comportamento:** sem `supplierId` e sem `ranked=true`, preservar a listagem atual de fornecedores; com `supplierId`, retornar os detalhes do fornecedor; com `ranked=true`, retornar a listagem ranqueada no formato paginado atual.
   - **Conflito:** os parâmetros `supplierId` e `ranked` são mutuamente exclusivos; rejeitar com `400` qualquer requisição que informe ambos, mesmo quando `ranked=false`. Validar também os valores inválidos dos parâmetros.
-  - **Remoção de rotas:** remover `GET /api/v1/suppliers/{supplierId}`, `GET /api/v1/suppliers/ranking` e as rotas `GET /api/v1/reports` e `GET /api/v1/reports/{reportId}`, incluindo implementações, autorização e documentação associadas. Manter a geração de relatórios por `POST /api/v1/suppliers/{supplierId}/reports`.
+  - **Remoção de rotas:** remover `GET /api/v1/suppliers/{supplierId}` e `GET /api/v1/suppliers/ranking`, incluindo implementações, autorização e documentação associadas. As rotas de relatórios seguem a Task 21: manter `GET /api/v1/reports` para listagem paginada e detalhe via `reportId`, removendo somente `GET /api/v1/reports/{reportId}`. Manter a geração de relatórios por `POST /api/v1/suppliers/{supplierId}/reports`.
   - **Compatibilidade:** preservar as regras de autorização, filtros, ordenação, paginação e formatos de resposta existentes para cada comportamento que passar a ser atendido por `GET /api/v1/suppliers`; atualizar OpenAPI e contratos da API.
 
 ## Task 23 — Detalhamento dos eventos de auditoria
