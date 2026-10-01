@@ -60,7 +60,7 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 ### 3.5 Relatórios e auditoria
 
 - Gerar relatório de sustentabilidade por fornecedor e período.
-- Consultar relatórios em uma coleção paginada com filtro opcional `supplierId`, além de consultar um relatório individual.
+- Consultar relatórios pela coleção `GET /reports`: sem `reportId`, retorna a coleção paginada com filtro opcional `supplierId`; com `reportId`, retorna o detalhe individual.
 - A coleção paginada substitui a listagem aninhada por fornecedor; `supplier` só pode consultar seus próprios relatórios.
 - As respostas de relatório incluem CNPJ e razão social do fornecedor e total de lotes considerados, além do período, CO₂ total e data de geração.
 - Registrar automaticamente ações relevantes por meio do interceptor de auditoria.
@@ -83,14 +83,14 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 |---|---|---|
 | Auth | `POST /auth/login` | Público |
 | Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext, totalPages }`, `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `admin`; `/me`: autenticado |
-| Suppliers | CRUD; `GET /suppliers/ranking?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext, totalPages }`, buscando por nome em português ou CNPJ normalizado | Conforme RBAC |
+| Suppliers | `GET /suppliers` lista fornecedores; `GET /suppliers?supplierId={id}` consulta um fornecedor; `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext, totalPages }`. Lista e ranking compartilham os campos `supplierId`, `name`, `cnpj`, `address`, `phone`, `registeredAt`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg` | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE` paginada com filtro opcional por status, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
 | Products | Criar, atualizar e listar; `GET /products?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext, totalPages }` | `admin`, `manager` ou autenticado |
 | Batches | `GET /batches?page=0&size=20&supplierId={id}` paginada, criar e rastrear | Listagem: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios pelo `userId` do token; rastreabilidade pública |
 | Chains | Criar e listar etapas | Conforme RBAC |
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
-| Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada com `{ items, limit, offset, hasNext, totalPages }`, `GET /reports/{reportId}` e `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
+| Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada com `{ items, limit, offset, hasNext, totalPages }`; `GET /reports?reportId={id}` retorna detalhe; `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
 | Audit logs | `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext, totalPages }`; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
 | Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes | Qualquer usuário autenticado |
 

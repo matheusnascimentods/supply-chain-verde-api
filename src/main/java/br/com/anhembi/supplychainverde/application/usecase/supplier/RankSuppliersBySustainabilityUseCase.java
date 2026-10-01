@@ -1,9 +1,11 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
+import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
+import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
@@ -30,6 +32,10 @@ public class RankSuppliersBySustainabilityUseCase {
         return rank(supplierRepository.findAll());
     }
 
+    public List<SupplierRankingDTO> executeAll() {
+        return execute();
+    }
+
     public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search) {
         List<Supplier> suppliers = search == null || search.isBlank()
                 ? supplierRepository.findAll()
@@ -51,6 +57,10 @@ public class RankSuppliersBySustainabilityUseCase {
             rankings.add(new SupplierRankingDTO(
                     supplier.getSupplierId(),
                     supplier.getName(),
+                    supplier.getCnpj() == null ? null : supplier.getCnpj().value(),
+                    toAddressResponse(supplier.getAddress()),
+                    supplier.getPhone(),
+                    supplier.getRegisteredAt(),
                     score,
                     calculator.countActiveCertifications(certifications),
                     emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -59,6 +69,20 @@ public class RankSuppliersBySustainabilityUseCase {
         rankings.sort(Comparator.comparing(SupplierRankingDTO::sustainabilityScore).reversed()
                 .thenComparing(SupplierRankingDTO::supplierId));
         return rankings;
+    }
+
+    private AddressResponseDTO toAddressResponse(Address address) {
+        if (address == null) return null;
+        return new AddressResponseDTO(
+                address.getAddressId(),
+                address.getStreet(),
+                address.getNumber(),
+                address.getNeighborhood(),
+                address.getComplement(),
+                address.getZipCode(),
+                address.getCity(),
+                address.getState()
+        );
     }
 
     public List<SupplierRankingDTO> rank() {

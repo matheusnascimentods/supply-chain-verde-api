@@ -5,6 +5,9 @@ import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResp
 import br.com.anhembi.supplychainverde.application.usecase.report.*;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -30,28 +33,27 @@ public class ReportController {
     @Operation(summary = "Gerar relatório de sustentabilidade", description = "Consolida emissões e dados rastreados de um fornecedor em um período.")
     public ReportResponseDTO generate(@PathVariable Long supplierId, @RequestBody ReportRequestDTO request) { return generate.execute(supplierId, request); }
 
-    @GetMapping("/reports/{reportId}")
-    @Operation(summary = "Consultar relatório", description = "Busca um relatório pelo identificador.")
-    public ReportDetailDTO get(
-            @PathVariable Long reportId,
-            @AuthenticationPrincipal CustomUserPrincipal principal
-    ) {
-        ReportDetailDTO report = get.execute(reportId);
-        ensureSupplierOwns(principal, report.supplierId());
-        return report;
-    }
-
     @GetMapping("/reports")
     @Operation(
-            summary = "Listar relatórios",
-            description = "Lista relatórios globalmente para ADMIN, MANAGER e AUDITOR. SUPPLIER recebe somente os próprios relatórios. Aceita filtro por fornecedor e paginação por limit/offset."
+            summary = "Consultar relatórios",
+            description = "Sem reportId, lista relatórios paginados. Com reportId, retorna o detalhe do relatório. SUPPLIER só consulta os próprios relatórios."
     )
-    public OffsetPageResponseDTO<ReportListItemDTO> listAll(
+    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(oneOf = {
+            ReportDetailDTO.class,
+            OffsetPageResponseDTO.class
+    })))
+    public Object listAll(
+            @RequestParam(required = false) @Min(1) Long reportId,
             @RequestParam(required = false) Long supplierId,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
+        if (reportId != null) {
+            ReportDetailDTO report = get.execute(reportId);
+            ensureSupplierOwns(principal, report.supplierId());
+            return report;
+        }
         Long effectiveSupplierId = isSupplier(principal) ? principal.userId() : supplierId;
         return listAll.execute(effectiveSupplierId, limit, offset);
     }

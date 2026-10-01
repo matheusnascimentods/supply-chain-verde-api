@@ -1,3 +1,18 @@
 package br.com.anhembi.supplychainverde.application.dto.supplier;
+
+import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
+
 import java.math.BigDecimal;
-public record SupplierRankingDTO(Long supplierId, String name, BigDecimal sustainabilityScore, Integer activeCertificationCount, BigDecimal totalCo2Kg) {}
+import java.time.LocalDate;
+
+public record SupplierRankingDTO(
+        Long supplierId,
+        String name,
+        String cnpj,
+        AddressResponseDTO address,
+        String phone,
+        LocalDate registeredAt,
+        BigDecimal sustainabilityScore,
+        Integer activeCertificationCount,
+        BigDecimal totalCo2Kg
+) {}
