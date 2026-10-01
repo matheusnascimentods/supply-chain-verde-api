@@ -1,7 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.audit;
 
-import br.com.anhembi.supplychainverde.application.dto.audit.AuditLogPageDTO;
 import br.com.anhembi.supplychainverde.application.dto.audit.AuditLogResponseDTO;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.AuditLog;
 import br.com.anhembi.supplychainverde.domain.enums.AuditAction;
 import br.com.anhembi.supplychainverde.domain.repository.AuditLogRepository;
@@ -21,7 +21,7 @@ public class ListAuditLogsUseCase {
         return auditLogRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public AuditLogPageDTO execute(
+    public OffsetPageResponseDTO<AuditLogResponseDTO> execute(
             LocalDate from,
             LocalDate to,
             AuditAction action,
@@ -35,15 +35,10 @@ public class ListAuditLogsUseCase {
         String emailFilter = userEmail == null || userEmail.isBlank()
                 ? null
                 : userEmail.trim().toLowerCase(Locale.ROOT);
-        List<AuditLog> logs = auditLogRepository.findByFilters(from, to, action, emailFilter, limit + 1, offset);
-        boolean hasNext = logs.size() > limit;
-
-        return new AuditLogPageDTO(
-                logs.stream().limit(limit).map(this::toResponse).toList(),
-                limit,
-                offset,
-                hasNext
-        );
+        List<AuditLog> logs = auditLogRepository.findByFilters(from, to, action, emailFilter, limit, offset);
+        long totalElements = auditLogRepository.countByFilters(from, to, action, emailFilter);
+        List<AuditLogResponseDTO> items = logs.stream().map(this::toResponse).toList();
+        return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
     }
 
     private AuditLogResponseDTO toResponse(AuditLog auditLog) {

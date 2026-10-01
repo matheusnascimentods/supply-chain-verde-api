@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
 import br.com.anhembi.supplychainverde.application.dto.report.*;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.report.*;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +46,7 @@ public class ReportController {
             summary = "Listar relatórios",
             description = "Lista relatórios globalmente para ADMIN, MANAGER e AUDITOR. SUPPLIER recebe somente os próprios relatórios. Aceita filtro por fornecedor e paginação por limit/offset."
     )
-    public ReportPageDTO listAll(
+    public OffsetPageResponseDTO<ReportListItemDTO> listAll(
             @RequestParam(required = false) Long supplierId,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,

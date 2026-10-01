@@ -62,6 +62,21 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public long countPage(String email) {
+        StringBuilder jpql = new StringBuilder("SELECT COUNT(user) FROM UserJpaEntity user");
+        if (email != null && !email.isBlank()) {
+            jpql.append(" WHERE LOWER(user.email) LIKE :emailPattern");
+        }
+
+        var query = entityManager.createQuery(jpql.toString(), Long.class);
+        if (email != null && !email.isBlank()) {
+            query.setParameter("emailPattern", "%" + email.trim().toLowerCase(Locale.ROOT) + "%");
+        }
+        return query.getSingleResult();
+    }
+
+    @Override
     public boolean existsByEmail(String email) {
         return jpaRepository.existsByEmail(email);
     }

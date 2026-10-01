@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.certification;
 
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationPageResponseDTO;
+import br.com.anhembi.supplychainverde.application.pagination.PageCount;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
@@ -21,7 +22,7 @@ public class ListCertificationsUseCase {
                 ? certificationRepository.countAll()
                 : certificationRepository.countByStatus(status);
 
-        int totalPages = totalElements == 0 ? 0 : Math.toIntExact((totalElements - 1) / size + 1);
+        int totalPages = PageCount.totalPages(totalElements, size);
         return new CertificationPageResponseDTO(
                 certifications.stream().map(mapper::toDto).toList(),
                 page,

@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
 import br.com.anhembi.supplychainverde.application.dto.user.*;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.user.*;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
@@ -35,7 +36,7 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Listar usuários", description = "Lista usuários de forma paginada, com filtro opcional de email parcial e sem diferenciar maiúsculas de minúsculas. Requer perfil ADMIN.")
-    public UserPageDTO list(
+    public OffsetPageResponseDTO<UserResponseDTO> list(
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset

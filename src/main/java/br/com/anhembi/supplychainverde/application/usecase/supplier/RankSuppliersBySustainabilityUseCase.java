@@ -1,7 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
-import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingPageDTO;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
@@ -30,7 +30,7 @@ public class RankSuppliersBySustainabilityUseCase {
         return rank(supplierRepository.findAll());
     }
 
-    public SupplierRankingPageDTO execute(int limit, int offset, String search) {
+    public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search) {
         List<Supplier> suppliers = search == null || search.isBlank()
                 ? supplierRepository.findAll()
                 : supplierRepository.findBySearch(search.trim());
@@ -38,12 +38,8 @@ public class RankSuppliersBySustainabilityUseCase {
         int fromIndex = Math.min(offset, rankings.size());
         int toIndex = (int) Math.min((long) fromIndex + limit, rankings.size());
 
-        return new SupplierRankingPageDTO(
-                rankings.subList(fromIndex, toIndex),
-                limit,
-                offset,
-                toIndex < rankings.size()
-        );
+        return OffsetPageResponseDTO.of(
+                rankings.subList(fromIndex, toIndex), limit, offset, rankings.size());
     }
 
     private List<SupplierRankingDTO> rank(List<Supplier> suppliers) {

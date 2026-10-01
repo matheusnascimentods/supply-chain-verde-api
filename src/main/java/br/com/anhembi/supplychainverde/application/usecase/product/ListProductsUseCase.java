@@ -1,7 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.product;
 
 import br.com.anhembi.supplychainverde.application.dto.product.ProductResponseDTO;
-import br.com.anhembi.supplychainverde.application.dto.product.ProductPageDTO;
+import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
@@ -21,19 +21,20 @@ public class ListProductsUseCase {
         return productRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public ProductPageDTO execute(int limit, int offset, String search) {
+    public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search) {
         String term = search == null ? "" : search.trim();
         String categoryCode = categoryCode(term);
         List<Product> products = term.isEmpty()
-                ? productRepository.findAll(limit + 1, offset)
-                : productRepository.findBySearch(term, categoryCode, limit + 1, offset);
-        boolean hasNext = products.size() > limit;
+                ? productRepository.findAll(limit, offset)
+                : productRepository.findBySearch(term, categoryCode, limit, offset);
+        long totalElements = term.isEmpty()
+                ? productRepository.countAll()
+                : productRepository.countBySearch(term, categoryCode);
         List<ProductResponseDTO> items = products.stream()
-                .limit(limit)
                 .map(this::toResponse)
                 .toList();
 
-        return new ProductPageDTO(items, limit, offset, hasNext);
+        return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
     }
 
     private String categoryCode(String search) {

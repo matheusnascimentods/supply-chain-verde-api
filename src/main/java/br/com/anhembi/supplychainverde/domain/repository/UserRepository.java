@@ -16,6 +16,8 @@ public interface UserRepository {
 
     List<User> findPage(String email, int limit, int offset);
 
+    long countPage(String email);
+
     boolean existsByEmail(String email);
 
     void deleteById(Long userId);

@@ -42,7 +42,7 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 ### 3.3 Produtos e lotes
 
 - Cadastrar e atualizar produtos com categoria e unidade tipadas.
-- Listar produtos com `GET /products?limit=20&offset=0&search={termo}`, em páginas de até 100 itens. A busca full-text em português cobre nome e descrição; a categoria também pode ser pesquisada pelo código da API ou pelo rótulo em português, ignorando caixa e acentos. A resposta contém `{ items, limit, offset, hasNext }` e mantém acesso autenticado.
+- Listar produtos com `GET /products?limit=20&offset=0&search={termo}`, em páginas de até 100 itens. A busca full-text em português cobre nome e descrição; a categoria também pode ser pesquisada pelo código da API ou pelo rótulo em português, ignorando caixa e acentos. A resposta contém `{ items, limit, offset, hasNext, totalPages }`, com contagem após a busca, e mantém acesso autenticado.
 - Criar lotes vinculados a produto e fornecedor.
 - Listar lotes de forma paginada por `page` e `size`, com filtro opcional `supplierId`; `admin`, `manager` e `auditor` podem consultar a coleção geral, enquanto `supplier` consulta somente os próprios lotes. Como não há associação explícita entre usuário e fornecedor no modelo atual, adota-se a convenção de que o `userId` do token `SUPPLIER` é igual ao `supplierId`; o servidor ignora o filtro recebido desse perfil.
 - A listagem paginada absorve a consulta específica de lotes por fornecedor, substituindo `GET /suppliers/{supplierId}/batches` após a migração do frontend.
@@ -82,16 +82,16 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Recurso | Operações | Acesso |
 |---|---|---|
 | Auth | `POST /auth/login` | Público |
-| Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `admin`; `/me`: autenticado |
-| Suppliers | CRUD; `GET /suppliers/ranking?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext }`, buscando por nome em português ou CNPJ normalizado | Conforme RBAC |
+| Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext, totalPages }`, `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `admin`; `/me`: autenticado |
+| Suppliers | CRUD; `GET /suppliers/ranking?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext, totalPages }`, buscando por nome em português ou CNPJ normalizado | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE` paginada com filtro opcional por status, criar e alterar status | `auditor`, `manager`, `admin` para consulta |
-| Products | Criar, atualizar e listar | `admin`, `manager` ou autenticado |
+| Products | Criar, atualizar e listar; `GET /products?limit=20&offset=0&search={termo}` retorna `{ items, limit, offset, hasNext, totalPages }` | `admin`, `manager` ou autenticado |
 | Batches | `GET /batches?page=0&size=20&supplierId={id}` paginada, criar e rastrear | Listagem: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios pelo `userId` do token; rastreabilidade pública |
 | Chains | Criar e listar etapas | Conforme RBAC |
 | Transport | Registrar transporte de etapa | `supplier`, `manager`, `admin` |
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
-| Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada, `GET /reports/{reportId}` e `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
-| Audit logs | `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext }`; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
+| Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada com `{ items, limit, offset, hasNext, totalPages }`, `GET /reports/{reportId}` e `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
+| Audit logs | `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0` retorna `{ items, limit, offset, hasNext, totalPages }`; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
 | Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes | Qualquer usuário autenticado |
 
 Os contratos detalhados de request/response permanecem documentados no `CLAUDE.md`, seção 10, e são a fonte de referência para controllers e consumidores.
@@ -161,4 +161,4 @@ flowchart TD
 
 As rotas `GET /api/v1/batches` e `GET /api/v1/certifications` usam `page` zero-based e `size` (padrão 20, máximo 100), retornando os itens em `content` e os metadados `page`, `size`, `totalElements` e `totalPages`. Certificações aceitam `status` opcional; lotes aceitam `supplierId` opcional.
 
-As demais coleções paginadas que usam busca por deslocamento aceitam `limit` (padrão 20, máximo 100) e `offset` (padrão 0), retornam os itens em `items` e incluem `limit`, `offset` e `hasNext`. A listagem de relatórios também aceita `supplierId` opcional. A autorização por fornecedor deve ser aplicada no servidor: um usuário `supplier` não pode consultar dados de outro fornecedor alterando esse filtro.
+As demais coleções paginadas que usam busca por deslocamento aceitam `limit` (padrão 20, máximo 100) e `offset` (padrão 0), retornam os itens em `items` e incluem `limit`, `offset`, `hasNext` e `totalPages`. O total de páginas é calculado com todos os resultados que correspondem aos filtros (email, busca, ação, intervalo e/ou fornecedor); retorna `0` quando não há resultados. A listagem de relatórios também aceita `supplierId` opcional. A autorização por fornecedor deve ser aplicada no servidor: um usuário `supplier` não pode consultar dados de outro fornecedor alterando esse filtro.
