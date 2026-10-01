@@ -67,7 +67,7 @@ Esse valor é uma declaração da API, não uma identidade que o PostgreSQL aute
 - UPDATE e STATUS_CHANGE: os objetos contêm somente campos efetivamente alterados, com os valores de `OLD` e `NEW`.
 - DELETE: `before_data` contém os dados auditáveis anteriores; `after_data = NULL`.
 - `STATUS_CHANGE` só se aplica quando uma coluna de estado definida para aquela tabela muda; as demais atualizações são `UPDATE`. Updates sem mudanças efetivas não geram evento.
-- A trigger remove explicitamente colunas sensíveis conhecidas (senha/hash, tokens, segredo, autorização e credenciais). Como snapshots vêm da linha e FKs são escalares, não são serializados grafos de objetos da aplicação. A lista de exclusão deve acompanhar qualquer novo campo sensível no schema.
+- A trigger remove explicitamente colunas sensíveis conhecidas (senha/hash, tokens, segredo, autorização e credenciais) e colunas técnicas de busca como `search_vector`/`name_search`. Como snapshots vêm da linha e FKs são escalares, não são serializados grafos de objetos da aplicação. A lista de exclusão deve acompanhar qualquer novo campo sensível ou técnico no schema.
 
 As triggers devem cobrir a lista acordada de tabelas de negócio, não auditar a própria `audit_log` e não produzir eventos artificiais para seeds ou DDL. Funções com privilégio elevado devem fixar `search_path` e usar privilégios mínimos. A API mantém filtros, RBAC e paginação da rota de leitura; o frontend permanece consumidor do contrato HTTP.
 

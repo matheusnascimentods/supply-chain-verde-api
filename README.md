@@ -61,7 +61,7 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 
 ## 🎯 Diferenciais
 - **Clean Architecture Pura**: Camada de domínio agnóstica a frameworks e bibliotecas externas.
-- **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSONB; consulte [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e as garantias transacionais.
+- **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSONB, excluindo colunas internas de busca textual; consulte [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e as garantias transacionais.
 - **Imutabilidade Histórica de Emissões**: Mudanças em tabelas de referência de emissão não afetam registros históricos passados, garantindo conformidade com normas ESG.
 - **Rastreabilidade Pública via QR Code**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
 - **Configuração Sem Arquivos `.env`**: Configuração centralizada em `application.properties` utilizando placeholders flexíveis (`${VAR:default}`), pronta para rodar localmente ou em contêineres sem necessidade de arquivos `.env`.
