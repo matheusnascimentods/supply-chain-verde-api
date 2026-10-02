@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDT
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public record SupplierRankingDTO(
         Long supplierId,
@@ -14,5 +15,7 @@ public record SupplierRankingDTO(
         LocalDate registeredAt,
         BigDecimal sustainabilityScore,
         Integer activeCertificationCount,
-        BigDecimal totalCo2Kg
+        BigDecimal totalCo2Kg,
+        long reportCount,
+        List<SupplierCertificationDTO> certifications
 ) {}

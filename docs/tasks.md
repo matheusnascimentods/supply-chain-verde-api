@@ -451,3 +451,73 @@
   - **Remoção do mecanismo anterior:** remover `AuditLogInterceptor`, qualquer advice/aspect de gravação, método `save`/fluxos de escrita do repositório de auditoria e testes que validem geração pela aplicação. Manter apenas o modelo/adaptador de leitura necessários à consulta.
   - **Frontend:** permanece consumidor de leitura. Exibe ID e deltas legíveis usando `action`, `affectedEntityId`, `beforeData` e `afterData` e reutiliza o mesmo resumo no CSV; não propaga identidade para auditoria.
   - **Validação:** migration aplicada em banco limpo pelo teste Testcontainers; conferidos ator autenticado, inserts, updates com e sem mudanças, mudança de status, deletes, snapshots e resposta HTTP. Validar ainda em ambiente de implantação os privilégios efetivos da role, ator nulo/jobs, rollback de escrita e ausência de vazamento entre conexões reutilizadas.
+
+
+## Task 24 — Enriquecimento do contrato de fornecedores para relatórios
+
+- [ ] Estender a resposta de `GET /api/v1/suppliers` para permitir que a gestão de fornecedores apresente certificações e acesso contextual aos relatórios sem consultas individuais por fornecedor.
+  - **Certificações:** incluir em cada fornecedor a coleção de certificações associadas, com `certificationId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`, conforme o contrato de certificação existente. Retornar coleção vazia quando o fornecedor não possuir certificações.
+  - **Contagem de relatórios:** incluir `reportCount` com a quantidade total de relatórios associados ao fornecedor. Calcular a contagem sem duplicar fornecedores nem distorcer as demais métricas quando houver múltiplas certificações/relatórios.
+  - **Compatibilidade:** preservar os campos cadastrais e de sustentabilidade já retornados pela lista de fornecedores e pelos itens de ranking. Atualizar DTOs, mapeamento/consultas, OpenAPI e documentação; documentar a forma do campo `certifications` e de `reportCount`.
+  - **Contrato esperado:** adicionar `certifications` e `reportCount` tanto a cada item de `GET /api/v1/suppliers` quanto a cada item de `GET /api/v1/suppliers?ranked=true`. A listagem simples continua retornando um array; o ranking preserva seu envelope paginado atual.
+    ```json
+    [
+      {
+        "supplierId": 4,
+        "name": "Fazenda Verde Ltda",
+        "cnpj": "12.345.678/0001-90",
+        "address": {
+          "addressId": 51,
+          "street": "Rua das Palmeiras",
+          "number": "120",
+          "neighborhood": "Centro",
+          "complement": "",
+          "zipCode": "01000-000",
+          "city": "São Paulo",
+          "state": "SP"
+        },
+        "phone": "11999990000",
+        "registeredAt": "2026-08-01",
+        "sustainabilityScore": 92.5,
+        "activeCertificationCount": 1,
+        "totalCo2Kg": 125.75,
+        "reportCount": 2,
+        "certifications": [
+          {
+            "certificationId": 12,
+            "certification": "Orgânico Brasil",
+            "issuingBody": "IBD Certificações",
+            "issuedAt": "2026-01-15",
+            "expiresAt": "2027-01-14",
+            "status": "ACTIVE"
+          }
+        ]
+      },
+      {
+        "supplierId": 5,
+        "name": "Cooperativa do Vale",
+        "cnpj": "98.765.432/0001-10",
+        "address": {
+          "addressId": 52,
+          "street": "Estrada Rural",
+          "number": "s/n",
+          "neighborhood": "Interior",
+          "complement": "",
+          "zipCode": "13900-000",
+          "city": "Amparo",
+          "state": "SP"
+        },
+        "phone": "11988887777",
+        "registeredAt": "2026-08-02",
+        "sustainabilityScore": 0.0,
+        "activeCertificationCount": 0,
+        "totalCo2Kg": 0.0,
+        "reportCount": 0,
+        "certifications": []
+      }
+    ]
+    ```
+    Para `ranked=true`, o mesmo objeto de fornecedor aparece em `items`, por exemplo: `{ "items": [<fornecedor>], "limit": 20, "offset": 0, "hasNext": false, "totalPages": 1 }`.
+  - **Tipos e nulabilidade:** `reportCount` é inteiro não negativo; `certifications` é sempre um array (nunca `null`); `certificationId` é inteiro, os campos textuais são strings, `issuedAt`/`expiresAt` são datas ISO `YYYY-MM-DD` e `status` usa os valores válidos de `CertificationStatus`.
+  - **Escopo de consulta:** aplicar as mesmas regras de autorização e escopo de fornecedor existentes para cada perfil. Não incluir dados de relatórios completos nesta resposta; o frontend carrega a listagem de relatórios sob demanda por `GET /api/v1/reports?supplierId={id}` e gera pelo endpoint existente `POST /api/v1/suppliers/{supplierId}/reports`.
+  - **Validação:** cobrir fornecedor sem certificações/relatórios e fornecedor com múltiplas certificações/relatórios, garantindo coleção/count corretos, ausência de duplicatas, paginação/ordenação do ranking inalteradas e respeito às permissões.

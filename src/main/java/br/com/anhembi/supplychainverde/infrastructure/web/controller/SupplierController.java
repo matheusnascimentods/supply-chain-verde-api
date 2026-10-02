@@ -35,7 +35,7 @@ public class SupplierController {
     @GetMapping
     @Operation(
             summary = "Consultar fornecedores",
-            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Ambas as respostas incluem supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount e totalCo2Kg. supplierId isolado retorna o detalhe cadastral."
+            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações."
     )
     public Object getSuppliers(
             @RequestParam(required = false) @Min(1) Long supplierId,

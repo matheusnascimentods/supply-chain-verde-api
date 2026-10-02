@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
 import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
+import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierCertificationDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
@@ -10,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import br.com.anhembi.supplychainverde.domain.service.SustainabilityScoreCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class RankSuppliersBySustainabilityUseCase {
     private final SupplierRepository supplierRepository;
     private final CertificationRepository certificationRepository;
     private final CarbonEmissionRepository carbonEmissionRepository;
+    private final ReportRepository reportRepository;
     private final SustainabilityScoreCalculator calculator = new SustainabilityScoreCalculator();
 
     public List<SupplierRankingDTO> execute() {
@@ -50,6 +55,9 @@ public class RankSuppliersBySustainabilityUseCase {
 
     private List<SupplierRankingDTO> rank(List<Supplier> suppliers) {
         List<SupplierRankingDTO> rankings = new ArrayList<>();
+        Map<Long, Long> reportCounts = reportRepository.countBySupplierIds(suppliers.stream()
+                .map(Supplier::getSupplierId)
+                .collect(Collectors.toSet()));
         for (Supplier supplier : suppliers) {
             List<Certification> certifications = certificationRepository.findBySupplierId(supplier.getSupplierId());
             List<CarbonEmission> emissions = carbonEmissionRepository.findBySupplierId(supplier.getSupplierId());
@@ -63,7 +71,16 @@ public class RankSuppliersBySustainabilityUseCase {
                     supplier.getRegisteredAt(),
                     score,
                     calculator.countActiveCertifications(certifications),
-                    emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add)
+                    emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add),
+                    reportCounts.getOrDefault(supplier.getSupplierId(), 0L),
+                    certifications.stream().map(certification -> new SupplierCertificationDTO(
+                            certification.getCertificationId(),
+                            certification.getCertification(),
+                            certification.getIssuingBody(),
+                            certification.getIssuedAt(),
+                            certification.getExpiresAt(),
+                            certification.getStatus()
+                    )).toList()
             ));
         }
         rankings.sort(Comparator.comparing(SupplierRankingDTO::sustainabilityScore).reversed()

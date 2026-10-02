@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -71,6 +74,16 @@ public class ReportRepositoryImpl implements ReportRepository {
             query.setParameter("supplierId", supplierId);
         }
         return query.getSingleResult();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Long> countBySupplierIds(Set<Long> supplierIds) {
+        if (supplierIds.isEmpty()) {
+            return Map.of();
+        }
+        return jpaRepository.countBySupplierIds(List.copyOf(supplierIds)).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
     }
 
     @Override
