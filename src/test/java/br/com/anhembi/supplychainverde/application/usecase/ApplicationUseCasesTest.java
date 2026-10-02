@@ -170,6 +170,7 @@ class ApplicationUseCasesTest {
         SupplierRepository suppliers = mock(SupplierRepository.class);
         CertificationRepository certifications = mock(CertificationRepository.class);
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
+        ReportRepository reports = mock(ReportRepository.class);
 
         Batch batch = Batch.builder().batchId(9L).build();
         User user = User.builder().userId(11L).name("Operator").build();
@@ -183,12 +184,13 @@ class ApplicationUseCasesTest {
         when(suppliers.findAll()).thenReturn(List.of(supplier));
         when(certifications.findBySupplierId(2L)).thenReturn(List.of());
         when(emissions.findBySupplierId(2L)).thenReturn(List.of());
+        when(reports.countBySupplierIds(any())).thenReturn(java.util.Map.of());
 
         ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.PRODUCTION, LocalDateTime.now(), null);
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses)
                 .execute(9L, 11L, request).chainId()).isEqualTo(13L);
         assertThat(new ListChainStagesByBatchUseCase(chains).execute(9L)).hasSize(1);
-        assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions)
+        assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions, reports)
                 .execute()).singleElement().satisfies(ranking -> assertThat(ranking.supplierId()).isEqualTo(2L));
     }
 
