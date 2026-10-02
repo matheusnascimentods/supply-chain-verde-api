@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,6 +29,11 @@ public class TransportRepositoryImpl implements TransportRepository {
     @Override
     public Optional<Transport> findByChainId(Long chainId) {
         return jpaRepository.findByChainChainId(chainId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Transport> findByChainIds(Collection<Long> chainIds) {
+        return jpaRepository.findByChainChainIdIn(chainIds).stream().map(mapper::toDomain).toList();
     }
 
     @Override

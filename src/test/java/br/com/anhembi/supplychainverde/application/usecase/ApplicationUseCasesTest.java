@@ -16,6 +16,7 @@ import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleReques
 import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
+import br.com.anhembi.supplychainverde.application.usecase.batch.BatchStagesReader;
 import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import br.com.anhembi.supplychainverde.application.usecase.batch.ListBatchesUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.RegisterBatchUseCase;
@@ -111,13 +112,15 @@ class ApplicationUseCasesTest {
         when(chains.findByBatchId(4L)).thenReturn(List.of());
         BatchDtoMapper batchMapper = mock(BatchDtoMapper.class);
         when(batchMapper.toDto(batch)).thenReturn(new BatchResponseDTO(
-                4L, 1L, "Café", 2L, "Verde", new BigDecimal("10"), LocalDate.now()
+                4L, 1L, "Café", 2L, "Verde", new BigDecimal("10"), LocalDate.now(), null, List.of()
         ));
+        BatchStagesReader stagesReader = mock(BatchStagesReader.class);
+        when(stagesReader.findByBatchIds(List.of(4L))).thenReturn(java.util.Map.of());
 
         assertThat(new RegisterBatchUseCase(batches, products, suppliers)
                 .execute(new BatchRequestDTO(1L, 2L, new BigDecimal("10"), LocalDate.now())).batchId()).isEqualTo(4L);
-        assertThat(new ListBatchesUseCase(batches, batchMapper).execute(0, 20, 2L).content()).hasSize(1);
-        assertThat(new GetBatchTraceabilityUseCase(batches, chains).execute(4L).batchId()).isEqualTo(4L);
+        assertThat(new ListBatchesUseCase(batches, batchMapper, stagesReader).execute(0, 20, 2L).content()).hasSize(1);
+        assertThat(new GetBatchTraceabilityUseCase(batches, stagesReader).execute(4L).batchId()).isEqualTo(4L);
     }
 
     @Test

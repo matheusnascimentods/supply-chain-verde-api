@@ -27,7 +27,7 @@ public class BatchController {
     @GetMapping("/batches")
     @Operation(
             summary = "Listar lotes",
-            description = "Lista lotes paginados. SUPPLIER consulta somente os lotes cujo supplierId corresponde ao userId do token."
+            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. SUPPLIER consulta somente os lotes cujo supplierId corresponde ao userId do token."
     )
     public BatchPageResponseDTO list(
             @RequestParam(defaultValue = "0") @Min(0) int page,

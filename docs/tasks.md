@@ -455,7 +455,7 @@
 
 ## Task 24 — Enriquecimento do contrato de fornecedores para relatórios
 
-- [ ] Estender a resposta de `GET /api/v1/suppliers` para permitir que a gestão de fornecedores apresente certificações e acesso contextual aos relatórios sem consultas individuais por fornecedor.
+- [x] Estender a resposta de `GET /api/v1/suppliers` para permitir que a gestão de fornecedores apresente certificações e acesso contextual aos relatórios sem consultas individuais por fornecedor.
   - **Certificações:** incluir em cada fornecedor a coleção de certificações associadas, com `certificationId`, `certification`, `issuingBody`, `issuedAt`, `expiresAt` e `status`, conforme o contrato de certificação existente. Retornar coleção vazia quando o fornecedor não possuir certificações.
   - **Contagem de relatórios:** incluir `reportCount` com a quantidade total de relatórios associados ao fornecedor. Calcular a contagem sem duplicar fornecedores nem distorcer as demais métricas quando houver múltiplas certificações/relatórios.
   - **Compatibilidade:** preservar os campos cadastrais e de sustentabilidade já retornados pela lista de fornecedores e pelos itens de ranking. Atualizar DTOs, mapeamento/consultas, OpenAPI e documentação; documentar a forma do campo `certifications` e de `reportCount`.
@@ -521,3 +521,99 @@
   - **Tipos e nulabilidade:** `reportCount` é inteiro não negativo; `certifications` é sempre um array (nunca `null`); `certificationId` é inteiro, os campos textuais são strings, `issuedAt`/`expiresAt` são datas ISO `YYYY-MM-DD` e `status` usa os valores válidos de `CertificationStatus`.
   - **Escopo de consulta:** aplicar as mesmas regras de autorização e escopo de fornecedor existentes para cada perfil. Não incluir dados de relatórios completos nesta resposta; o frontend carrega a listagem de relatórios sob demanda por `GET /api/v1/reports?supplierId={id}` e gera pelo endpoint existente `POST /api/v1/suppliers/{supplierId}/reports`.
   - **Validação:** cobrir fornecedor sem certificações/relatórios e fornecedor com múltiplas certificações/relatórios, garantindo coleção/count corretos, ausência de duplicatas, paginação/ordenação do ranking inalteradas e respeito às permissões.
+
+## Task 25 — Incluir a rastreabilidade nos itens da listagem de lotes
+
+- [x] Enriquecer cada item de `GET /api/v1/batches` com as etapas de rastreabilidade do lote, para que a tela de gestão apresente a jornada completa sem fazer uma requisição individual por lote.
+  - **Compatibilidade da página:** preservar os parâmetros `page`, `size` e `supplierId`, o escopo por perfil, a ordenação e os campos existentes (`batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `quantity`, `producedAt`), além do envelope (`content`, `page`, `size`, `totalElements`, `totalPages`).
+  - **Campo de etapas:** adicionar `stages` em cada item, como array não nulo ordenado cronologicamente por `startedAt` crescente, com `chainId` crescente como desempate. Cada etapa contém `chainId`, `batchId`, `originAddress`, `destinationAddress`, `responsibleUserId`, `responsibleUserName`, `stageType`, `startedAt`, `endedAt`, `transport` e `emission`, seguindo os tipos e nulabilidade dos DTOs existentes de cadeia, transporte e emissão. Lotes sem etapas retornam `stages: []`.
+  - **Status atual:** adicionar `currentStage` ao item, contendo o `stageType` da etapa mais recente (maior `startedAt`; em empate, maior `chainId`, que corresponde ao último item da ordenação cronológica); retornar `null` quando o lote ainda não tiver etapas. A timeline continua sendo a fonte dos dados de cada etapa, sem duplicar campos derivados dentro do array.
+  - **Contrato de resposta:** cada item de `content` contém os campos atuais do lote, `currentStage` (`StageType` ou `null`) e `stages` (array, possivelmente vazio). Os objetos de etapa usam os mesmos tipos e nulabilidade de `ChainResponseDTO`, incluindo os objetos `transport` e `emission` conforme `TransportResponseDTO` e `CarbonEmissionResponseDTO`. Endereços ausentes, `endedAt`, `transport` e `emission` sem dados são representados por `null`.
+  - **Exemplo `200`:**
+    ```json
+    {
+      "content": [
+        {
+          "batchId": 101,
+          "productId": 8,
+          "productName": "Café Orgânico Especial",
+          "supplierId": 4,
+          "supplierName": "Fazenda Verde Ltda",
+          "quantity": 500.0,
+          "producedAt": "2026-09-20",
+          "currentStage": "TRANSPORT",
+          "stages": [
+            {
+              "chainId": 301,
+              "batchId": 101,
+              "originAddress": {
+                "addressId": 51,
+                "street": "Estrada Rural",
+                "number": "120",
+                "neighborhood": "Centro",
+                "complement": "",
+                "zipCode": "13900-000",
+                "city": "Amparo",
+                "state": "SP"
+              },
+              "destinationAddress": null,
+              "responsibleUserId": 4,
+              "responsibleUserName": "Ana Souza",
+              "stageType": "PRODUCTION",
+              "startedAt": "2026-09-20T08:00:00",
+              "endedAt": "2026-09-20T12:00:00",
+              "transport": null,
+              "emission": {
+                "emissionId": 501,
+                "chainId": 301,
+                "emissionFactor": 0.25,
+                "co2Kg": 12.5,
+                "calculationMethod": "GHG_PROTOCOL",
+                "calculatedAt": "2026-09-20"
+              }
+            },
+            {
+              "chainId": 302,
+              "batchId": 101,
+              "originAddress": null,
+              "destinationAddress": null,
+              "responsibleUserId": 4,
+              "responsibleUserName": "Ana Souza",
+              "stageType": "TRANSPORT",
+              "startedAt": "2026-09-21T06:00:00",
+              "endedAt": null,
+              "transport": {
+                "transportId": 401,
+                "chainId": 302,
+                "transportMode": "ROAD",
+                "distance": 180.0,
+                "fuelType": "BIODIESEL",
+                "capacity": 1200.0
+              },
+              "emission": null
+            }
+          ]
+        },
+        {
+          "batchId": 100,
+          "productId": 9,
+          "productName": "Arroz Integral",
+          "supplierId": 5,
+          "supplierName": "Cooperativa do Vale",
+          "quantity": 250.0,
+          "producedAt": "2026-09-18",
+          "currentStage": null,
+          "stages": []
+        }
+      ],
+      "page": 0,
+      "size": 20,
+      "totalElements": 57,
+      "totalPages": 3
+    }
+    ```
+  - **Consultas e desempenho:** carregar os lotes da página e suas etapas relacionadas de forma agrupada, sem executar uma consulta por lote. A consulta deve respeitar a página e os filtros antes de buscar as etapas, evitar duplicatas causadas por joins com transportes/emissões e não carregar estágios de lotes fora da página. Não alterar a paginação ao enriquecer a resposta.
+  - **Rastreabilidade pública:** manter `GET /api/v1/batches/{batchId}/traceability` e seu contrato atual; alinhar a representação dos dados de etapas entre essa resposta e o novo campo `stages`, sem remover nem restringir o endpoint público.
+  - **Autorização:** manter as regras atuais de `GET /api/v1/batches`: `ADMIN`, `MANAGER` e `AUDITOR` consultam todos ou filtram por fornecedor; `SUPPLIER` consulta somente os próprios lotes, ignorando `supplierId` informado na query.
+  - **Documentação:** atualizar DTOs, OpenAPI e exemplos de resposta de `GET /api/v1/batches`, incluindo um lote com etapas/transporte/emissão e outro sem etapas.
+  - **Validação:** cobrir lotes com zero, uma e múltiplas etapas; ordenação e desempate; campos opcionais de endereço, fim, transporte e emissão; paginação/filtro sem duplicidade; lotes de fornecedor fora do escopo; e evidência de que o número de consultas de etapas não cresce por lote da página.

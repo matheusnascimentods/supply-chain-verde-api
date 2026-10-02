@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,6 +29,11 @@ public class CarbonEmissionRepositoryImpl implements CarbonEmissionRepository {
     @Override
     public Optional<CarbonEmission> findByChainId(Long chainId) {
         return jpaRepository.findByChainChainId(chainId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<CarbonEmission> findByChainIds(Collection<Long> chainIds) {
+        return jpaRepository.findByChainChainIdIn(chainIds).stream().map(mapper::toDomain).toList();
     }
 
     @Override
