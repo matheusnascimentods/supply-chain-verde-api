@@ -35,6 +35,6 @@ public class RegisterBatchUseCase {
                 .producedAt(request.producedAt())
                 .build();
         Batch saved = batchRepository.save(batch);
-        return new BatchResponseDTO(saved.getBatchId(), product.getProductId(), product.getName(), supplier.getSupplierId(), supplier.getName(), saved.getQuantity(), saved.getProducedAt());
+        return new BatchResponseDTO(saved.getBatchId(), product.getProductId(), product.getName(), supplier.getSupplierId(), supplier.getName(), saved.getQuantity(), saved.getProducedAt(), null, java.util.List.of());
     }
 }

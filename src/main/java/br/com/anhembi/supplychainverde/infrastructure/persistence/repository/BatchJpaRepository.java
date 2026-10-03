@@ -14,10 +14,10 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
     List<BatchJpaEntity> findByProductProductId(Long productId);
 
     @Override
-    @EntityGraph(attributePaths = {"product", "supplier"})
+    @EntityGraph(attributePaths = {"product", "supplier", "supplier.address"})
     Page<BatchJpaEntity> findAll(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"product", "supplier"})
+    @EntityGraph(attributePaths = {"product", "supplier", "supplier.address"})
     Page<BatchJpaEntity> findBySupplierSupplierId(Long supplierId, Pageable pageable);
 
     long countBySupplierSupplierId(Long supplierId);

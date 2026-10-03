@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 @RequiredArgsConstructor
@@ -33,6 +34,12 @@ public class ChainRepositoryImpl implements ChainRepository {
     @Override
     public List<Chain> findByBatchId(Long batchId) {
         return jpaRepository.findByBatchBatchId(batchId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Chain> findByBatchIds(Collection<Long> batchIds) {
+        return jpaRepository.findByBatchBatchIdInOrderByStartedAtAscChainIdAsc(batchIds).stream()
+                .map(mapper::toDomain).toList();
     }
 
     @Override

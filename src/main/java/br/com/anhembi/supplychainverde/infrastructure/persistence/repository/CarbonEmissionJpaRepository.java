@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissionJpaEntity, Long> {
     @Query("select sum(emission.co2Kg) from CarbonEmissionJpaEntity emission where emission.calculatedAt between :startsAt and :endsAt")
@@ -20,6 +21,12 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
             "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
     })
     Optional<CarbonEmissionJpaEntity> findByChainChainId(Long chainId);
+
+    @EntityGraph(attributePaths = {
+            "chain", "chain.batch", "chain.batch.product", "chain.batch.supplier", "chain.batch.supplier.address",
+            "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
+    })
+    List<CarbonEmissionJpaEntity> findByChainChainIdIn(Collection<Long> chainIds);
 
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product",
