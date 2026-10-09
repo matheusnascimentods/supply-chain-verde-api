@@ -1,6 +1,8 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl;
 
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
+import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.SupplierJpaMapper;
@@ -8,6 +10,8 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.Sup
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,5 +56,31 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     @Override
     public void deleteById(Long supplierId) {
         jpaRepository.deleteById(supplierId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Supplier> findAllById(Collection<Long> supplierIds) {
+        return jpaRepository.findAllById(supplierIds).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search, int limit, int offset) {
+        return jpaRepository.findRankedByEmission(
+                productId,
+                category == null ? null : category.name(),
+                unit == null ? null : unit.name(),
+                search,
+                search.replaceAll("\\D", ""),
+                limit,
+                offset)
+            .stream()
+            .map(row -> new SupplierEmissionRank(row.getSupplierId(), row.getCo2KgPerUnit()))
+            .toList();
+    }
+
+    @Override
+    public long countBySearch(String search) {
+        return jpaRepository.countBySearch(search, search.replaceAll("\\D", ""));
     }
 }
