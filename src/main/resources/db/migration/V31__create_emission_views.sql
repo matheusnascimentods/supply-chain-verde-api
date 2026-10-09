@@ -1,3 +1,22 @@
+CREATE OR REPLACE VIEW vw_stage_emission AS
+SELECT b.batch_id,
+       b.supplier_id,
+       p.product_id,
+       p.name        AS product_name,
+       p.category,
+       p.unit,
+       b.quantity,
+       c.chain_id,
+       c.stage_type,
+       ce.co2_kg,
+       ce.emission_factor,
+       ce.calculation_method,
+       ce.calculated_at
+FROM batch b
+         JOIN product p          ON p.product_id = b.product_id
+         JOIN chain c            ON c.batch_id = b.batch_id
+         JOIN carbon_emission ce ON ce.chain_id = c.chain_id;
+
 CREATE OR REPLACE VIEW vw_supplier_product_emission AS
 SELECT supplier_id,
        product_id,
