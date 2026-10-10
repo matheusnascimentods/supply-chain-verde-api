@@ -12,9 +12,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-
-import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,7 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SupplierRecommendationIT {
     // Todos os fornecedores do teste têm este termo no nome; a busca isola-os do seed das migrations.
     private static final String SEARCH = "Zpkrecomenda";
-    private static final BigDecimal TOLERANCE = new BigDecimal("0.0001");
 
     @Autowired
     private MockMvc mockMvc;
@@ -66,9 +62,9 @@ class SupplierRecommendationIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(3)))
                 .andExpect(jsonPath("$.items[0].supplierId").value(clean))
-                .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(closeTo(new BigDecimal("0.4"), TOLERANCE)))
+                .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(0.4))
                 .andExpect(jsonPath("$.items[1].supplierId").value(dirty))
-                .andExpect(jsonPath("$.items[1].co2KgPerUnit").value(closeTo(new BigDecimal("0.6"), TOLERANCE)))
+                .andExpect(jsonPath("$.items[1].co2KgPerUnit").value(0.6))
                 .andExpect(jsonPath("$.items[2].supplierId").value(withoutHistory))
                 .andExpect(jsonPath("$.items[2].co2KgPerUnit").value(nullValue()));
     }
@@ -94,9 +90,9 @@ class SupplierRecommendationIT {
                         .param("search", SEARCH))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].supplierId").value(steady))
-                .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(closeTo(new BigDecimal("0.5"), TOLERANCE)))
+                .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(0.5))
                 .andExpect(jsonPath("$.items[1].supplierId").value(mixed))
-                .andExpect(jsonPath("$.items[1].co2KgPerUnit").value(closeTo(new BigDecimal("0.7931"), TOLERANCE)))
+                .andExpect(jsonPath("$.items[1].co2KgPerUnit").value(0.7931))
                 .andExpect(jsonPath("$.items[2].supplierId").value(tonOnly))
                 .andExpect(jsonPath("$.items[2].co2KgPerUnit").value(nullValue()));
     }

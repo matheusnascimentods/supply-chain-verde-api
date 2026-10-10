@@ -36,7 +36,7 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
 
     @Query(value = """
             SELECT s.supplier_id AS "supplierId",
-                   SUM(v.total_co2_kg) / NULLIF(SUM(v.total_quantity), 0) AS "co2KgPerUnit"
+                   ROUND(SUM(v.total_co2_kg) / NULLIF(SUM(v.total_quantity), 0), 4) AS "co2KgPerUnit"
             FROM supplier s
             LEFT JOIN vw_supplier_product_emission v
                    ON v.supplier_id = s.supplier_id
