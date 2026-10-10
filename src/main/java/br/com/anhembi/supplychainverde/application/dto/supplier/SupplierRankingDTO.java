@@ -17,5 +17,6 @@ public record SupplierRankingDTO(
         Integer activeCertificationCount,
         BigDecimal totalCo2Kg,
         long reportCount,
-        List<SupplierCertificationDTO> certifications
+        List<SupplierCertificationDTO> certifications,
+        BigDecimal co2KgPerUnit
 ) {}

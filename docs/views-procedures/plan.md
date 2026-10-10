@@ -6,7 +6,7 @@
 
 | Migration | Conteúdo |
 |---|---|
-| `V32__create_emission_views.sql` | `vw_stage_emission`, `vw_supplier_product_emission`, `vw_monthly_emission` |
+| `V31__create_emission_views.sql` | `vw_stage_emission`, `vw_supplier_product_emission`, `vw_monthly_emission` |
 | `V33__create_report_and_certification_procedures.sql` | `sp_generate_sustainability_report`, `sp_expire_certifications` |
 
 (Numeração supondo que [`V31`](../vinculo-usuario-fornecedor/plan.md) já exista.)
