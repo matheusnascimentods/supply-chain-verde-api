@@ -153,10 +153,10 @@ src/main/java/br/com/anhembi/supplychainverde/
 
 | Documento | Conteúdo |
 |---|---|
-| [`docs/spec.md`](docs/spec.md) | Requisitos funcionais, perfis, regras de negócio e fluxos |
-| [`docs/plan.md`](docs/plan.md) | Arquitetura técnica, stack, persistência, segurança e testes |
-| [`docs/reference.md`](docs/reference.md) | Entidades, casos de uso, endpoints, DTOs e configuração |
-| [`docs/tasks.md`](docs/tasks.md) | Checklist de implementação e evolução |
+| [`docs/features/000-base/spec.md`](docs/features/000-base/spec.md) | Requisitos funcionais, perfis, regras de negócio e fluxos |
+| [`docs/features/000-base/plan.md`](docs/features/000-base/plan.md) | Arquitetura técnica, stack, persistência, segurança e testes |
+| [`docs/features/000-base/reference.md`](docs/features/000-base/reference.md) | Entidades, casos de uso, endpoints, DTOs e configuração |
+| [`docs/features/000-base/tasks.md`](docs/features/000-base/tasks.md) | Checklist de implementação e evolução |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | Instruções gerais para o GitHub Copilot |
 
 ### Pipeline de Qualidade
@@ -297,7 +297,7 @@ Como o modelo atual ainda não possui associação explícita entre usuário e f
 
 Cada item da página preserva `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `quantity` e `producedAt`, e também inclui `currentStage` (`StageType` da etapa mais recente ou `null`) e `stages` (array cronológico, vazio quando não há etapas). Cada etapa segue o contrato de `ChainResponseDTO`, com `originAddress`, `destinationAddress`, `transport` e `emission` anuláveis. A ordenação cronológica usa `startedAt` crescente e `chainId` crescente; para determinar `currentStage`, a etapa mais recente é a última nessa ordenação. O enriquecimento busca os dados relacionados em lote após a paginação, sem uma consulta por lote.
 
-Exemplo de item sem etapas: `{"batchId": 100, "productId": 9, "productName": "Arroz Integral", "supplierId": 5, "supplierName": "Cooperativa do Vale", "quantity": 250.0, "producedAt": "2026-09-18", "currentStage": null, "stages": []}`. A resposta de exemplo com etapas, transporte e emissão está detalhada na Task 25 em `docs/tasks.md`.
+Exemplo de item sem etapas: `{"batchId": 100, "productId": 9, "productName": "Arroz Integral", "supplierId": 5, "supplierName": "Cooperativa do Vale", "quantity": 250.0, "producedAt": "2026-09-18", "currentStage": null, "stages": []}`. A resposta de exemplo com etapas, transporte e emissão está detalhada na Task 25 em `docs/features/000-base/tasks.md`.
 
 ### 🔗 Etapas da Cadeia (`/api/v1/batches/{batchId}/stages`)
 | Método | Rota | Descrição | Acesso |

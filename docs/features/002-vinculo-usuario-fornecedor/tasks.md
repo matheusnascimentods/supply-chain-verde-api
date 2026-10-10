@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Cada task é um branch/PR para `main`, em sequência.
 
-**Status:** não iniciado. Esta é a primeira feature a implementar: o gráfico de emissões depende do `supplierId` no token. Ordem sugerida das demais: [`views-procedures`](../views-procedures/tasks.md) → [`recomendacao-fornecedores`](../recomendacao-fornecedores/tasks.md), [`grafico-emissoes`](../grafico-emissoes/tasks.md) e [`relatorio-pdf`](../relatorio-pdf/tasks.md).
+**Status:** não iniciado. Esta é a primeira feature a implementar: o gráfico de emissões depende do `supplierId` no token. Ordem sugerida das demais: [`views-procedures`](../003-views-procedures/tasks.md) → [`recomendacao-fornecedores`](../001-recomendacao-fornecedores/tasks.md), [`grafico-emissoes`](../004-grafico-emissoes/tasks.md) e [`relatorio-pdf`](../005-relatorio-pdf/tasks.md).
 
 ---
 
@@ -19,7 +19,7 @@
 - [ ] `supplierId` em `LoginResponseDTO` e `GET /users/me`
 - [ ] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
 - [ ] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
-- [ ] Atualizar `docs/spec.md` removendo a convenção `userId == supplierId`
+- [ ] Atualizar `docs/features/000-base/spec.md` removendo a convenção `userId == supplierId`
 
 ## Task 3 — `feat/create-supplier-with-user`
 

@@ -120,7 +120,7 @@ Os contratos detalhados de request/response estão em [`reference.md`](reference
 - A tabela nova inicia vazia. O histórico da tabela substituída não é copiado; essa perda é deliberada e deve constar no release/migration notes. Seeds não devem inventar eventos de negócio; somente operações executadas após a instalação das triggers entram na trilha.
 - A API mantém a consulta paginada e autorização de `GET /api/v1/audit-logs`. O frontend não envia `userId` para auditar; apenas apresenta `userId`/email retornados e os snapshots recebidos.
 
-O desenho e suas consequências operacionais estão registrados em [`adr/0001-auditoria-no-postgresql.md`](adr/0001-auditoria-no-postgresql.md).
+O desenho e suas consequências operacionais estão registrados em [`adr/0001-auditoria-no-postgresql.md`](../../adr/0001-auditoria-no-postgresql.md).
 
 ## 6. Fluxos principais
 

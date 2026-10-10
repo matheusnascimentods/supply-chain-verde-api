@@ -14,7 +14,7 @@ Endpoint com a emissão de CO₂ mês a mês num intervalo escolhido, para o gr�
 
 | ID | Regra |
 |---|---|
-| RN-01 | Escopo por role: `ADMIN`, `MANAGER` e `AUDITOR` recebem a cadeia inteira; `SUPPLIER` recebe só as emissões dos próprios lotes (via `supplierId` do token, ver [vínculo](../vinculo-usuario-fornecedor/spec.md)). |
+| RN-01 | Escopo por role: `ADMIN`, `MANAGER` e `AUDITOR` recebem a cadeia inteira; `SUPPLIER` recebe só as emissões dos próprios lotes (via `supplierId` do token, ver [vínculo](../002-vinculo-usuario-fornecedor/spec.md)). |
 | RN-02 | O mês de uma emissão é o mês de `carbon_emission.calculated_at` (mesma regra do card "Emissão Total (mês)"). |
 | RN-03 | Todos os meses do intervalo aparecem, inclusive os sem emissão (`co2Kg = 0`), para a linha não pular meses. |
 | RN-04 | Intervalo máximo de 24 meses. Sem parâmetros: os últimos 12 meses, incluindo o atual. |
@@ -25,7 +25,7 @@ Endpoint com a emissão de CO₂ mês a mês num intervalo escolhido, para o gr�
 |---|---|
 | RF-01 | `GET /dashboard/emissions?from=YYYY-MM&to=YYYY-MM`, para qualquer usuário autenticado. |
 | RF-02 | `from > to` ou intervalo maior que 24 meses retorna 400. |
-| RNF-01 | Leitura de `vw_monthly_emission` ([views-procedures](../views-procedures/spec.md)). |
+| RNF-01 | Leitura de `vw_monthly_emission` ([views-procedures](../003-views-procedures/spec.md)). |
 
 ## 5. Contrato
 

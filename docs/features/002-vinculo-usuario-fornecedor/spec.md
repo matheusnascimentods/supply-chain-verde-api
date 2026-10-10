@@ -4,7 +4,7 @@
 
 ## 1. Problema
 
-- Não existe relação entre `users` e `supplier` no banco. A API usa a convenção `userId == supplierId` (ver `docs/spec.md`, seção de lotes), que quebra assim que os IDs divergirem.
+- Não existe relação entre `users` e `supplier` no banco. A API usa a convenção `userId == supplierId` (ver `docs/features/000-base/spec.md`, seção de lotes), que quebra assim que os IDs divergirem.
 - O usuário `SUPPLIER` não consegue salvar o próprio perfil: o frontend chama `PUT /suppliers/{id}`, liberado só para `ADMIN` e `MANAGER` (403).
 - Só o `ADMIN` cria usuários, então o `MANAGER` cadastra fornecedores mas não consegue dar acesso a eles.
 - Não há como dar login a um fornecedor que já existe.
