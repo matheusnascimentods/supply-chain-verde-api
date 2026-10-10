@@ -193,7 +193,8 @@ class ApplicationUseCasesTest {
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses)
                 .execute(9L, 11L, request).chainId()).isEqualTo(13L);
         assertThat(new ListChainStagesByBatchUseCase(chains).execute(9L)).hasSize(1);
-        assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions, reports)
+        assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions, reports,
+                mock(ProductRepository.class))
                 .execute()).singleElement().satisfies(ranking -> assertThat(ranking.supplierId()).isEqualTo(2L));
     }
 
