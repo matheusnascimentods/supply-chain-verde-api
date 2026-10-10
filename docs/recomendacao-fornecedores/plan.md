@@ -27,6 +27,8 @@ ORDER BY co2_kg_per_unit ASC NULLS LAST, s.supplier_id
 LIMIT :limit OFFSET :offset;
 ```
 
+Na implementação as duas viraram uma consulta só (`SupplierJpaRepository.findRankedByEmission`): com `productId` só uma linha da view casa no `LEFT JOIN`, e `SUM/SUM` devolve o próprio `co2_kg_per_unit` dela. O filtro de busca é o mesmo do `findBySearch` (`name_search` + `cnpj_digits`), não `ILIKE`.
+
 O desempate por `sustainabilityScore` (RN-04/RN-05) é aplicado em Java na página retornada, porque o score não está no banco. Como empates exatos de CO₂ são raros e os sem histórico vêm agrupados no fim, a diferença de ordem entre páginas é aceitável. Se o score for para uma view no futuro, o desempate desce para o `ORDER BY`.
 
 ## 2. Camadas
