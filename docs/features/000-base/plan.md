@@ -107,7 +107,7 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 - Consultas paginadas aplicam filtros e autorização antes de limitar/deslocar os resultados; filtros por `supplierId` nunca substituem a validação de propriedade no servidor.
 - Rotas específicas de certificações expirando, lotes por fornecedor e relatórios por fornecedor permanecem compatíveis apenas durante a migração dos clientes para as coleções filtráveis; planejar sua remoção após os consumidores migrarem.
 - `BcryptPasswordHasher` implementa a porta de hash do domínio.
-- Auditoria é mantida pelo PostgreSQL: triggers gravam as alterações de negócio; a API estabelece `app.user_id` com escopo local à transação de escrita e consulta `audit_log` sem inserir eventos. Ver [ADR 0001](adr/0001-auditoria-no-postgresql.md) para identidade, limites de confiança, snapshots, permissões e troca sem backfill do histórico.
+- Auditoria é mantida pelo PostgreSQL: triggers gravam as alterações de negócio; a API estabelece `app.user_id` com escopo local à transação de escrita e consulta `audit_log` sem inserir eventos. Ver [ADR 0001](../../adr/0001-auditoria-no-postgresql.md) para identidade, limites de confiança, snapshots, permissões e troca sem backfill do histórico.
 
 ## 8. Convenções
 

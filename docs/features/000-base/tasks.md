@@ -111,7 +111,7 @@
 ## Fase 7 — Auditoria
 
 - [x] Implementação legada: `AuditLogInterceptor` AOP observava gravações dos repositórios.
-  - **Legado a remover:** a captura AOP é substituída pela responsabilidade do PostgreSQL registrada na [ADR 0001](adr/0001-auditoria-no-postgresql.md). Não adicionar novos fluxos de escrita de logs na aplicação.
+  - **Legado a remover:** a captura AOP é substituída pela responsabilidade do PostgreSQL registrada na [ADR 0001](../../adr/0001-auditoria-no-postgresql.md). Não adicionar novos fluxos de escrita de logs na aplicação.
 - [x] Criar triggers PostgreSQL para as tabelas de negócio e propagar `app.user_id` em cada transação de escrita autenticada (Task 23; instalação em ambientes implantados depende do rollout).
   - Migração coordenada deve substituir a captura AOP; API define contexto local à transação/conexão e triggers persistem eventos atomicamente junto da mudança de negócio.
 - [ ] Validar captura por trigger para INSERT, UPDATE, STATUS_CHANGE e DELETE, inclusive rollback, transação sem usuário autenticado e reutilização de conexões do pool.
@@ -440,7 +440,7 @@
 
 ## Task 23 — Detalhamento dos eventos de auditoria
 
-- [x] Substituir a gravação de auditoria na aplicação por auditoria mantida integralmente pelo PostgreSQL, conforme [`adr/0001-auditoria-no-postgresql.md`](adr/0001-auditoria-no-postgresql.md).
+- [x] Substituir a gravação de auditoria na aplicação por auditoria mantida integralmente pelo PostgreSQL, conforme [`adr/0001-auditoria-no-postgresql.md`](../../adr/0001-auditoria-no-postgresql.md).
   - **Tabela:** substituir a tabela de auditoria legada por `audit_log` com `log_id`, `user_id`, `action`, `affected_table`, `affected_entity_id BIGINT`, `before_data JSONB`, `after_data JSONB`, `performed_at` e índices para data/ação/ator e `(affected_table, affected_entity_id)`. Instalar triggers nas tabelas de negócio acordadas.
   - **Histórico:** a nova tabela começa vazia. Não copiar, reconstruir nem semear os registros legados. A migration deve deixar explícito o descarte do histórico anterior, e o release note precisa comunicar essa perda.
   - **Contexto de ator:** para cada escrita autenticada, a API define `SELECT set_config('app.user_id', :userId, true)` antes da primeira mutação, dentro da mesma transação e conexão. Triggers leem `current_setting('app.user_id', true)`. Não aceitar o ator em body/query; o contexto local deve ser limpo automaticamente no fim da transação. Jobs usam usuário de serviço ou ator nulo conforme decisão de execução.

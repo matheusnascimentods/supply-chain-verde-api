@@ -14,7 +14,7 @@ Enriquecer o detalhe do relatório com tudo o que o PDF precisa. A API só entre
 
 | ID | Regra |
 |---|---|
-| RN-01 | Os dados do detalhe se referem ao período do relatório (`period_start_at` a `period_end_at`), pela data do cálculo da emissão ([views-procedures](../views-procedures/spec.md), RN-01). |
+| RN-01 | Os dados do detalhe se referem ao período do relatório (`period_start_at` a `period_end_at`), pela data do cálculo da emissão ([views-procedures](../003-views-procedures/spec.md), RN-01). |
 | RN-02 | Certificações do período: as que estiveram vigentes em algum momento do período (`issued_at <= period_end_at` e `expires_at >= period_start_at`), com o status atual. |
 | RN-03 | Acesso igual ao de hoje: `ADMIN`, `MANAGER`, `AUDITOR` e o `SUPPLIER` dono do relatório. |
 

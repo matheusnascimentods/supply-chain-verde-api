@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** concluído. Depende de [`views-procedures`](../views-procedures/tasks.md) (Task 1).
+**Status:** concluído. Depende de [`views-procedures`](../003-views-procedures/tasks.md) (Task 1).
 
 ---
 
@@ -13,6 +13,6 @@
 - [x] `co2KgPerUnit` em `SupplierRankingDTO`
 - [x] Desempate por `sustainabilityScore` na página
 - [x] Testes do plan
-- [x] Atualizar a tabela de contratos em `docs/spec.md`
+- [x] Atualizar a tabela de contratos em `docs/features/000-base/spec.md`
 
 **Pronto:** `GET /suppliers?ranked=true&category=AGRICULTURE&unit=KG` devolve primeiro o fornecedor de menor CO₂ por kg do seed.

@@ -94,10 +94,10 @@ A implementação deve validar em PostgreSQL limpo: INSERT, UPDATE sem mudança,
 
 ## Related artifacts
 
-- [`../spec.md`](../spec.md) — requisitos e contrato da API.
-- [`../reference.md`](../reference.md) — rotas, DTOs e exemplo de evento.
-- [`../tasks.md`](../tasks.md), Tasks 23 e 24 — plano de implementação backend/frontend.
-- [`../plan.md`](../plan.md) — arquitetura do backend.
+- [`../features/000-base/spec.md`](../features/000-base/spec.md) — requisitos e contrato da API.
+- [`../features/000-base/reference.md`](../features/000-base/reference.md) — rotas, DTOs e exemplo de evento.
+- [`../features/000-base/tasks.md`](../features/000-base/tasks.md), Tasks 23 e 24 — plano de implementação backend/frontend.
+- [`../features/000-base/plan.md`](../features/000-base/plan.md) — arquitetura do backend.
 - [`../../supply-chain-verde-web/docs/spec.md`](../../supply-chain-verde-web/docs/spec.md) e [`../../supply-chain-verde-web/docs/plan.md`](../../supply-chain-verde-web/docs/plan.md) — consumo e apresentação no frontend.
 
 ## Related principles

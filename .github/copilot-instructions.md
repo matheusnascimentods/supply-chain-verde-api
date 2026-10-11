@@ -6,10 +6,10 @@ Projeto acadêmico da UC Banco de Dados (Anhembi Morumbi): API Java para rastrea
 
 Antes de alterar código, consulte:
 
-- `docs/spec.md` para requisitos funcionais;
-- `docs/plan.md` para arquitetura e decisões técnicas;
-- `docs/reference.md` para entidades, endpoints, DTOs e configuração;
-- `docs/tasks.md` para o checklist de implementação.
+- `docs/features/000-base/spec.md` para requisitos funcionais;
+- `docs/features/000-base/plan.md` para arquitetura e decisões técnicas;
+- `docs/features/000-base/reference.md` para entidades, endpoints, DTOs e configuração;
+- `docs/features/000-base/tasks.md` para o checklist de implementação.
 
 ## Arquitetura obrigatória
 
@@ -43,7 +43,7 @@ domain <- application <- infrastructure
 
 1. Leia o código e a documentação relevante antes de editar.
 2. Faça alterações pequenas e alinhadas aos padrões existentes.
-3. Atualize `docs/tasks.md` quando uma etapa do checklist mudar de estado.
+3. Atualize `docs/features/000-base/tasks.md` quando uma etapa do checklist mudar de estado.
 4. Execute a menor validação adequada; para alterações amplas use `./mvnw --batch-mode verify`.
 5. Não reverta alterações pré-existentes nem altere arquivos fora do escopo.
 
