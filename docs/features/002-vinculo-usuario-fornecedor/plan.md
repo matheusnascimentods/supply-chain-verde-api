@@ -4,7 +4,7 @@
 
 ## 1. Banco de dados
 
-Nova migration `V31__link_supplier_to_user.sql`:
+Nova migration `V32__link_supplier_to_user.sql`:
 
 ```sql
 ALTER TABLE supplier ADD COLUMN user_id BIGINT NULL;
