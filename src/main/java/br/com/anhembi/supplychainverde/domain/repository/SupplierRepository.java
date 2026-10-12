@@ -34,4 +34,8 @@ public interface SupplierRepository {
     long countBySearch(String search);
 
     record SupplierEmissionRank(Long supplierId, BigDecimal co2KgPerUnit) {};
+
+    Optional<Supplier> findByUserId(Long userId);
+
+    boolean existsByUserId(Long userId);
 }

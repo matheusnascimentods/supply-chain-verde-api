@@ -83,4 +83,14 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     public long countBySearch(String search) {
         return jpaRepository.countBySearch(search, search.replaceAll("\\D", ""));
     }
+
+    @Override
+    public Optional<Supplier> findByUserId(Long userId) {
+        return jpaRepository.findByUserId(userId).map(mapper::toDomain);
+    }
+
+    @Override
+    public boolean existsByUserId(Long userId) {
+        return jpaRepository.existsByUserId(userId);
+    }
 }

@@ -17,4 +17,5 @@ public class Supplier {
     private Address address;
     private String phone;
     private LocalDate registeredAt;
+    private Long userId;
 }

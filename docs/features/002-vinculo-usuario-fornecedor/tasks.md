@@ -1,19 +1,19 @@
 # Tarefas — Vínculo entre usuário e fornecedor
 
-> Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Cada task é um branch/PR para `main`, em sequência.
+> Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Todas as tasks usam a mesma branch, `feat/vinculo-usuario-fornecedor`, com um PR para `main` por task, em sequência: o PR da task seguinte só abre depois do merge do anterior, a partir da mesma branch atualizada com `main`.
 
 **Status:** não iniciado. Esta é a primeira feature a implementar: o gráfico de emissões depende do `supplierId` no token. Ordem sugerida das demais: [`views-procedures`](../003-views-procedures/tasks.md) → [`recomendacao-fornecedores`](../001-recomendacao-fornecedores/tasks.md), [`grafico-emissoes`](../004-grafico-emissoes/tasks.md) e [`relatorio-pdf`](../005-relatorio-pdf/tasks.md).
 
 ---
 
-## Task 1 — `feat/supplier-user-link`
+## Task 1 — PR `feat: vincula fornecedor a usuário`
 
-- [ ] Migration `V31__link_supplier_to_user.sql` (coluna, `UNIQUE`, FK, migração da convenção)
+- [ ] Migration `V32__link_supplier_to_user.sql` (coluna, `UNIQUE`, FK, migração da convenção)
 - [ ] Rodar a query de verificação do plan e ajustar seeds se necessário
 - [ ] `userId` em `Supplier`, `SupplierJpaEntity`, mapper e DTOs de resposta
 - [ ] `findByUserId`/`existsByUserId` no repositório
 
-## Task 2 — `feat/supplier-id-in-token`
+## Task 2 — PR `feat: expõe supplierId no token`
 
 - [ ] Claim `supplierId` no JWT e em `CustomUserPrincipal`
 - [ ] `supplierId` em `LoginResponseDTO` e `GET /users/me`
@@ -21,7 +21,7 @@
 - [ ] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
 - [ ] Atualizar `docs/features/000-base/spec.md` removendo a convenção `userId == supplierId`
 
-## Task 3 — `feat/create-supplier-with-user`
+## Task 3 — PR `feat: cria fornecedor com usuário`
 
 - [ ] Bloco `user` opcional em `POST /suppliers`, transacional
 - [ ] `supplierId` em `POST /users` com as validações de role
@@ -29,7 +29,7 @@
 - [ ] `withoutUser=true` em `GET /suppliers`
 - [ ] Bloquear mudança de/para `SUPPLIER` em `PATCH /users/{id}/role`
 
-## Task 4 — `fix/supplier-update-own-profile`
+## Task 4 — PR `fix: permite ao fornecedor editar o próprio perfil`
 
 - [ ] `UpdateOwnSupplierRequestDTO` e `UpdateOwnSupplierUseCase`
 - [ ] `PATCH /suppliers/me` no `SupplierController` + regra no `SecurityConfig`

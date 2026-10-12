@@ -56,7 +56,8 @@ public class RegisterSupplierUseCase {
                 supplier.getCnpj() != null ? supplier.getCnpj().value() : null,
                 toAddressResponse(supplier.getAddress()),
                 supplier.getPhone(),
-                supplier.getRegisteredAt()
+                supplier.getRegisteredAt(),
+                supplier.getUserId()
         );
     }
 

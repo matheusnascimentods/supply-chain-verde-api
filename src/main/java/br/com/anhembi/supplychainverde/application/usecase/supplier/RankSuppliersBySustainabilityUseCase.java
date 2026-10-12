@@ -101,6 +101,7 @@ public class RankSuppliersBySustainabilityUseCase {
                     toAddressResponse(supplier.getAddress()),
                     supplier.getPhone(),
                     supplier.getRegisteredAt(),
+                    supplier.getUserId(),
                     score,
                     calculator.countActiveCertifications(certifications),
                     emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add),

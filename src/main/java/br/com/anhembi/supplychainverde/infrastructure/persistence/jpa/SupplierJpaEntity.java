@@ -35,4 +35,7 @@ public class SupplierJpaEntity {
 
     @Column(name = "registered_at", nullable = false, insertable = false, updatable = false)
     private LocalDate registeredAt;
+
+    @Column(name = "user_id", unique = true)
+    private Long userId;
 }
