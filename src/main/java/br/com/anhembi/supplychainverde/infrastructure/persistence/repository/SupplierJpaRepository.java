@@ -69,4 +69,9 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
                OR (:cnpjSearch <> '' AND s.cnpj_digits LIKE '%' || :cnpjSearch || '%')
             """, nativeQuery = true)
     long countBySearch(@Param("search") String search, @Param("cnpjSearch") String cnpjSearch);
+
+    @EntityGraph(attributePaths = "address")
+    Optional<SupplierJpaEntity> findByUserId(Long userId);
+
+    boolean existsByUserId(Long userId);
 }
