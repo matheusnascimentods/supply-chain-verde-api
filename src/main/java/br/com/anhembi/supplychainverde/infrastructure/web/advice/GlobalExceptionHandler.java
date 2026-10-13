@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.advice;
 
 import br.com.anhembi.supplychainverde.application.exception.ApplicationException;
+import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.domain.exception.DomainException;
@@ -25,6 +26,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException exception) {
         HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(error(status, exception.getMessage()));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(ConflictException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
         return ResponseEntity.status(status).body(error(status, exception.getMessage()));
     }
 

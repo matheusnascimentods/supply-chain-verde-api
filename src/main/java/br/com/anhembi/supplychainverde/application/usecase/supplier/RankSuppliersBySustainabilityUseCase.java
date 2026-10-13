@@ -48,20 +48,20 @@ public class RankSuppliersBySustainabilityUseCase {
     private final SustainabilityScoreCalculator calculator = new SustainabilityScoreCalculator();
 
     public List<SupplierRankingDTO> execute() {
-        List<SupplierRankingDTO> rankings = toRankingDTOs(supplierRepository.findAll(), Map.of());
+        return executeAll(false);
+    }
+
+    public List<SupplierRankingDTO> executeAll(boolean withoutUser) {
+        List<SupplierRankingDTO> rankings = toRankingDTOs(filterWithoutUser(supplierRepository.findAll(), withoutUser), Map.of());
         rankings.sort(SCORE_ORDER);
         return rankings;
     }
 
-    public List<SupplierRankingDTO> executeAll() {
-        return execute();
-    }
-
-    public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search) {
+    public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search, boolean withoutUser) {
         List<Supplier> suppliers = search == null || search.isBlank()
                 ? supplierRepository.findAll()
                 : supplierRepository.findBySearch(search.trim());
-        List<SupplierRankingDTO> rankings = toRankingDTOs(suppliers, Map.of());
+        List<SupplierRankingDTO> rankings = toRankingDTOs(filterWithoutUser(suppliers, withoutUser), Map.of());
         rankings.sort(SCORE_ORDER);
         int fromIndex = Math.min(offset, rankings.size());
         int toIndex = (int) Math.min((long) fromIndex + limit, rankings.size());
@@ -83,6 +83,10 @@ public class RankSuppliersBySustainabilityUseCase {
         List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(co2.keySet()), co2);
         items.sort(RECOMMENDED_ORDER);
         return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term));
+    }
+
+    private List<Supplier> filterWithoutUser(List<Supplier> suppliers, boolean withoutUser) {
+        return withoutUser ? suppliers.stream().filter(supplier -> supplier.getUserId() == null).toList() : suppliers;
     }
 
     private List<SupplierRankingDTO> toRankingDTOs(List<Supplier> suppliers, Map<Long, BigDecimal> co2) {

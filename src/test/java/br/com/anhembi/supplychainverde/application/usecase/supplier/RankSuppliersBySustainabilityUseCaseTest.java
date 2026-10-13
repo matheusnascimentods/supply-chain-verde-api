@@ -80,6 +80,20 @@ class RankSuppliersBySustainabilityUseCaseTest {
         verifyNoInteractions(suppliers);
     }
 
+    @Test
+    void listsOnlySuppliersWithoutLinkedUserWhenRequested() {
+        Supplier linked = supplier(3L);
+        linked.setUserId(10L);
+        when(suppliers.findAll()).thenReturn(List.of(linked, supplier(5L)));
+        when(certifications.findBySupplierId(anyLong())).thenReturn(List.of());
+        when(emissions.findBySupplierId(anyLong())).thenReturn(List.of());
+        when(reports.countBySupplierIds(any())).thenReturn(Map.of());
+
+        assertThat(useCase.executeAll(true)).extracting(SupplierRankingDTO::supplierId).containsExactly(5L);
+        assertThat(useCase.execute(20, 0, null, true).items()).extracting(SupplierRankingDTO::supplierId).containsExactly(5L);
+        assertThat(useCase.executeAll(false)).hasSize(2);
+    }
+
     private static Supplier supplier(Long supplierId) {
         return Supplier.builder().supplierId(supplierId).name("Fornecedor " + supplierId).build();
     }

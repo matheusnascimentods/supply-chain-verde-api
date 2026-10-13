@@ -3,9 +3,12 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponseDTO;
+import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.usecase.user.RegisterUserUseCase;
 import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RegisterSupplierUseCase {
     private final SupplierRepository supplierRepository;
     private final AddressRepository addressRepository;
+    private final RegisterUserUseCase registerUser;
 
     @Transactional
     public SupplierResponseDTO execute(SupplierRequestDTO request) {
@@ -42,6 +46,13 @@ public class RegisterSupplierUseCase {
                 .build();
 
         Supplier savedSupplier = supplierRepository.save(supplier);
+        if (request.user() != null) {
+            // Mesma transação: se o usuário falhar (ex.: email duplicado), o fornecedor também é desfeito (RN-04).
+            Long userId = registerUser.execute(new UserRequestDTO(
+                    request.user().name(), request.user().email(), request.user().password(),
+                    UserRole.SUPPLIER, savedSupplier.getSupplierId())).userId();
+            savedSupplier.setUserId(userId);
+        }
         return toResponse(savedSupplier);
     }
 

@@ -27,17 +27,17 @@ public class SupplierController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Cadastrar fornecedor", description = "Cadastra um fornecedor e seu endereço.")
+    @Operation(summary = "Cadastrar fornecedor", description = "Cadastra um fornecedor e seu endereço. Com o bloco opcional user { name, email, password }, cria na mesma transação o usuário SUPPLIER vinculado; se a criação do usuário falhar (ex.: email já cadastrado, 409), o fornecedor também não é gravado. A resposta traz userId, nulo quando não houver acesso.")
     public SupplierResponseDTO create(@RequestBody SupplierRequestDTO request) { return register.execute(request); }
 
     @PutMapping("/{supplierId}")
-    @Operation(summary = "Atualizar fornecedor", description = "Atualiza os dados cadastrais de um fornecedor.")
+    @Operation(summary = "Atualizar fornecedor", description = "Atualiza os dados cadastrais de um fornecedor. O bloco user é ignorado; o acesso é criado em POST /suppliers ou POST /users.")
     public SupplierResponseDTO update(@PathVariable Long supplierId, @RequestBody SupplierRequestDTO request) { return update.execute(supplierId, request); }
 
     @GetMapping
     @Operation(
             summary = "Consultar fornecedores",
-            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações. Com ranked=true, productId ou o par category+unit ativa a recomendação: os fornecedores vêm ordenados pelo menor CO₂ médio por unidade daquele produto (ou categoria+unidade), com desempate por sustainabilityScore; quem não tem histórico vem no fim com co2KgPerUnit null. productId não combina com category/unit, e category exige unit. Esses parâmetros exigem ranked=true."
+            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações. Com ranked=true, productId ou o par category+unit ativa a recomendação: os fornecedores vêm ordenados pelo menor CO₂ médio por unidade daquele produto (ou categoria+unidade), com desempate por sustainabilityScore; quem não tem histórico vem no fim com co2KgPerUnit null. productId não combina com category/unit, e category exige unit. Esses parâmetros exigem ranked=true. withoutUser=true lista só fornecedores sem usuário vinculado (userId null); não combina com supplierId nem com a recomendação."
     )
     public Object getSuppliers(
             @RequestParam(required = false) @Min(1) Long supplierId,
@@ -47,7 +47,8 @@ public class SupplierController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) @Min(1) Long productId,
             @RequestParam(required = false) ProductCategory category,
-            @RequestParam(required = false) ProductUnit unit
+            @RequestParam(required = false) ProductUnit unit,
+            @RequestParam(defaultValue = "false") boolean withoutUser
     ) {
         if (supplierId != null && ranked != null) {
             throw new IllegalArgumentException("supplierId e ranked são parâmetros mutuamente exclusivos.");
@@ -61,14 +62,17 @@ public class SupplierController {
         if (!Boolean.TRUE.equals(ranked) && (productId != null || category != null)) {
             throw new IllegalArgumentException("productId, category e unit exigem ranked=true.");
         }
+        if (withoutUser && (supplierId != null || productId != null || category != null)) {
+            throw new IllegalArgumentException("withoutUser não combina com supplierId nem com productId/category/unit.");
+        }
         if (supplierId != null) {
             return get.execute(supplierId);
         }
         if (Boolean.TRUE.equals(ranked)) {
             return productId != null || category != null
                     ? rank.executeRecommended(productId, category, unit, limit, offset, search)
-                    : rank.execute(limit, offset, search);
+                    : rank.execute(limit, offset, search, withoutUser);
         }
-        return rank.executeAll();
+        return rank.executeAll(withoutUser);
     }
 }

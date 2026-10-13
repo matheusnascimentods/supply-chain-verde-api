@@ -75,9 +75,9 @@ class ApplicationUseCasesTest {
         when(suppliers.findAll()).thenReturn(List.of(saved));
 
         SupplierRequestDTO request = new SupplierRequestDTO("Verde", "11.222.333/0001-81",
-                new AddressRequestDTO("Rua A", "1", "Centro", null, "01000-000", "São Paulo", "SP"), "11999999999");
+                new AddressRequestDTO("Rua A", "1", "Centro", null, "01000-000", "São Paulo", "SP"), "11999999999", null);
 
-        assertThat(new RegisterSupplierUseCase(suppliers, addresses).execute(request).supplierId()).isEqualTo(2L);
+        assertThat(new RegisterSupplierUseCase(suppliers, addresses, mock(RegisterUserUseCase.class)).execute(request).supplierId()).isEqualTo(2L);
         assertThat(new GetSupplierUseCase(suppliers).execute(2L).name()).isEqualTo("Verde");
         assertThat(new ListSuppliersUseCase(suppliers).execute()).hasSize(1);
         verify(suppliers).save(any(Supplier.class));
@@ -232,8 +232,8 @@ class ApplicationUseCasesTest {
         when(users.findById(11L)).thenReturn(Optional.of(user));
         when(jwt.generateToken(user, null)).thenReturn("token");
 
-        assertThat(new RegisterUserUseCase(users, hasher)
-                .execute(new UserRequestDTO("Admin", "admin@example.com", "secret", UserRole.ADMIN)).userId()).isEqualTo(11L);
+        assertThat(new RegisterUserUseCase(users, suppliers, hasher)
+                .execute(new UserRequestDTO("Admin", "admin@example.com", "secret", UserRole.ADMIN, null)).userId()).isEqualTo(11L);
         assertThat(new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
                 .execute(new LoginRequestDTO("admin@example.com", "secret")).token()).isEqualTo("token");
         assertThat(new UpdateUserRoleUseCase(users)
