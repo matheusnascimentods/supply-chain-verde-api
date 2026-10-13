@@ -49,7 +49,7 @@ public class UserController {
     @Operation(summary = "Consultar usuário autenticado", description = "Retorna os dados do usuário associado ao token atual.")
     public UserResponseDTO me(@AuthenticationPrincipal CustomUserPrincipal principal) {
         return userRepository.findById(principal.userId())
-                .map(user -> new UserResponseDTO(user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt()))
+                .map(user -> new UserResponseDTO(user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(), principal.supplierId()))
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + principal.userId()));
     }
 

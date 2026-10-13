@@ -42,6 +42,6 @@ public class AuthenticateUserUseCase {
 
         String token = jwtTokenProvider.generateToken(user, supplierId);
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
-        return new LoginResponseDTO(token, expiresAt, user.getRole());
+        return new LoginResponseDTO(token, expiresAt, user.getRole(), supplierId);
     }
 }

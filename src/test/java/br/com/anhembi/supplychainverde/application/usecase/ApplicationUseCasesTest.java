@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.application.usecase;
 
 import br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.auth.LoginRequestDTO;
+import br.com.anhembi.supplychainverde.application.dto.auth.LoginResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionRequestDTO;
@@ -251,8 +252,10 @@ class ApplicationUseCasesTest {
         when(suppliers.findByUserId(3L)).thenReturn(Optional.of(Supplier.builder().supplierId(7L).userId(3L).build()));
         when(jwt.generateToken(user, 7L)).thenReturn("token");
 
-        assertThat(new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
-                .execute(new LoginRequestDTO("supplier@example.com", "secret")).token()).isEqualTo("token");
+        LoginResponseDTO response = new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
+                .execute(new LoginRequestDTO("supplier@example.com", "secret"));
+        assertThat(response.token()).isEqualTo("token");
+        assertThat(response.supplierId()).isEqualTo(7L);
     }
 
     @Test
