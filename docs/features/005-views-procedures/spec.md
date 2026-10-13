@@ -23,7 +23,7 @@ Levar para o banco, como views e procedures, os cálculos que alimentam relatór
 |---|---|---|---|
 | `vw_stage_emission` | View | Uma linha por etapa com emissão: lote, fornecedor, produto, categoria, unidade, etapa, CO₂, fator, metodologia, data do cálculo. | Base das outras views; detalhe do relatório em PDF. |
 | `vw_supplier_product_emission` | View | Por fornecedor e produto: CO₂ total, quantidade total, nº de lotes e CO₂ médio por unidade. | [Recomendação de fornecedores](../001-recomendacao-fornecedores/spec.md). |
-| `vw_monthly_emission` | View | CO₂ por fornecedor e mês. | [Gráfico de emissões](../004-grafico-emissoes/spec.md) e card "Emissão Total (mês)". |
+| `vw_monthly_emission` | View | CO₂ por fornecedor e mês. | [Gráfico de emissões](../003-grafico-emissoes/spec.md) e card "Emissão Total (mês)". |
 | `sp_generate_sustainability_report` | Procedure | Consolida CO₂ e produtos rastreados do fornecedor no período e grava o `report`. Devolve o `report_id`. | `POST /suppliers/{id}/reports`. |
 | `sp_expire_certifications` | Procedure | Marca como `EXPIRED` as certificações `ACTIVE` com `expires_at` no passado. Devolve quantas mudou. | Job diário da API. |
 

@@ -25,7 +25,7 @@ Endpoint com a emissão de CO₂ mês a mês num intervalo escolhido, para o gr�
 |---|---|
 | RF-01 | `GET /dashboard/emissions?from=YYYY-MM&to=YYYY-MM`, para qualquer usuário autenticado. |
 | RF-02 | `from > to` ou intervalo maior que 24 meses retorna 400. |
-| RNF-01 | Leitura de `vw_monthly_emission` ([views-procedures](../003-views-procedures/spec.md)). |
+| RNF-01 | Leitura de `vw_monthly_emission` ([views-procedures](../005-views-procedures/spec.md)). |
 
 ## 5. Contrato
 

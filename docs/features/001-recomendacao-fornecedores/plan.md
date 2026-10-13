@@ -1,6 +1,6 @@
 # Plano técnico — Recomendação de fornecedores sustentáveis
 
-> Requisitos em [`spec.md`](spec.md); passo a passo em [`tasks.md`](tasks.md). Depende de `vw_supplier_product_emission` ([views-procedures](../003-views-procedures/plan.md)).
+> Requisitos em [`spec.md`](spec.md); passo a passo em [`tasks.md`](tasks.md). Depende de `vw_supplier_product_emission` ([views-procedures](../005-views-procedures/plan.md)).
 
 ## 1. Consulta
 
