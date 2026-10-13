@@ -19,7 +19,6 @@
 - [x] `supplierId` em `LoginResponseDTO` e `GET /users/me`
 - [x] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
 - [ ] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
-- [ ] Atualizar `docs/features/000-base/spec.md` removendo a convenção `userId == supplierId`
 
 ## Task 3 — PR `feat: cria fornecedor com usuário`
 
