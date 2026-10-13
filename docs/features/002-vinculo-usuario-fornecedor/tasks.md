@@ -8,10 +8,10 @@
 
 ## Task 1 — PR `feat: vincula fornecedor a usuário`
 
-- [ ] Migration `V32__link_supplier_to_user.sql` (coluna, `UNIQUE`, FK, migração da convenção)
-- [ ] Rodar a query de verificação do plan e ajustar seeds se necessário
-- [ ] `userId` em `Supplier`, `SupplierJpaEntity`, mapper e DTOs de resposta
-- [ ] `findByUserId`/`existsByUserId` no repositório
+- [x] Migration `V32__link_supplier_to_user.sql` (coluna, `UNIQUE`, FK, migração da convenção)
+- [x] Rodar a query de verificação do plan e ajustar seeds se necessário
+- [x] `userId` em `Supplier`, `SupplierJpaEntity`, mapper e DTOs de resposta
+- [x] `findByUserId`/`existsByUserId` no repositório
 
 ## Task 2 — PR `feat: expõe supplierId no token`
 
