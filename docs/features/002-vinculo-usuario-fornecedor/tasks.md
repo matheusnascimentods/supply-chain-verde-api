@@ -15,9 +15,9 @@
 
 ## Task 2 — PR `feat: expõe supplierId no token`
 
-- [ ] Claim `supplierId` no JWT e em `CustomUserPrincipal`
-- [ ] `supplierId` em `LoginResponseDTO` e `GET /users/me`
-- [ ] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
+- [x] Claim `supplierId` no JWT e em `CustomUserPrincipal`
+- [x] `supplierId` em `LoginResponseDTO` e `GET /users/me`
+- [x] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
 - [ ] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
 - [ ] Atualizar `docs/features/000-base/spec.md` removendo a convenção `userId == supplierId`
 
