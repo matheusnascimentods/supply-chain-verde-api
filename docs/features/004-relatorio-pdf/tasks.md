@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** não iniciado. Depende de [`views-procedures`](../003-views-procedures/tasks.md) (Tasks 1 e 2: views e totais do relatório).
+**Status:** não iniciado. Depende de [`views-procedures`](../005-views-procedures/tasks.md) (Tasks 1 e 2: views e totais do relatório).
 
 ---
 

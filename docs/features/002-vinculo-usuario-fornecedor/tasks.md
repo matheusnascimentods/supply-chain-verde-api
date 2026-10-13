@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Todas as tasks usam a mesma branch, `feat/vinculo-usuario-fornecedor`, com um PR para `main` por task, em sequência: o PR da task seguinte só abre depois do merge do anterior, a partir da mesma branch atualizada com `main`.
 
-**Status:** não iniciado. Esta é a primeira feature a implementar: o gráfico de emissões depende do `supplierId` no token. Ordem sugerida das demais: [`views-procedures`](../003-views-procedures/tasks.md) → [`recomendacao-fornecedores`](../001-recomendacao-fornecedores/tasks.md), [`grafico-emissoes`](../004-grafico-emissoes/tasks.md) e [`relatorio-pdf`](../005-relatorio-pdf/tasks.md).
+**Status:** concluído (PRs #55 a #58). O gráfico de emissões depende do `supplierId` no token entregue aqui. Ordem sugerida das próximas: [`grafico-emissoes`](../003-grafico-emissoes/tasks.md) → [`relatorio-pdf`](../004-relatorio-pdf/tasks.md) → [`views-procedures`](../005-views-procedures/tasks.md).
 
 ---
 

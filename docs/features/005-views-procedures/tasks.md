@@ -8,7 +8,7 @@
 
 ## Task 1 — `feat/emission-views`
 
-- [ ] Migration com `vw_stage_emission`, `vw_supplier_product_emission`, `vw_monthly_emission`
+- [x] Migration com `vw_stage_emission`, `vw_supplier_product_emission`, `vw_monthly_emission` (`V31__create_emission_views.sql`)
 - [ ] Testes de integração das views
 - [ ] `GetDashboardSummaryUseCase` lê `monthlyEmissionKgCo2e` da `vw_monthly_emission`
 
