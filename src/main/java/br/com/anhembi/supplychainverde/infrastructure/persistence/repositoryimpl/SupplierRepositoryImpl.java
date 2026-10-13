@@ -93,4 +93,9 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     public boolean existsByUserId(Long userId) {
         return jpaRepository.existsByUserId(userId);
     }
+
+    @Override
+    public List<Supplier> findByUserIdIn(Collection<Long> userIds) {
+        return jpaRepository.findByUserIdIn(userIds).stream().map(mapper::toDomain).toList();
+    }
 }

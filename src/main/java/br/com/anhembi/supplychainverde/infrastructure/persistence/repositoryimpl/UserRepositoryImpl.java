@@ -1,16 +1,19 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl;
 
 import br.com.anhembi.supplychainverde.domain.entity.User;
+import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.UserJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.UserJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.UserJpaRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -44,36 +47,35 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<User> findPage(String email, int limit, int offset) {
-        StringBuilder jpql = new StringBuilder("SELECT user FROM UserJpaEntity user");
-        if (email != null && !email.isBlank()) {
-            jpql.append(" WHERE LOWER(user.email) LIKE :emailPattern");
-        }
-        jpql.append(" ORDER BY user.userId ASC");
-
-        TypedQuery<UserJpaEntity> query =
-                entityManager.createQuery(jpql.toString(), UserJpaEntity.class)
-                        .setFirstResult(offset)
-                        .setMaxResults(limit);
-        if (email != null && !email.isBlank()) {
-            query.setParameter("emailPattern", "%" + email.trim().toLowerCase(Locale.ROOT) + "%");
-        }
+    public List<User> findPage(String email, UserRole role, int limit, int offset) {
+        TypedQuery<UserJpaEntity> query = entityManager
+                .createQuery("SELECT user FROM UserJpaEntity user" + where(email, role) + " ORDER BY user.userId ASC", UserJpaEntity.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit);
+        bindFilters(query, email, role);
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countPage(String email) {
-        StringBuilder jpql = new StringBuilder("SELECT COUNT(user) FROM UserJpaEntity user");
-        if (email != null && !email.isBlank()) {
-            jpql.append(" WHERE LOWER(user.email) LIKE :emailPattern");
-        }
+    public long countPage(String email, UserRole role) {
+        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(email, role), Long.class);
+        bindFilters(query, email, role);
+        return query.getSingleResult();
+    }
 
-        var query = entityManager.createQuery(jpql.toString(), Long.class);
+    private String where(String email, UserRole role) {
+        List<String> conditions = new ArrayList<>();
+        if (email != null && !email.isBlank()) conditions.add("LOWER(user.email) LIKE :emailPattern");
+        if (role != null) conditions.add("user.role = :role");
+        return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+    }
+
+    private void bindFilters(Query query, String email, UserRole role) {
         if (email != null && !email.isBlank()) {
             query.setParameter("emailPattern", "%" + email.trim().toLowerCase(Locale.ROOT) + "%");
         }
-        return query.getSingleResult();
+        if (role != null) query.setParameter("role", role);
     }
 
     @Override

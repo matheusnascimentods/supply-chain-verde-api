@@ -22,11 +22,11 @@
 
 ## Task 3 — PR `feat: cria fornecedor com usuário`
 
-- [ ] Bloco `user` opcional em `POST /suppliers`, transacional
-- [ ] `supplierId` em `POST /users` com as validações de role
-- [ ] Liberar `POST /users` e `GET /users` para `MANAGER` (só `SUPPLIER`)
-- [ ] `withoutUser=true` em `GET /suppliers`
-- [ ] Bloquear mudança de/para `SUPPLIER` em `PATCH /users/{id}/role`
+- [x] Bloco `user` opcional em `POST /suppliers`, transacional
+- [x] `supplierId` em `POST /users` com as validações de role
+- [x] Liberar `POST /users` e `GET /users` para `MANAGER` (só `SUPPLIER`)
+- [x] `withoutUser=true` em `GET /suppliers`
+- [x] Bloquear mudança de/para `SUPPLIER` em `PATCH /users/{id}/role`
 
 ## Task 4 — PR `fix: permite ao fornecedor editar o próprio perfil`
 

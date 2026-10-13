@@ -3,6 +3,9 @@ package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 import br.com.anhembi.supplychainverde.application.dto.user.*;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.user.*;
+import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.enums.UserRole;
+import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +14,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,22 +30,29 @@ public class UserController {
     private final UpdateUserRoleUseCase updateRole;
     private final ListUsersUseCase list;
     private final UserRepository userRepository;
+    private final SupplierRepository supplierRepository;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Criar usuário", description = "Cria um usuário. Requer perfil ADMIN.")
-    public UserResponseDTO create(@RequestBody UserRequestDTO request) { return register.execute(request); }
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Criar usuário", description = "Cria um usuário. supplierId é obrigatório quando role = SUPPLIER (fornecedor existente e ainda sem usuário) e proibido nos demais perfis (400). Email já cadastrado ou fornecedor já vinculado retornam 409. ADMIN cria qualquer perfil; MANAGER cria somente SUPPLIER (403 nos demais).")
+    public UserResponseDTO create(@RequestBody UserRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        if (isManager(principal) && (request == null || request.role() != UserRole.SUPPLIER)) {
+            throw new AccessDeniedException("MANAGER pode criar somente usuários SUPPLIER.");
+        }
+        return register.execute(request);
+    }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Listar usuários", description = "Lista usuários de forma paginada, com filtro opcional de email parcial e sem diferenciar maiúsculas de minúsculas. Requer perfil ADMIN.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Listar usuários", description = "Lista usuários de forma paginada, com filtro opcional de email parcial e sem diferenciar maiúsculas de minúsculas. Cada item traz supplierId e supplierName, nulos fora de SUPPLIER. ADMIN vê todos; MANAGER vê somente usuários SUPPLIER.")
     public OffsetPageResponseDTO<UserResponseDTO> list(
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
-            @RequestParam(defaultValue = "0") @Min(0) int offset
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return list.execute(email, limit, offset);
+        return list.execute(email, isManager(principal) ? UserRole.SUPPLIER : null, limit, offset);
     }
 
     @GetMapping("/me")
@@ -49,12 +60,21 @@ public class UserController {
     @Operation(summary = "Consultar usuário autenticado", description = "Retorna os dados do usuário associado ao token atual.")
     public UserResponseDTO me(@AuthenticationPrincipal CustomUserPrincipal principal) {
         return userRepository.findById(principal.userId())
-                .map(user -> new UserResponseDTO(user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(), principal.supplierId()))
+                .map(user -> new UserResponseDTO(user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(),
+                        principal.supplierId(), supplierName(principal.supplierId())))
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + principal.userId()));
     }
 
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Atualizar perfil do usuário", description = "Altera o perfil de acesso de um usuário. Requer ADMIN.")
+    @Operation(summary = "Atualizar perfil do usuário", description = "Altera o perfil de acesso de um usuário. Mudar de ou para SUPPLIER retorna 409, porque o SUPPLIER está sempre vinculado a um fornecedor. Requer ADMIN.")
     public UserResponseDTO updateRole(@PathVariable Long userId, @RequestBody UpdateUserRoleRequestDTO request) { return updateRole.execute(userId, request); }
+
+    private boolean isManager(CustomUserPrincipal principal) {
+        return "MANAGER".equals(principal.role());
+    }
+
+    private String supplierName(Long supplierId) {
+        return supplierId == null ? null : supplierRepository.findById(supplierId).map(Supplier::getName).orElse(null);
+    }
 }

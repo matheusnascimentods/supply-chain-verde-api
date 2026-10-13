@@ -38,4 +38,6 @@ public interface SupplierRepository {
     Optional<Supplier> findByUserId(Long userId);
 
     boolean existsByUserId(Long userId);
+
+    List<Supplier> findByUserIdIn(Collection<Long> userIds);
 }

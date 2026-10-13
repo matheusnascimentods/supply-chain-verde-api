@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.domain.repository;
 
 import br.com.anhembi.supplychainverde.domain.entity.User;
+import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,9 +15,9 @@ public interface UserRepository {
 
     List<User> findAll();
 
-    List<User> findPage(String email, int limit, int offset);
+    List<User> findPage(String email, UserRole role, int limit, int offset);
 
-    long countPage(String email);
+    long countPage(String email, UserRole role);
 
     boolean existsByEmail(String email);
 
