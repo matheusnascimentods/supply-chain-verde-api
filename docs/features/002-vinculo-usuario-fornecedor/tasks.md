@@ -30,9 +30,9 @@
 
 ## Task 4 — PR `fix: permite ao fornecedor editar o próprio perfil`
 
-- [ ] `UpdateOwnSupplierRequestDTO` e `UpdateOwnSupplierUseCase`
-- [ ] `PATCH /suppliers/me` no `SupplierController` + regra no `SecurityConfig`
-- [ ] Validação de senha atual
-- [ ] Swagger dos endpoints alterados
+- [x] `UpdateOwnSupplierRequestDTO` e `UpdateOwnSupplierUseCase`
+- [x] `PATCH /suppliers/me` no `SupplierController` + regra no `SecurityConfig`
+- [x] Validação de senha atual
+- [x] Swagger dos endpoints alterados
 
 **Pronto:** `grep -rn "principal.userId()" src/main` só aparece em `UserController` (`/users/me`).

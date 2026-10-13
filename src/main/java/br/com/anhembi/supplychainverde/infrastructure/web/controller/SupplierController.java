@@ -2,15 +2,18 @@ package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponseDTO;
+import br.com.anhembi.supplychainverde.application.dto.supplier.UpdateOwnSupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.usecase.supplier.*;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +27,7 @@ public class SupplierController {
     private final UpdateSupplierUseCase update;
     private final GetSupplierUseCase get;
     private final RankSuppliersBySustainabilityUseCase rank;
+    private final UpdateOwnSupplierUseCase updateOwn;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -33,6 +37,16 @@ public class SupplierController {
     @PutMapping("/{supplierId}")
     @Operation(summary = "Atualizar fornecedor", description = "Atualiza os dados cadastrais de um fornecedor. O bloco user é ignorado; o acesso é criado em POST /suppliers ou POST /users.")
     public SupplierResponseDTO update(@PathVariable Long supplierId, @RequestBody SupplierRequestDTO request) { return update.execute(supplierId, request); }
+
+    @PatchMapping("/me")
+    @Operation(
+            summary = "Atualizar o próprio cadastro",
+            description = "Somente SUPPLIER. Atualiza o fornecedor vinculado ao usuário do token e o próprio usuário, numa transação. Todos os campos são opcionais e só os enviados são alterados: name (razão social), phone, address (substituído por inteiro quando enviado), userName (nome do usuário) e newPassword, que exige currentPassword. Senha atual ausente ou incorreta retorna 400 sem alterar nada. CNPJ e email não são editáveis. A resposta tem o mesmo formato de GET /suppliers?supplierId=."
+    )
+    public SupplierResponseDTO updateOwn(@RequestBody UpdateOwnSupplierRequestDTO request,
+                                         @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return updateOwn.execute(principal.supplierId(), request);
+    }
 
     @GetMapping
     @Operation(
