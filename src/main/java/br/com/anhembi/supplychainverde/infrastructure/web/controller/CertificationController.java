@@ -3,12 +3,15 @@ package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 import br.com.anhembi.supplychainverde.application.dto.certification.*;
 import br.com.anhembi.supplychainverde.application.usecase.certification.*;
 import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +41,12 @@ public class CertificationController {
     @PostMapping("/suppliers/{supplierId}/certifications")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastrar certificação", description = "Registra uma certificação ambiental para um fornecedor.")
-    public CertificationResponseDTO create(@PathVariable Long supplierId, @RequestBody CertificationRequestDTO request) { return register.execute(supplierId, request); }
+    public CertificationResponseDTO create(@PathVariable Long supplierId, @RequestBody CertificationRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        if ("SUPPLIER".equals(principal.role()) && !principal.supplierId().equals(supplierId)) {
+            throw new AccessDeniedException("Fornecedor pode cadastrar certificações somente para si.");
+        }
+        return register.execute(supplierId, request);
+    }
 
     @PatchMapping("/certifications/{certificationId}/status")
     @Operation(summary = "Atualizar status da certificação", description = "Atualiza o status de uma certificação.")

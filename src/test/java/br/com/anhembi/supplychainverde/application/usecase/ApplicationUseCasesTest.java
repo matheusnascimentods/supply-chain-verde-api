@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.application.usecase;
 
 import br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.auth.LoginRequestDTO;
+import br.com.anhembi.supplychainverde.application.dto.auth.LoginResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionRequestDTO;
@@ -14,6 +15,7 @@ import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestD
 import br.com.anhembi.supplychainverde.application.dto.transport.TransportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
+import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.BatchStagesReader;
@@ -55,6 +57,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -219,6 +222,7 @@ class ApplicationUseCasesTest {
     void shouldRegisterAuthenticateAndUpdateUser() {
         UserRepository users = mock(UserRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
+        SupplierRepository suppliers = mock(SupplierRepository.class);
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
         User user = User.builder().userId(11L).name("Admin").email("admin@example.com").password("hash").role(UserRole.ADMIN).build();
         when(hasher.hash("secret")).thenReturn("hash");
@@ -226,14 +230,49 @@ class ApplicationUseCasesTest {
         when(users.save(any())).thenReturn(user);
         when(users.findByEmail("admin@example.com")).thenReturn(Optional.of(user));
         when(users.findById(11L)).thenReturn(Optional.of(user));
-        when(jwt.generateToken(user)).thenReturn("token");
+        when(jwt.generateToken(user, null)).thenReturn("token");
 
         assertThat(new RegisterUserUseCase(users, hasher)
                 .execute(new UserRequestDTO("Admin", "admin@example.com", "secret", UserRole.ADMIN)).userId()).isEqualTo(11L);
-        assertThat(new AuthenticateUserUseCase(users, hasher, jwt)
+        assertThat(new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
                 .execute(new LoginRequestDTO("admin@example.com", "secret")).token()).isEqualTo("token");
         assertThat(new UpdateUserRoleUseCase(users)
                 .execute(11L, new UpdateUserRoleRequestDTO(UserRole.AUDITOR)).role()).isEqualTo(UserRole.AUDITOR);
+    }
+
+    @Test
+    void shouldIncludeLinkedSupplierIdInSupplierToken() {
+        UserRepository users = mock(UserRepository.class);
+        SupplierRepository suppliers = mock(SupplierRepository.class);
+        PasswordHasher hasher = mock(PasswordHasher.class);
+        JwtTokenProvider jwt = mock(JwtTokenProvider.class);
+        User user = User.builder().userId(3L).email("supplier@example.com").password("hash").role(UserRole.SUPPLIER).build();
+        when(users.findByEmail("supplier@example.com")).thenReturn(Optional.of(user));
+        when(hasher.matches("secret", "hash")).thenReturn(true);
+        when(suppliers.findByUserId(3L)).thenReturn(Optional.of(Supplier.builder().supplierId(7L).userId(3L).build()));
+        when(jwt.generateToken(user, 7L)).thenReturn("token");
+
+        LoginResponseDTO response = new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
+                .execute(new LoginRequestDTO("supplier@example.com", "secret"));
+        assertThat(response.token()).isEqualTo("token");
+        assertThat(response.supplierId()).isEqualTo(7L);
+    }
+
+    @Test
+    void shouldRejectLoginOfSupplierUserWithoutLinkedSupplier() {
+        UserRepository users = mock(UserRepository.class);
+        SupplierRepository suppliers = mock(SupplierRepository.class);
+        PasswordHasher hasher = mock(PasswordHasher.class);
+        JwtTokenProvider jwt = mock(JwtTokenProvider.class);
+        User user = User.builder().userId(3L).email("supplier@example.com").password("hash").role(UserRole.SUPPLIER).build();
+        when(users.findByEmail("supplier@example.com")).thenReturn(Optional.of(user));
+        when(hasher.matches("secret", "hash")).thenReturn(true);
+        when(suppliers.findByUserId(3L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
+                .execute(new LoginRequestDTO("supplier@example.com", "secret")))
+                .isInstanceOf(UnauthorizedActionException.class);
+        verifyNoInteractions(jwt);
     }
 
     @Test

@@ -56,7 +56,7 @@ class AuditLogTriggerIT {
                 "m.neuer@bayern.com"
         );
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(actorId, "m.neuer@bayern.com", "ADMIN"),
+                new CustomUserPrincipal(actorId, "m.neuer@bayern.com", "ADMIN", null),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
         ));
@@ -137,7 +137,7 @@ class AuditLogTriggerIT {
                         .param("from", LocalDate.now().toString())
                         .param("to", LocalDate.now().toString())
                         .with(authentication(new UsernamePasswordAuthenticationToken(
-                                new CustomUserPrincipal(actorId, "m.neuer@bayern.com", "ADMIN"),
+                                new CustomUserPrincipal(actorId, "m.neuer@bayern.com", "ADMIN", null),
                                 null,
                                 List.of(new SimpleGrantedAuthority("ROLE_AUDITOR"))
                         ))))

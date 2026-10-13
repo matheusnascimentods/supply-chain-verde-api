@@ -54,7 +54,7 @@ public class ReportController {
             ensureSupplierOwns(principal, report.supplierId());
             return report;
         }
-        Long effectiveSupplierId = isSupplier(principal) ? principal.userId() : supplierId;
+        Long effectiveSupplierId = isSupplier(principal) ? principal.supplierId() : supplierId;
         return listAll.execute(effectiveSupplierId, limit, offset);
     }
 
@@ -63,7 +63,7 @@ public class ReportController {
     }
 
     private void ensureSupplierOwns(CustomUserPrincipal principal, Long supplierId) {
-        if (isSupplier(principal) && !principal.userId().equals(supplierId)) {
+        if (isSupplier(principal) && !principal.supplierId().equals(supplierId)) {
             throw new AccessDeniedException("Fornecedor pode consultar somente os próprios relatórios.");
         }
     }

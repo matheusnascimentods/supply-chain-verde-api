@@ -21,6 +21,6 @@ public class UpdateUserRoleUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + userId));
         user.updateRole(request.role());
         User updated = userRepository.save(user);
-        return new UserResponseDTO(updated.getUserId(), updated.getName(), updated.getEmail(), updated.getRole(), updated.getCreatedAt());
+        return new UserResponseDTO(updated.getUserId(), updated.getName(), updated.getEmail(), updated.getRole(), updated.getCreatedAt(), null);
     }
 }

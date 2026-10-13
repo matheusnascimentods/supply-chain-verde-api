@@ -19,7 +19,7 @@ public class ListUsersUseCase {
         long totalElements = userRepository.countPage(email);
         List<UserResponseDTO> items = users.stream()
                 .map(user -> new UserResponseDTO(
-                        user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt()))
+                        user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(), null))
                 .toList();
         return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
     }

@@ -27,7 +27,7 @@ public class BatchController {
     @GetMapping("/batches")
     @Operation(
             summary = "Listar lotes",
-            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. SUPPLIER consulta somente os lotes cujo supplierId corresponde ao userId do token."
+            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. SUPPLIER consulta somente os lotes do fornecedor vinculado ao seu usuário."
     )
     public BatchPageResponseDTO list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -35,14 +35,19 @@ public class BatchController {
             @RequestParam(required = false) @Min(1) Long supplierId,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        Long effectiveSupplierId = "SUPPLIER".equals(principal.role()) ? principal.userId() : supplierId;
+        Long effectiveSupplierId = "SUPPLIER".equals(principal.role()) ? principal.supplierId() : supplierId;
         return list.execute(page, size, effectiveSupplierId);
     }
 
     @PostMapping("/batches")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Cadastrar lote", description = "Cadastra um lote vinculado a um produto e fornecedor.")
-    public BatchResponseDTO create(@RequestBody BatchRequestDTO request) { return register.execute(request); }
+    @Operation(summary = "Cadastrar lote", description = "Cadastra um lote vinculado a um produto e fornecedor. SUPPLIER cadastra sempre no próprio fornecedor; o supplierId do corpo é ignorado.")
+    public BatchResponseDTO create(@RequestBody BatchRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        if ("SUPPLIER".equals(principal.role())) {
+            request = new BatchRequestDTO(request.productId(), principal.supplierId(), request.quantity(), request.producedAt());
+        }
+        return register.execute(request);
+    }
 
     @GetMapping("/batches/{batchId}/traceability")
     @Operation(summary = "Consultar rastreabilidade do lote", description = "Consulta pública da jornada completa de um lote.")

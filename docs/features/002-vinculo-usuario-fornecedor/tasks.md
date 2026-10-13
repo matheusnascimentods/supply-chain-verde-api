@@ -8,18 +8,17 @@
 
 ## Task 1 — PR `feat: vincula fornecedor a usuário`
 
-- [ ] Migration `V32__link_supplier_to_user.sql` (coluna, `UNIQUE`, FK, migração da convenção)
-- [ ] Rodar a query de verificação do plan e ajustar seeds se necessário
-- [ ] `userId` em `Supplier`, `SupplierJpaEntity`, mapper e DTOs de resposta
-- [ ] `findByUserId`/`existsByUserId` no repositório
+- [x] Migration `V32__link_supplier_to_user.sql` (coluna, `UNIQUE`, FK, migração da convenção)
+- [x] Rodar a query de verificação do plan e ajustar seeds se necessário
+- [x] `userId` em `Supplier`, `SupplierJpaEntity`, mapper e DTOs de resposta
+- [x] `findByUserId`/`existsByUserId` no repositório
 
 ## Task 2 — PR `feat: expõe supplierId no token`
 
-- [ ] Claim `supplierId` no JWT e em `CustomUserPrincipal`
-- [ ] `supplierId` em `LoginResponseDTO` e `GET /users/me`
-- [ ] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
-- [ ] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
-- [ ] Atualizar `docs/features/000-base/spec.md` removendo a convenção `userId == supplierId`
+- [x] Claim `supplierId` no JWT e em `CustomUserPrincipal`
+- [x] `supplierId` em `LoginResponseDTO` e `GET /users/me`
+- [x] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
+- [x] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
 
 ## Task 3 — PR `feat: cria fornecedor com usuário`
 

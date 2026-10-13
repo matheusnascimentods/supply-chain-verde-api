@@ -29,6 +29,6 @@ public class RegisterUserUseCase {
                 .createdAt(LocalDateTime.now())
                 .build();
         User saved = userRepository.save(user);
-        return new UserResponseDTO(saved.getUserId(), saved.getName(), saved.getEmail(), saved.getRole(), saved.getCreatedAt());
+        return new UserResponseDTO(saved.getUserId(), saved.getName(), saved.getEmail(), saved.getRole(), saved.getCreatedAt(), null);
     }
 }
