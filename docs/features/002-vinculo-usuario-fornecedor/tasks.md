@@ -18,7 +18,7 @@
 - [x] Claim `supplierId` no JWT e em `CustomUserPrincipal`
 - [x] `supplierId` em `LoginResponseDTO` e `GET /users/me`
 - [x] Trocar `principal.userId()` por `principal.supplierId()` em `BatchController` e `ReportController`
-- [ ] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
+- [x] Forçar `supplierId` do token em `POST /batches` e checar dono em `POST /suppliers/{id}/certifications` para `SUPPLIER`
 
 ## Task 3 — PR `feat: cria fornecedor com usuário`
 

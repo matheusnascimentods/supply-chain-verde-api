@@ -41,8 +41,13 @@ public class BatchController {
 
     @PostMapping("/batches")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Cadastrar lote", description = "Cadastra um lote vinculado a um produto e fornecedor.")
-    public BatchResponseDTO create(@RequestBody BatchRequestDTO request) { return register.execute(request); }
+    @Operation(summary = "Cadastrar lote", description = "Cadastra um lote vinculado a um produto e fornecedor. SUPPLIER cadastra sempre no próprio fornecedor; o supplierId do corpo é ignorado.")
+    public BatchResponseDTO create(@RequestBody BatchRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        if ("SUPPLIER".equals(principal.role())) {
+            request = new BatchRequestDTO(request.productId(), principal.supplierId(), request.quantity(), request.producedAt());
+        }
+        return register.execute(request);
+    }
 
     @GetMapping("/batches/{batchId}/traceability")
     @Operation(summary = "Consultar rastreabilidade do lote", description = "Consulta pública da jornada completa de um lote.")
