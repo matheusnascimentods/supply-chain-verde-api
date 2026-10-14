@@ -62,4 +62,62 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("supplierId") Long supplierId);
+
+    @Query(value = """
+        SELECT CAST(stage_type AS TEXT) AS "stageType", SUM(co2_kg) AS "co2Kg"
+        FROM vw_stage_emission
+        WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
+        GROUP BY stage_type
+        ORDER BY 2 DESC
+        """, nativeQuery = true)
+    List<StageEmissionProjection> sumByStage(
+            @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @Query(value = """
+        SELECT batch_id AS "batchId", product_name AS "productName", quantity AS "quantity",
+               CAST(unit AS TEXT) AS "unit", SUM(co2_kg) AS "co2Kg"
+        FROM vw_stage_emission
+        WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
+        GROUP BY batch_id, product_name, quantity, unit
+        ORDER BY batch_id
+        """, nativeQuery = true)
+    List<BatchEmissionProjection> sumByBatch(
+            @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @Query(value = """
+        SELECT CAST(calculation_method AS TEXT) AS "calculationMethod", emission_factor AS "emissionFactor",
+               SUM(co2_kg) AS "co2Kg"
+        FROM vw_stage_emission
+        WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
+        GROUP BY calculation_method, emission_factor
+        ORDER BY 1, 2
+        """, nativeQuery = true)
+    List<MethodEmissionProjection> sumByMethod(
+            @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    interface StageEmissionProjection {
+        String getStageType();
+
+        BigDecimal getCo2Kg();
+    }
+
+    interface BatchEmissionProjection {
+        Long getBatchId();
+
+        String getProductName();
+
+        BigDecimal getQuantity();
+
+        String getUnit();
+
+        BigDecimal getCo2Kg();
+    }
+
+    interface MethodEmissionProjection {
+        String getCalculationMethod();
+
+        BigDecimal getEmissionFactor();
+
+        BigDecimal getCo2Kg();
+    }
 }
