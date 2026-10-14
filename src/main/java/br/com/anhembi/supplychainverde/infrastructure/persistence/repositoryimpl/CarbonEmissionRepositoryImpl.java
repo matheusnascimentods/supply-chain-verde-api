@@ -6,6 +6,8 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.CarbonE
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.CarbonEmissionJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.Collection;
@@ -54,5 +56,13 @@ public class CarbonEmissionRepositoryImpl implements CarbonEmissionRepository {
     @Override
     public void deleteById(Long emissionId) {
         jpaRepository.deleteById(emissionId);
+    }
+
+    @Override
+    public List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long supplierId) {
+        return jpaRepository.sumMonthly(from.atDay(1), to.atDay(1), supplierId)
+                .stream()
+                .map(row -> new MonthlyEmission(YearMonth.parse(row.getMonth()), row.getCo2Kg()))
+                .toList();
     }
 }
