@@ -17,6 +17,10 @@ public interface CertificationJpaRepository extends JpaRepository<CertificationJ
     List<CertificationJpaEntity> findBySupplierSupplierIdAndStatus(Long supplierId, CertificationStatus status);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
+    List<CertificationJpaEntity> findBySupplierSupplierIdAndIssuedAtLessThanEqualAndExpiresAtGreaterThanEqualOrderByIssuedAt(
+            Long supplierId, LocalDate end, LocalDate start);
+
+    @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     Page<CertificationJpaEntity> findByStatus(CertificationStatus status, Pageable pageable);
 
     @Override

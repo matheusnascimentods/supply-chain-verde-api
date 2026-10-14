@@ -110,14 +110,7 @@ public class RankSuppliersBySustainabilityUseCase {
                     calculator.countActiveCertifications(certifications),
                     emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add),
                     reportCounts.getOrDefault(supplier.getSupplierId(), 0L),
-                    certifications.stream().map(certification -> new SupplierCertificationDTO(
-                            certification.getCertificationId(),
-                            certification.getCertification(),
-                            certification.getIssuingBody(),
-                            certification.getIssuedAt(),
-                            certification.getExpiresAt(),
-                            certification.getStatus()
-                    )).toList(),
+                    certifications.stream().map(SupplierCertificationDTO::from).toList(),
                     co2.get(supplier.getSupplierId())
             ));
         }

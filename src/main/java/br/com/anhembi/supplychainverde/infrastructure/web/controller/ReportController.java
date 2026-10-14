@@ -36,7 +36,7 @@ public class ReportController {
     @GetMapping("/reports")
     @Operation(
             summary = "Consultar relatórios",
-            description = "Sem reportId, lista relatórios paginados. Com reportId, retorna o detalhe do relatório. SUPPLIER só consulta os próprios relatórios."
+            description = "Sem reportId, lista relatórios paginados. Com reportId, retorna o detalhe do relatório para o PDF: dados do fornecedor, emissões do período por etapa, lote e metodologia, e certificações vigentes no período. SUPPLIER só consulta os próprios relatórios."
     )
     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(oneOf = {
             ReportDetailDTO.class,

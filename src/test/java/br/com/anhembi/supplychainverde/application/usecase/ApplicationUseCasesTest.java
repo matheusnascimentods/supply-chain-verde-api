@@ -214,7 +214,8 @@ class ApplicationUseCasesTest {
 
         ReportRequestDTO request = new ReportRequestDTO(2L, report.getPeriodStartAt(), report.getPeriodEndAt());
         assertThat(new GenerateSustainabilityReportUseCase(reports, suppliers).execute(2L, request).reportId()).isEqualTo(10L);
-        assertThat(new GetReportUseCase(reports).execute(10L).reportId()).isEqualTo(10L);
+        assertThat(new GetReportUseCase(reports, mock(BatchRepository.class), mock(CarbonEmissionRepository.class),
+                mock(CertificationRepository.class)).execute(10L).reportId()).isEqualTo(10L);
         assertThat(new ListReportsBySupplierUseCase(reports).execute(2L)).hasSize(1);
     }
 

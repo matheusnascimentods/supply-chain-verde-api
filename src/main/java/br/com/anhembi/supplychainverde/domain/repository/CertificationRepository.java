@@ -18,6 +18,9 @@ public interface CertificationRepository {
 
     List<Certification> findBySupplierIdAndStatus(Long supplierId, CertificationStatus status);
 
+    /** Certificações vigentes em algum momento entre {@code start} e {@code end}. */
+    List<Certification> findBySupplierIdOverlapping(Long supplierId, LocalDate start, LocalDate end);
+
     List<Certification> findAll(int page, int size);
 
     List<Certification> findByStatus(CertificationStatus status, int page, int size);
