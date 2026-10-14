@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Cada task é um branch/PR para `main`, em sequência.
 
-**Status:** não iniciado. Depende de [`vinculo-usuario-fornecedor`](../002-vinculo-usuario-fornecedor/tasks.md) apenas pela numeração das migrations.
+**Status:** não iniciado. Depende da [padronização do schema](../005-padronizacao-schema/tasks.md): as procedures já nascem com `id` como PK e a numeração começa na `V36`.
 
 ---
 

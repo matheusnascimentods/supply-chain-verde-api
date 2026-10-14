@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Todas as tasks usam a mesma branch, `feat/vinculo-usuario-fornecedor`, com um PR para `main` por task, em sequência: o PR da task seguinte só abre depois do merge do anterior, a partir da mesma branch atualizada com `main`.
 
-**Status:** concluído (PRs #55 a #58). O gráfico de emissões depende do `supplierId` no token entregue aqui. Ordem sugerida das próximas: [`grafico-emissoes`](../003-grafico-emissoes/tasks.md) → [`relatorio-pdf`](../004-relatorio-pdf/tasks.md) → [`views-procedures`](../005-views-procedures/tasks.md).
+**Status:** concluído (PRs #55 a #58). O gráfico de emissões depende do `supplierId` no token entregue aqui. Ordem sugerida das próximas: [`grafico-emissoes`](../003-grafico-emissoes/tasks.md) → [`relatorio-pdf`](../004-relatorio-pdf/tasks.md) → [`views-procedures`](../006-views-procedures/tasks.md).
 
 ---
 

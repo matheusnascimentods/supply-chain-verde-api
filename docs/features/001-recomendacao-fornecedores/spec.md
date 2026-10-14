@@ -14,7 +14,7 @@ A busca de fornecedores aceita, opcionalmente, o produto do lote e devolve os fo
 
 | ID | Regra |
 |---|---|
-| RN-01 | "Melhor" = menor CO₂ médio por unidade do produto (ver [views-procedures](../005-views-procedures/spec.md), RN-02). |
+| RN-01 | "Melhor" = menor CO₂ médio por unidade do produto (ver [views-procedures](../006-views-procedures/spec.md), RN-02). |
 | RN-02 | Produto já cadastrado: compara pelos lotes daquele `productId`. |
 | RN-03 | Produto novo (ainda sem id): compara pelos lotes de produtos da mesma `category` **e** mesma `unit`. Unidades diferentes nunca se comparam. |
 | RN-04 | Empate no CO₂ por unidade: maior `sustainabilityScore` primeiro, depois `supplierId`. |
