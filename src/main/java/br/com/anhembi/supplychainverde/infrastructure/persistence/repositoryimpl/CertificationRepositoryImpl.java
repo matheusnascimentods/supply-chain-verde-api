@@ -45,6 +45,12 @@ public class CertificationRepositoryImpl implements CertificationRepository {
     }
 
     @Override
+    public List<Certification> findBySupplierIdOverlapping(Long supplierId, LocalDate start, LocalDate end) {
+        return jpaRepository.findBySupplierSupplierIdAndIssuedAtLessThanEqualAndExpiresAtGreaterThanEqualOrderByIssuedAt(
+                supplierId, end, start).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public List<Certification> findAll(int page, int size) {
         return jpaRepository.findAll(pageRequest(page, size)).stream().map(mapper::toDomain).toList();
     }
