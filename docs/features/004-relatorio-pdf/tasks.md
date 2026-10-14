@@ -2,14 +2,14 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** não iniciado. Depende de [`views-procedures`](../005-views-procedures/tasks.md) (Tasks 1 e 2: views e totais do relatório).
+**Status:** concluído. As seções leem a `vw_stage_emission` da `V31`; o `totalCo2Kg` do cabeçalho só fica preenchido com a procedure da [`views-procedures`](../005-views-procedures/tasks.md) (Task 2).
 
 ---
 
 ## Task 1 — `feat/report-detail-sections`
 
-- [ ] Records aninhados no `ReportDetailDTO`
-- [ ] Consultas por etapa, lote e metodologia na `vw_stage_emission`
-- [ ] Certificações vigentes no período
-- [ ] `GetReportUseCase` monta as seções
-- [ ] Testes do plan e Swagger
+- [x] Records aninhados no `ReportDetailDTO`
+- [x] Consultas por etapa, lote e metodologia na `vw_stage_emission`
+- [x] Certificações vigentes no período
+- [x] `GetReportUseCase` monta as seções
+- [x] Testes do plan e Swagger

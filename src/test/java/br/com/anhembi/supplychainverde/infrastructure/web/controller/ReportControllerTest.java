@@ -45,6 +45,6 @@ class ReportControllerTest {
     }
 
     private ReportDetailDTO reportOf(Long supplierId) {
-        return new ReportDetailDTO(1L, supplierId, null, null, null, null, null, 0, null, null);
+        return new ReportDetailDTO(1L, supplierId, null, null, null, null, null, 0, null, null, null, null, null);
     }
 }
