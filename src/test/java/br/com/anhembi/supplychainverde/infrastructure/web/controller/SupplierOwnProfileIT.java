@@ -72,15 +72,15 @@ class SupplierOwnProfileIT {
 
     private Long linkedSupplierId() {
         return jdbcTemplate.queryForObject(
-                "SELECT supplier_id FROM supplier WHERE user_id IS NOT NULL ORDER BY supplier_id LIMIT 1", Long.class);
+                "SELECT id FROM supplier WHERE user_id IS NOT NULL ORDER BY id LIMIT 1", Long.class);
     }
 
     private Long linkedUserId(Long supplierId) {
-        return jdbcTemplate.queryForObject("SELECT user_id FROM supplier WHERE supplier_id = ?", Long.class, supplierId);
+        return jdbcTemplate.queryForObject("SELECT user_id FROM supplier WHERE id = ?", Long.class, supplierId);
     }
 
     private String supplierName(Long supplierId) {
-        return jdbcTemplate.queryForObject("SELECT name FROM supplier WHERE supplier_id = ?", String.class, supplierId);
+        return jdbcTemplate.queryForObject("SELECT name FROM supplier WHERE id = ?", String.class, supplierId);
     }
 
     private UsernamePasswordAuthenticationToken principal(String role, Long userId, Long supplierId) {

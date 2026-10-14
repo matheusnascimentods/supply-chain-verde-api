@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class ChainJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "chain_id")
+    @Column(name = "id")
     private Long chainId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

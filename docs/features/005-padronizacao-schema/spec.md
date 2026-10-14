@@ -17,7 +17,7 @@ Padronizar o schema sem alterar o contrato de nenhuma rota: mesmas rotas, parâm
 | ID | Regra |
 |---|---|
 | RN-01 | A PK de toda tabela se chama `id`. As FKs continuam `<tabela>_id` (`batch.supplier_id → supplier.id`). |
-| RN-02 | Toda tabela tem `created_at` e `updated_at` `TIMESTAMPTZ NOT NULL DEFAULT now()`. `registered_at`, `generated_at`, `performed_at` e `calculated_at` viram `created_at`. |
+| RN-02 | Toda tabela tem `created_at` e `updated_at` `TIMESTAMPTZ NOT NULL DEFAULT now()`. `registered_at`, `generated_at`, `performed_at` e `calculated_at` viram `created_at`. Nas tabelas que não tinham a coluna, as linhas antigas recebem a data de negócio quando ela existe (`issued_at`, `produced_at`, `started_at`). Sem ela, recebem o instante da migration. |
 | RN-03 | `updated_at` é mantido por trigger no Postgres e só muda quando algum valor da linha muda. Na inserção, é igual ao `created_at`. |
 | RN-04 | `audit_log` é append-only: tem `created_at` e não tem `updated_at`. |
 | RN-05 | O fuso de negócio é `America/Sao_Paulo`: datas da API, dia da emissão e mês das views. |

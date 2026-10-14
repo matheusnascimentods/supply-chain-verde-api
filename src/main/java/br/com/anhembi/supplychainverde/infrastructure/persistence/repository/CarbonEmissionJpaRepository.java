@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.Collection;
 
 public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissionJpaEntity, Long> {
-    @Query("select sum(emission.co2Kg) from CarbonEmissionJpaEntity emission where emission.calculatedAt between :startsAt and :endsAt")
+    @Query(value = "SELECT SUM(co2_kg) FROM vw_stage_emission WHERE calculated_at BETWEEN :startsAt AND :endsAt", nativeQuery = true)
     BigDecimal sumCo2KgByCalculatedAtBetween(@Param("startsAt") LocalDate startsAt, @Param("endsAt") LocalDate endsAt);
 
     @EntityGraph(attributePaths = {

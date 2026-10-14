@@ -3,10 +3,11 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 import br.com.anhembi.supplychainverde.domain.enums.CalculationMethod;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "carbon_emission")
@@ -18,7 +19,7 @@ import java.time.LocalDate;
 public class CarbonEmissionJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "emission_id")
+    @Column(name = "id")
     private Long emissionId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
@@ -36,6 +37,7 @@ public class CarbonEmissionJpaEntity {
     @Column(name = "calculation_method", nullable = false)
     private CalculationMethod calculationMethod;
 
-    @Column(name = "calculated_at", nullable = false)
-    private LocalDate calculatedAt;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime calculatedAt;
 }

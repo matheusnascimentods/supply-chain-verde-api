@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 public class TransportJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "transport_id")
+    @Column(name = "id")
     private Long transportId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)

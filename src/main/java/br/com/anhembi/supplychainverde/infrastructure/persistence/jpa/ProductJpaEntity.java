@@ -17,7 +17,7 @@ import org.hibernate.type.SqlTypes;
 public class ProductJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "product_id")
+    @Column(name = "id")
     private Long productId;
 
     @Column(name = "name", nullable = false)

@@ -62,7 +62,7 @@ class SupplierUserLinkIT {
         entityManager.flush(); // sem commit no teste, o UPDATE do vínculo ainda está pendente no Hibernate
 
         String role = jdbcTemplate.queryForObject("""
-                SELECT u.role::TEXT FROM supplier s JOIN users u ON u.user_id = s.user_id WHERE s.cnpj = ?
+                SELECT u.role::TEXT FROM supplier s JOIN users u ON u.id = s.user_id WHERE s.cnpj = ?
                 """, String.class, CNPJ);
         assertThat(role).isEqualTo("SUPPLIER");
     }

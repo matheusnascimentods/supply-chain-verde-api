@@ -30,8 +30,8 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
             cross join lateral (
                 select c.stage_type
                 from chain c
-                where c.batch_id = b.batch_id
-                order by c.started_at desc, c.chain_id desc
+                where c.batch_id = b.id
+                order by c.started_at desc, c.id desc
                 limit 1
             ) latest
             where latest.stage_type <> 'RETAIL'
@@ -39,23 +39,23 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
     long countActiveBatches();
 
     @Query(value = """
-            select b.batch_id as "batchId",
+            select b.id as "batchId",
                    p.name as "productName",
                    s.name as "supplierName",
                    b.quantity as "quantity",
                    cast(p.unit as text) as "unit",
                    cast(latest.stage_type as text) as "status"
             from batch b
-            join product p on p.product_id = b.product_id
-            join supplier s on s.supplier_id = b.supplier_id
+            join product p on p.id = b.product_id
+            join supplier s on s.id = b.supplier_id
             cross join lateral (
                 select c.stage_type
                 from chain c
-                where c.batch_id = b.batch_id
-                order by c.started_at desc, c.chain_id desc
+                where c.batch_id = b.id
+                order by c.started_at desc, c.id desc
                 limit 1
             ) latest
-            order by b.produced_at desc, b.batch_id desc
+            order by b.produced_at desc, b.id desc
             """, nativeQuery = true)
     List<DashboardBatchProjection> findRecentWithLatestStage(Pageable pageable);
 }

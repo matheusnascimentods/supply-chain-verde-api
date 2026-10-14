@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public class BatchJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "batch_id")
+    @Column(name = "id")
     private Long batchId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

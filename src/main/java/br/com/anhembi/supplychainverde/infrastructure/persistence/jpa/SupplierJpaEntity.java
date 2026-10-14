@@ -2,9 +2,10 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "supplier")
@@ -16,7 +17,7 @@ import java.time.LocalDate;
 public class SupplierJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "supplier_id")
+    @Column(name = "id")
     private Long supplierId;
 
     @Column(name = "name", nullable = false)
@@ -33,8 +34,9 @@ public class SupplierJpaEntity {
     @Column(name = "phone")
     private String phone;
 
-    @Column(name = "registered_at", nullable = false, insertable = false, updatable = false)
-    private LocalDate registeredAt;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime registeredAt;
 
     @Column(name = "user_id", unique = true)
     private Long userId;

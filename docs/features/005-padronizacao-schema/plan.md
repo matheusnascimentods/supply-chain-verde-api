@@ -27,7 +27,7 @@ CREATE INDEX idx_product_fts ON product
 
 Os índices `idx_supplier_name_search`, `idx_supplier_cnpj_digits_trgm` (o antigo) e `idx_product_search_vector` caem junto com as colunas.
 
-O `excluded_columns` do `capture_audit_log` (`V30`) continua listando `search_vector` e `name_search`. Fica assim, porque é inofensivo e reescrever a função só para tirar duas strings não compensa.
+O `excluded_columns` do `capture_audit_log` (`V30`) ainda lista `search_vector` e `name_search` nesta migration. Os dois nomes saem na `V35`, que já precisa redefinir a função.
 
 O planner só usa o índice se a query repetir a expressão do índice **literalmente**, inclusive o `::regconfig`.
 
@@ -51,10 +51,17 @@ Ordem dentro da migration (uma transação só):
        USING created_at::timestamp AT TIME ZONE 'America/Sao_Paulo',
        ALTER COLUMN created_at SET DEFAULT now();   -- users, supplier, report, audit_log, carbon_emission
 
-   -- não existiam: linhas antigas ficam com o instante da migration
+   -- não existiam
    ALTER TABLE <t> ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT now();
        -- address, certification, product, batch, chain, transport
+
+   -- onde há data de negócio, ela aproxima a criação
+   UPDATE certification SET created_at = issued_at::timestamp AT TIME ZONE 'America/Sao_Paulo';
+   UPDATE batch         SET created_at = produced_at::timestamp AT TIME ZONE 'America/Sao_Paulo';
+   UPDATE chain         SET created_at = started_at AT TIME ZONE 'America/Sao_Paulo';
    ```
+
+   `address`, `product` e `transport` ficam com o instante da migration nas linhas antigas.
 
    As colunas que eram `DATE` (`registered_at` e `calculated_at`) viram meia-noite em São Paulo. Assim, o dia exibido pela API continua o mesmo.
 5. **`updated_at`** em todas as tabelas, menos `audit_log`: `ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now()` seguido de `UPDATE <t> SET updated_at = created_at`. O `UPDATE` não gera auditoria, porque os triggers estão derrubados (passo 2).
@@ -75,7 +82,7 @@ Ordem dentro da migration (uma transação só):
    ```
 
    Um `UPDATE` que não muda nada também não muda `updated_at`. O `capture_audit_log` já ignora esse caso (`has_changes`), então ele continua sem gerar linha de auditoria.
-7. **Recria os triggers `audit_*`** iguais aos da `V29`, trocando o 1º argumento por `'id'`. Exemplo: `capture_audit_log('id', 'status')` em `certification`. A função não muda.
+7. **Redefine `capture_audit_log`** igual à da `V30`, com duas diferenças: o `INSERT` grava em `created_at` (antes, `performed_at`, que passa a não existir), e `search_vector`/`name_search` saem do `excluded_columns`. Depois, **recria os triggers `audit_*`** iguais aos da `V29`, trocando o 1º argumento por `'id'`. Exemplo: `capture_audit_log('id', 'status')` em `certification`.
 8. **Reescreve o histórico de auditoria (RN-07)**. Só a chave da PK da própria tabela muda, então as FKs dentro do snapshot (`supplier_id` num `batch`) ficam como estão:
 
    ```sql
@@ -143,7 +150,7 @@ default LocalDate map(LocalDateTime value) {
 }
 ```
 
-No `toJpaEntity`, entra `@Mapping(target = "registeredAt" / "calculatedAt", ignore = true)`, porque quem preenche é o `@CreationTimestamp`. O `.calculatedAt(LocalDate.now())` de `CalculateCarbonEmissionUseCase` passa a ser ignorado e pode sair.
+No sentido inverso, `default LocalDateTime map(LocalDate value)` devolve `value.atStartOfDay()`. Isso só preenche o objeto: no update o banco ignora a coluna (`updatable = false`), e no insert o `@CreationTimestamp` sobrescreve o valor. Ignorar o campo no `toJpaEntity` não funcionaria, porque o `merge` de um update devolveria `registeredAt` nulo na resposta. O `.calculatedAt(LocalDate.now())` de `CalculateCarbonEmissionUseCase` sai.
 
 ### 2.4 Queries
 
@@ -160,7 +167,8 @@ No `toJpaEntity`, entra `@Mapping(target = "registeredAt" / "calculatedAt", igno
 | Arquivo | Mudança |
 |---|---|
 | `src/test/resources/seed/report-seed.sql`, `ReportDetailIT`, `DashboardEmissionsIT`, `SupplierRecommendationIT`, `SupplierUserLinkIT`, `SupplierOwnProfileIT`, `AuditLogTriggerIT` | SQL de preparação com os nomes novos (`id`, `created_at`). As asserções de resposta não mudam (RNF-02). |
-| `AuditLogTriggerIT` | Novos casos: `UPDATE` real muda `updated_at`. `UPDATE` sem mudança não muda `updated_at` e não gera linha de auditoria. O snapshot de inserção usa a chave `id`. |
-| Um IT de migration | Um registro de auditoria com `supplier_id` gravado antes da `V35` sai com `id` depois dela (`Flyway.configure().target("34")`, insere, migra para `35`). |
+| `AuditLogTriggerIT` | Novos casos: `UPDATE` real muda `updated_at`, e `UPDATE` sem mudança não muda. O caso existente já cobre o no-op sem linha de auditoria. O snapshot de inserção usa a chave `id`. |
+
+A reescrita do histórico (passo 8) foi verificada à mão, porque os seeds rodam antes dos triggers da `V29` e o banco de teste não tem histórico para reescrever. O roteiro: `V1`–`V34` num Postgres descartável, `INSERT`/`UPDATE`/`DELETE` auditados, `V35` e conferência dos snapshots.
 
 Verificação de contrato (RNF-01): salvar o `/v3/api-docs` na `main` e na branch e comparar com `diff`. O resultado tem que ser vazio.
