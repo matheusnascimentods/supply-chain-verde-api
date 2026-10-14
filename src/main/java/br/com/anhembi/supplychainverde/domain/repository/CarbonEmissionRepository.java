@@ -2,6 +2,8 @@ package br.com.anhembi.supplychainverde.domain.repository;
 
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 
+import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.Collection;
@@ -22,4 +24,8 @@ public interface CarbonEmissionRepository {
     List<CarbonEmission> findBySupplierId(Long supplierId);
 
     void deleteById(Long emissionId);
+
+    List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long supplierId);
+
+    record MonthlyEmission(YearMonth month, BigDecimal co2Kg) {}
 }

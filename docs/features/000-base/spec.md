@@ -93,7 +93,7 @@ Base path: `/api/v1`. Todas as respostas usam JSON.
 | Emissions | Calcular emissão e consultar pegada do lote | Cálculo protegido; consulta pública |
 | Reports | `GET /reports?limit=20&offset=0&supplierId={id}` paginada com `{ items, limit, offset, hasNext, totalPages }`; `GET /reports?reportId={id}` retorna detalhe; `POST /suppliers/{supplierId}/reports` | Listagem global: `admin`, `manager`, `auditor`; `supplier` consulta somente os próprios |
 | Audit logs | Triggers do PostgreSQL escrevem os eventos; a API expõe somente `GET /audit-logs?from={date}&to={date}&action={action}&userEmail={fragment}&limit=20&offset=0`, com `{ items, limit, offset, hasNext, totalPages }`; cada item inclui entidade e snapshots JSON; período inclusivo obrigatório, ação e email opcionais, ordenação por timestamp/ID decrescentes | `admin`, `auditor` |
-| Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes | Qualquer usuário autenticado |
+| Dashboard | `GET /dashboard/summary?limit=10` — resumo global e lotes recentes; `GET /dashboard/emissions?from=YYYY-MM&to=YYYY-MM` — CO₂ mês a mês (padrão: últimos 12 meses; máximo 24), com meses vazios em zero | Qualquer usuário autenticado; em `/emissions`, `supplier` recebe só as emissões do próprio fornecedor |
 
 Os contratos detalhados de request/response estão em [`reference.md`](reference.md), neste documento e nos DTOs/OpenAPI da API.
 

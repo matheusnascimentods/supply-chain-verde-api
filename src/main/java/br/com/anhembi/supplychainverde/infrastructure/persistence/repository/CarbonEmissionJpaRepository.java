@@ -49,4 +49,17 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
             "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
     })
     List<CarbonEmissionJpaEntity> findAll();
+
+    @Query(value = """
+        SELECT to_char(month, 'YYYY-MM') AS "month", SUM(co2_kg) AS "co2Kg"
+        FROM vw_monthly_emission
+        WHERE month BETWEEN :from AND :to
+          AND (CAST(:supplierId AS BIGINT) IS NULL OR supplier_id = :supplierId)
+        GROUP BY month
+        ORDER BY month
+        """, nativeQuery = true)
+    List<MonthlyEmissionProjection> sumMonthly(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("supplierId") Long supplierId);
 }
