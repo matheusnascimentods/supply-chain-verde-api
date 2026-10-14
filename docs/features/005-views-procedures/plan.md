@@ -6,8 +6,9 @@
 
 | Migration | Conteúdo |
 |---|---|
-| `V31__create_emission_views.sql` | `vw_stage_emission`, `vw_supplier_product_emission`, `vw_monthly_emission` |
-| `V33__create_report_and_certification_procedures.sql` | `sp_generate_sustainability_report`, `sp_expire_certifications` |
+| `V31__create_emission_views.sql` | `vw_stage_emission`, `vw_supplier_product_emission` |
+| `V33__create_monthly_emission_view.sql` | `vw_monthly_emission` (criada no [gráfico de emissões](../003-grafico-emissoes/plan.md)) |
+| `V34__create_report_and_certification_procedures.sql` | `sp_generate_sustainability_report`, `sp_expire_certifications` |
 
 (A `V32` fica com o [vínculo usuário-fornecedor](../002-vinculo-usuario-fornecedor/plan.md).)
 
