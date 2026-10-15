@@ -46,8 +46,8 @@ class DashboardEmissionsIT {
     void sumsOnlyLinkedSupplierEmissionsForSupplier() throws Exception {
         Long supplierId = jdbcTemplate.queryForObject("""
                 SELECT b.supplier_id FROM carbon_emission ce
-                JOIN chain c ON c.chain_id = ce.chain_id JOIN batch b ON b.batch_id = c.batch_id
-                ORDER BY ce.calculated_at DESC LIMIT 1
+                JOIN chain c ON c.id = ce.chain_id JOIN batch b ON b.id = c.batch_id
+                ORDER BY ce.created_at DESC LIMIT 1
                 """, Long.class);
         String month = latestEmissionMonth(supplierId);
 
@@ -66,8 +66,8 @@ class DashboardEmissionsIT {
 
     private String latestEmissionMonth(Long supplierId) {
         return jdbcTemplate.queryForObject("""
-                SELECT to_char(MAX(ce.calculated_at), 'YYYY-MM') FROM carbon_emission ce
-                JOIN chain c ON c.chain_id = ce.chain_id JOIN batch b ON b.batch_id = c.batch_id
+                SELECT to_char(MAX(ce.created_at), 'YYYY-MM') FROM carbon_emission ce
+                JOIN chain c ON c.id = ce.chain_id JOIN batch b ON b.id = c.batch_id
                 WHERE CAST(? AS BIGINT) IS NULL OR b.supplier_id = ?
                 """, String.class, supplierId, supplierId);
     }
@@ -75,8 +75,8 @@ class DashboardEmissionsIT {
     private BigDecimal expectedCo2(String month, Long supplierId) {
         return jdbcTemplate.queryForObject("""
                 SELECT SUM(ce.co2_kg) FROM carbon_emission ce
-                JOIN chain c ON c.chain_id = ce.chain_id JOIN batch b ON b.batch_id = c.batch_id
-                WHERE to_char(ce.calculated_at, 'YYYY-MM') = ? AND (CAST(? AS BIGINT) IS NULL OR b.supplier_id = ?)
+                JOIN chain c ON c.id = ce.chain_id JOIN batch b ON b.id = c.batch_id
+                WHERE to_char(ce.created_at, 'YYYY-MM') = ? AND (CAST(? AS BIGINT) IS NULL OR b.supplier_id = ?)
                 """, BigDecimal.class, month, supplierId, supplierId);
     }
 

@@ -18,7 +18,7 @@ import java.util.Map;
 public class AuditLogJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "log_id")
+    @Column(name = "id")
     private Long logId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -44,6 +44,6 @@ public class AuditLogJpaEntity {
     @Column(name = "after_data", columnDefinition = "jsonb")
     private Map<String, Object> afterData;
 
-    @Column(name = "performed_at", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime performedAt;
 }

@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** concluído. As seções leem a `vw_stage_emission` da `V31`; o `totalCo2Kg` do cabeçalho só fica preenchido com a procedure da [`views-procedures`](../005-views-procedures/tasks.md) (Task 2).
+**Status:** concluído. As seções leem a `vw_stage_emission` da `V31`; o `totalCo2Kg` do cabeçalho só fica preenchido com a procedure da [`views-procedures`](../006-views-procedures/tasks.md) (Task 2).
 
 ---
 

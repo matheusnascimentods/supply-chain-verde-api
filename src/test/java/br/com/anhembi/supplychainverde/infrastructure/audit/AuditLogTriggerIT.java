@@ -51,7 +51,7 @@ class AuditLogTriggerIT {
     @Test
     void capturesInsertChangedFieldsAndDeleteWithTransactionActor() throws Exception {
         Long actorId = jdbcTemplate.queryForObject(
-                "SELECT user_id FROM users WHERE email = ?",
+                "SELECT id FROM users WHERE email = ?",
                 Long.class,
                 "m.neuer@bayern.com"
         );
@@ -65,17 +65,17 @@ class AuditLogTriggerIT {
         Long addressId = jdbcTemplate.queryForObject("""
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
                 VALUES ('Rua Um', '10', 'Centro', '01000-000', 'Santos', 'SP')
-                RETURNING address_id
+                RETURNING id
                 """, Long.class);
-        jdbcTemplate.update("UPDATE address SET city = city WHERE address_id = ?", addressId);
-        jdbcTemplate.update("UPDATE address SET city = ? WHERE address_id = ?", "Campinas", addressId);
-        jdbcTemplate.update("DELETE FROM address WHERE address_id = ?", addressId);
+        jdbcTemplate.update("UPDATE address SET city = city WHERE id = ?", addressId);
+        jdbcTemplate.update("UPDATE address SET city = ? WHERE id = ?", "Campinas", addressId);
+        jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
 
         List<AuditEvent> events = jdbcTemplate.query("""
                 SELECT action::TEXT, user_id, affected_entity_id, before_data::TEXT, after_data::TEXT
                 FROM audit_log
                 WHERE affected_table = 'address' AND affected_entity_id = ?
-                ORDER BY log_id
+                ORDER BY id
                 """, (result, rowNumber) -> new AuditEvent(
                 result.getString("action"),
                 result.getObject("user_id", Long.class),
@@ -93,6 +93,7 @@ class AuditLogTriggerIT {
 
         JsonNode inserted = objectMapper.readTree(events.getFirst().afterData());
         assertThat(inserted.path("city").asText()).isEqualTo("Santos");
+        assertThat(inserted.path("id").asLong()).isEqualTo(addressId);
         assertThat(inserted.has("password")).isFalse();
 
         JsonNode beforeUpdate = objectMapper.readTree(events.get(1).beforeData());
@@ -106,19 +107,19 @@ class AuditLogTriggerIT {
         assertThat(deleted.path("city").asText()).isEqualTo("Campinas");
         assertThat(events.get(2).afterData()).isNull();
 
-        Long supplierId = jdbcTemplate.queryForObject("SELECT supplier_id FROM supplier ORDER BY supplier_id LIMIT 1", Long.class);
+        Long supplierId = jdbcTemplate.queryForObject("SELECT id FROM supplier ORDER BY id LIMIT 1", Long.class);
         Long certificationId = jdbcTemplate.queryForObject("""
                 INSERT INTO certification (supplier_id, certification, issuing_body, issued_at, expires_at, status)
                 VALUES (?, 'Teste de auditoria', 'Laboratório', CURRENT_DATE, CURRENT_DATE + 30, 'ACTIVE')
-                RETURNING certification_id
+                RETURNING id
                 """, Long.class, supplierId);
-        jdbcTemplate.update("UPDATE certification SET status = 'SUSPENDED' WHERE certification_id = ?", certificationId);
+        jdbcTemplate.update("UPDATE certification SET status = 'SUSPENDED' WHERE id = ?", certificationId);
 
         List<AuditEvent> certificationEvents = jdbcTemplate.query("""
                 SELECT action::TEXT, user_id, affected_entity_id, before_data::TEXT, after_data::TEXT
                 FROM audit_log
                 WHERE affected_table = 'certification' AND affected_entity_id = ?
-                ORDER BY log_id
+                ORDER BY id
                 """, (result, rowNumber) -> new AuditEvent(
                 result.getString("action"),
                 result.getObject("user_id", Long.class),
@@ -147,6 +148,24 @@ class AuditLogTriggerIT {
                 .andExpect(jsonPath("$.items[0].userId").value(actorId))
                 .andExpect(jsonPath("$.items[0].beforeData.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.items[0].afterData.status").value("SUSPENDED"));
+    }
+
+    @Test
+    void touchesUpdatedAtOnlyWhenTheRowChanges() {
+        Long addressId = jdbcTemplate.queryForObject("""
+                INSERT INTO address (street, number, neighborhood, zip_code, city, state, created_at, updated_at)
+                VALUES ('Rua Dois', '20', 'Centro', '01000-000', 'Santos', 'SP', '2020-01-01', '2020-01-01')
+                RETURNING id
+                """, Long.class);
+        String updatedAt = "SELECT updated_at::TEXT FROM address WHERE id = ?";
+        String original = jdbcTemplate.queryForObject(updatedAt, String.class, addressId);
+
+        jdbcTemplate.update("UPDATE address SET city = city WHERE id = ?", addressId);
+        assertThat(jdbcTemplate.queryForObject(updatedAt, String.class, addressId)).isEqualTo(original);
+
+        jdbcTemplate.update("UPDATE address SET city = 'Campinas' WHERE id = ?", addressId);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT updated_at = now() FROM address WHERE id = ?", Boolean.class, addressId)).isTrue();
     }
 
     private record AuditEvent(

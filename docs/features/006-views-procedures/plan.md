@@ -8,31 +8,31 @@
 |---|---|
 | `V31__create_emission_views.sql` | `vw_stage_emission`, `vw_supplier_product_emission` |
 | `V33__create_monthly_emission_view.sql` | `vw_monthly_emission` (criada no [gráfico de emissões](../003-grafico-emissoes/plan.md)) |
-| `V34__create_report_and_certification_procedures.sql` | `sp_generate_sustainability_report`, `sp_expire_certifications` |
+| `V36__create_report_and_certification_procedures.sql` | `sp_generate_sustainability_report`, `sp_expire_certifications` |
 
-(A `V32` fica com o [vínculo usuário-fornecedor](../002-vinculo-usuario-fornecedor/plan.md).)
+(A `V32` fica com o [vínculo usuário-fornecedor](../002-vinculo-usuario-fornecedor/plan.md); a `V34` e a `V35` com a [padronização do schema](../005-padronizacao-schema/plan.md), que recria `vw_stage_emission` com os nomes novos e mantém as colunas de saída abaixo.)
 
 ## 2. Views
 
 ```sql
 CREATE OR REPLACE VIEW vw_stage_emission AS
-SELECT b.batch_id,
+SELECT b.id          AS batch_id,
        b.supplier_id,
-       p.product_id,
+       p.id          AS product_id,
        p.name        AS product_name,
        p.category,
        p.unit,
        b.quantity,
-       c.chain_id,
+       c.id          AS chain_id,
        c.stage_type,
        ce.co2_kg,
        ce.emission_factor,
        ce.calculation_method,
-       ce.calculated_at
+       CAST(ce.created_at AT TIME ZONE 'America/Sao_Paulo' AS DATE) AS calculated_at
 FROM batch b
-JOIN product p          ON p.product_id = b.product_id
-JOIN chain c            ON c.batch_id = b.batch_id
-JOIN carbon_emission ce ON ce.chain_id = c.chain_id;
+JOIN product p          ON p.id = b.product_id
+JOIN chain c            ON c.batch_id = b.id
+JOIN carbon_emission ce ON ce.chain_id = c.id;
 
 -- Agrega primeiro por lote para não somar a quantidade uma vez por etapa.
 CREATE OR REPLACE VIEW vw_supplier_product_emission AS
@@ -79,7 +79,7 @@ BEGIN
     FROM vw_stage_emission
     WHERE supplier_id = p_supplier_id
       AND calculated_at BETWEEN p_start AND p_end
-    RETURNING report_id INTO p_report_id;
+    RETURNING id INTO p_report_id;
 END;
 $$;
 
@@ -121,7 +121,7 @@ As validações de entrada (fornecedor existe, `p_end >= p_start`) continuam no 
 -- Top 5 fornecedores com menor CO₂ por kg de produtos agrícolas
 SELECT s.name, v.co2_kg_per_unit
 FROM vw_supplier_product_emission v
-JOIN supplier s ON s.supplier_id = v.supplier_id
+JOIN supplier s ON s.id = v.supplier_id
 WHERE v.category = 'AGRICULTURE' AND v.unit = 'KG'
 ORDER BY v.co2_kg_per_unit
 LIMIT 5;

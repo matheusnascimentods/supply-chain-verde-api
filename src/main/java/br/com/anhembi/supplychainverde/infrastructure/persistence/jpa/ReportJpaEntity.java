@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class ReportJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "report_id")
+    @Column(name = "id")
     private Long reportId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -35,6 +35,6 @@ public class ReportJpaEntity {
     @Column(name = "tracked_product_count", nullable = false)
     private Integer trackedProductCount;
 
-    @Column(name = "generated_at", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime generatedAt;
 }

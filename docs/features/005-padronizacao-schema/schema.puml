@@ -1,0 +1,169 @@
+@startuml schema
+!theme plain
+hide circle
+skinparam linetype ortho
+
+title supply-chain-verde — schema padronizado (005)\nPK = id · FKs mantêm <tabela>_id · created_at/updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+entity users {
+  * id : BIGSERIAL <<PK>>
+  --
+  * name : VARCHAR(180)
+  * email : VARCHAR(180) <<UQ>>
+  * password : VARCHAR(255)
+  * role : user_role
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity address {
+  * id : BIGSERIAL <<PK>>
+  --
+  * street : VARCHAR(255)
+  * number : VARCHAR(30)
+  * neighborhood : VARCHAR(120)
+    complement : VARCHAR(120)
+  * zip_code : VARCHAR(20)
+  * city : VARCHAR(120)
+  * state : VARCHAR(2)
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity supplier {
+  * id : BIGSERIAL <<PK>>
+  --
+  * name : VARCHAR(180)
+  * cnpj : CHAR(14) <<UQ>>
+  * address_id : BIGINT <<FK>>
+    user_id : BIGINT <<FK, UQ>>
+    phone : VARCHAR(30)
+  * created_at : TIMESTAMPTZ  // era registered_at
+  * updated_at : TIMESTAMPTZ
+}
+
+entity certification {
+  * id : BIGSERIAL <<PK>>
+  --
+  * supplier_id : BIGINT <<FK>>
+  * certification : VARCHAR(180)
+  * issuing_body : VARCHAR(180)
+  * issued_at : DATE
+  * expires_at : DATE
+  * status : certification_status
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity product {
+  * id : BIGSERIAL <<PK>>
+  --
+  * name : VARCHAR(180)
+  * category : product_category
+  * unit : product_unit
+    description : TEXT
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity batch {
+  * id : BIGSERIAL <<PK>>
+  --
+  * product_id : BIGINT <<FK>>
+  * supplier_id : BIGINT <<FK>>
+  * quantity : NUMERIC(19,4)
+  * produced_at : DATE
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity chain {
+  * id : BIGSERIAL <<PK>>
+  --
+  * batch_id : BIGINT <<FK>>
+    origin_address_id : BIGINT <<FK>>
+    destination_address_id : BIGINT <<FK>>
+  * responsible_user_id : BIGINT <<FK>>
+  * stage_type : stage_type
+  * started_at : TIMESTAMP
+    ended_at : TIMESTAMP
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity transport {
+  * id : BIGSERIAL <<PK>>
+  --
+  * chain_id : BIGINT <<FK, UQ>>
+  * transport_mode : transport_mode
+  * distance : NUMERIC(19,4)
+  * fuel_type : fuel_type
+  * capacity : NUMERIC(19,4)
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
+entity carbon_emission {
+  * id : BIGSERIAL <<PK>>
+  --
+  * chain_id : BIGINT <<FK, UQ>>
+  * emission_factor : NUMERIC(19,8)
+  * co2_kg : NUMERIC(19,4)
+  * calculation_method : calculation_method
+  * created_at : TIMESTAMPTZ  // substitui calculated_at
+  * updated_at : TIMESTAMPTZ
+}
+
+entity report {
+  * id : BIGSERIAL <<PK>>
+  --
+  * supplier_id : BIGINT <<FK>>
+  * period_start_at : DATE
+  * period_end_at : DATE
+  * total_co2_kg : NUMERIC(19,4)
+  * tracked_product_count : INTEGER
+  * created_at : TIMESTAMPTZ  // era generated_at
+  * updated_at : TIMESTAMPTZ
+}
+
+entity audit_log {
+  * id : BIGSERIAL <<PK>>
+  --
+    user_id : BIGINT <<FK>> (ON DELETE SET NULL)
+  * action : audit_action
+  * affected_table : VARCHAR(120)
+  * affected_entity_id : BIGINT
+    before_data : JSONB
+    after_data : JSONB
+  * created_at : TIMESTAMPTZ  // era performed_at
+  .. append-only: sem updated_at ..
+}
+
+address ||--o{ supplier : address_id
+users |o--o| supplier : user_id
+supplier ||--o{ certification : supplier_id
+supplier ||--o{ batch : supplier_id
+product ||--o{ batch : product_id
+batch ||--o{ chain : batch_id
+address |o--o{ chain : origin_address_id
+address |o--o{ chain : destination_address_id
+users ||--o{ chain : responsible_user_id
+chain ||--o| transport : chain_id
+chain ||--o| carbon_emission : chain_id
+supplier ||--o{ report : supplier_id
+users |o--o{ audit_log : user_id
+
+note as rules
+  <b>Regras</b>
+  • set_updated_at(): trigger BEFORE UPDATE em toda tabela exceto audit_log
+  • capture_audit_log(...) passa a receber 'id' como coluna de PK;
+    updated_at continua nos snapshots before/after
+  • vw_monthly_emission / relatórios: mês por
+    date_trunc('month', ce.created_at AT TIME ZONE 'America/Sao_Paulo')
+  • vw_stage_emission mantém as colunas de saída (batch_id, product_id,
+    chain_id, calculated_at = dia de ce.created_at em São Paulo)
+  • busca: índices GIN de expressão (to_tsvector, trigram do CNPJ),
+    sem colunas tsvector
+end note
+
+@enduml

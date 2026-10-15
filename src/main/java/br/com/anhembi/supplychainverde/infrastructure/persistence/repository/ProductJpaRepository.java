@@ -12,19 +12,19 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
     long countAllProducts();
 
     @Query(value = """
-            SELECT product_id, name, category, unit, description
+            SELECT id, name, category, unit, description
             FROM product
-            ORDER BY product_id ASC
+            ORDER BY id ASC
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<ProductJpaEntity> findPage(@Param("limit") int limit, @Param("offset") int offset);
 
     @Query(value = """
-            SELECT p.product_id, p.name, p.category, p.unit, p.description
+            SELECT p.id, p.name, p.category, p.unit, p.description
             FROM product p
-            WHERE p.search_vector @@ websearch_to_tsquery('portuguese', :search)
+            WHERE to_tsvector('portuguese'::regconfig, coalesce(p.name, '') || ' ' || coalesce(p.description, '')) @@ websearch_to_tsquery('portuguese', :search)
                OR (:categoryCode <> '' AND lower(p.category::text) = lower(:categoryCode))
-            ORDER BY p.product_id ASC
+            ORDER BY p.id ASC
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<ProductJpaEntity> findBySearch(
@@ -37,7 +37,7 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
     @Query(value = """
             SELECT COUNT(*)
             FROM product p
-            WHERE p.search_vector @@ websearch_to_tsquery('portuguese', :search)
+            WHERE to_tsvector('portuguese'::regconfig, coalesce(p.name, '') || ' ' || coalesce(p.description, '')) @@ websearch_to_tsquery('portuguese', :search)
                OR (:categoryCode <> '' AND lower(p.category::text) = lower(:categoryCode))
             """, nativeQuery = true)
     long countBySearch(

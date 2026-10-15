@@ -17,7 +17,7 @@ import java.time.LocalDate;
 public class CertificationJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "certification_id")
+    @Column(name = "id")
     private Long certificationId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

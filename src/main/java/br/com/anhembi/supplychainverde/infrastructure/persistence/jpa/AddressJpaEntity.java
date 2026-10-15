@@ -13,7 +13,7 @@ import lombok.*;
 public class AddressJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "address_id")
+    @Column(name = "id")
     private Long addressId;
 
     @Column(name = "street", nullable = false)

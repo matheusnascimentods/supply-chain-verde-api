@@ -41,9 +41,9 @@ class SupplierRecommendationIT {
         addressId = jdbcTemplate.queryForObject("""
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
                 VALUES ('Rua Teste', '1', 'Centro', '01000000', 'São Paulo', 'SP')
-                RETURNING address_id
+                RETURNING id
                 """, Long.class);
-        userId = jdbcTemplate.queryForObject("SELECT MIN(user_id) FROM users", Long.class);
+        userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
     }
 
     @Test
@@ -128,22 +128,22 @@ class SupplierRecommendationIT {
 
     private long product(String category, String unit) {
         return jdbcTemplate.queryForObject(
-                "INSERT INTO product (name, category, unit) VALUES ('Produto teste', ?::product_category, ?::product_unit) RETURNING product_id",
+                "INSERT INTO product (name, category, unit) VALUES ('Produto teste', ?::product_category, ?::product_unit) RETURNING id",
                 Long.class, category, unit);
     }
 
     private long supplier(String name, String cnpj) {
         return jdbcTemplate.queryForObject(
-                "INSERT INTO supplier (name, cnpj, address_id) VALUES (?, ?, ?) RETURNING supplier_id",
+                "INSERT INTO supplier (name, cnpj, address_id) VALUES (?, ?, ?) RETURNING id",
                 Long.class, SEARCH + " " + name, cnpj, addressId);
     }
 
     private void batch(long supplierId, long productId, String quantity, String co2Kg) {
         long batchId = jdbcTemplate.queryForObject(
-                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, ?::numeric, CURRENT_DATE) RETURNING batch_id",
+                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, ?::numeric, CURRENT_DATE) RETURNING id",
                 Long.class, productId, supplierId, quantity);
         long chainId = jdbcTemplate.queryForObject(
-                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW()) RETURNING chain_id",
+                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW()) RETURNING id",
                 Long.class, batchId, userId);
         jdbcTemplate.update(
                 "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?::numeric, 'IPCC')",

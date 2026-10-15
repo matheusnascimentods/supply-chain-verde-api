@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +38,6 @@ public class CalculateCarbonEmissionUseCase {
                 .emissionFactor(new EmissionFactor(emissionFactorValue))
                 .co2Kg(co2Kg)
                 .calculationMethod(request.calculationMethod())
-                .calculatedAt(LocalDate.now())
                 .build();
         CarbonEmission saved = carbonEmissionRepository.save(emission);
         return new CarbonEmissionResponseDTO(saved.getEmissionId(), chainId, saved.getEmissionFactor().value(), saved.getCo2Kg(), saved.getCalculationMethod(), saved.getCalculatedAt());

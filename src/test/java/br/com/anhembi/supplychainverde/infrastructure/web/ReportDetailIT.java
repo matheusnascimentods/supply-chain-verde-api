@@ -94,7 +94,7 @@ class ReportDetailIT {
     private Long insertReport(Long supplierId, LocalDate start, LocalDate end) {
         return jdbcTemplate.queryForObject("""
                 INSERT INTO report (supplier_id, period_start_at, period_end_at, total_co2_kg, tracked_product_count)
-                VALUES (?, ?, ?, 0, 0) RETURNING report_id
+                VALUES (?, ?, ?, 0, 0) RETURNING id
                 """, Long.class, supplierId, start, end);
     }
 

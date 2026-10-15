@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** concluído. A `vw_monthly_emission` foi criada nesta feature (`V33__create_monthly_emission_view.sql`), porque a `V31` só tinha as outras duas views. Depende de [`vinculo-usuario-fornecedor`](../002-vinculo-usuario-fornecedor/tasks.md) (Task 2, `supplierId` no token) e [`views-procedures`](../005-views-procedures/tasks.md) (Task 1).
+**Status:** concluído. A `vw_monthly_emission` foi criada nesta feature (`V33__create_monthly_emission_view.sql`), porque a `V31` só tinha as outras duas views. Depende de [`vinculo-usuario-fornecedor`](../002-vinculo-usuario-fornecedor/tasks.md) (Task 2, `supplierId` no token) e [`views-procedures`](../006-views-procedures/tasks.md) (Task 1).
 
 ---
 
