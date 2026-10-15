@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
+import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierEmissionRank;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.SupplierJpaEntity;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -52,7 +53,7 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
             ORDER BY "co2KgPerUnit" ASC NULLS LAST, s.id
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
-    List<SupplierEmissionRankProjection> findRankedByEmission(
+    List<SupplierEmissionRank> findRankedByEmission(
             @Param("productId") Long productId,
             @Param("category") String category,
             @Param("unit") String unit,

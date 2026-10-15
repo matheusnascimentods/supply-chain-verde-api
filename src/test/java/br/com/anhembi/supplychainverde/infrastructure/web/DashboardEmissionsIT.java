@@ -57,6 +57,23 @@ class DashboardEmissionsIT {
                 .andExpect(jsonPath("$[0].co2Kg").value(expectedCo2(month, supplierId).doubleValue()));
     }
 
+    // Passa pelas 5 consultas do resumo; o lote recente exercita a conversão de unit/status para enum.
+    @Test
+    void summarizesDashboardFromSeeds() throws Exception {
+        long suppliers = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM supplier", Long.class);
+
+        mockMvc.perform(get("/api/v1/dashboard/summary").param("limit", "1")
+                        .with(authentication(as("ADMIN", null))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suppliers").value(suppliers))
+                .andExpect(jsonPath("$.activeBatches").isNumber())
+                .andExpect(jsonPath("$.expiringCertifications").isNumber())
+                .andExpect(jsonPath("$.monthlyEmissionKgCo2e").isNumber())
+                .andExpect(jsonPath("$.recentBatches.length()").value(1))
+                .andExpect(jsonPath("$.recentBatches[0].unit").isString())
+                .andExpect(jsonPath("$.recentBatches[0].status").isString());
+    }
+
     @Test
     void rejectsRangeLongerThanTwentyFourMonths() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard/emissions").param("from", "2024-01").param("to", "2026-06")

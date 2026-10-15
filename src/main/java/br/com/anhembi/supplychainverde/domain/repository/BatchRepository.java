@@ -1,9 +1,12 @@
 package br.com.anhembi.supplychainverde.domain.repository;
 
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
+import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
+import br.com.anhembi.supplychainverde.domain.enums.StageType;
 
-import java.util.List;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface BatchRepository {
@@ -28,4 +31,10 @@ public interface BatchRepository {
     List<Batch> findByProductId(Long productId);
 
     void deleteById(Long batchId);
+
+    long countActiveBatches();
+
+    List<RecentBatch> findRecentBatches(int limit);
+
+    record RecentBatch(Long batchId, String productName, String supplierName, BigDecimal quantity, ProductUnit unit, StageType status) {}
 }

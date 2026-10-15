@@ -1,6 +1,8 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl;
 
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
+import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
+import br.com.anhembi.supplychainverde.domain.enums.StageType;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.BatchJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.BatchJpaRepository;
@@ -79,5 +81,24 @@ public class BatchRepositoryImpl implements BatchRepository {
                 Sort.Order.desc("producedAt"),
                 Sort.Order.desc("batchId")
         ));
+    }
+
+    @Override
+    public long countActiveBatches() {
+        return jpaRepository.countActiveBatches();
+    }
+
+    @Override
+    public List<RecentBatch> findRecentBatches(int limit) {
+        return jpaRepository.findRecentWithLatestStage(PageRequest.of(0, limit)).stream()
+                .map(batch -> new RecentBatch(
+                        batch.getBatchId(),
+                        batch.getProductName(),
+                        batch.getSupplierName(),
+                        batch.getQuantity(),
+                        ProductUnit.valueOf(batch.getUnit()),
+                        StageType.valueOf(batch.getStatus())
+                ))
+                .toList();
     }
 }
