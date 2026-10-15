@@ -73,10 +73,7 @@ public class SupplierRepositoryImpl implements SupplierRepository {
                 search,
                 search.replaceAll("\\D", ""),
                 limit,
-                offset)
-            .stream()
-            .map(row -> new SupplierEmissionRank(row.getSupplierId(), row.getCo2KgPerUnit()))
-            .toList();
+                offset);
     }
 
     @Override

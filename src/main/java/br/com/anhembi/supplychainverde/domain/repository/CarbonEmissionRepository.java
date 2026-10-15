@@ -29,6 +29,8 @@ public interface CarbonEmissionRepository {
 
     void deleteById(Long emissionId);
 
+    BigDecimal sumEmissionsCalculatedBetween(LocalDate startsAt, LocalDate endsAt);
+
     List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long supplierId);
 
     record MonthlyEmission(YearMonth month, BigDecimal co2Kg) {}

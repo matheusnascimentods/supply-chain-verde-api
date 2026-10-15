@@ -10,6 +10,7 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.Car
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -60,6 +61,11 @@ public class CarbonEmissionRepositoryImpl implements CarbonEmissionRepository {
     @Override
     public void deleteById(Long emissionId) {
         jpaRepository.deleteById(emissionId);
+    }
+
+    @Override
+    public BigDecimal sumEmissionsCalculatedBetween(LocalDate startsAt, LocalDate endsAt) {
+        return Optional.ofNullable(jpaRepository.sumCo2KgByCalculatedAtBetween(startsAt, endsAt)).orElse(BigDecimal.ZERO);
     }
 
     @Override

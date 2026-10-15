@@ -2,7 +2,10 @@ package br.com.anhembi.supplychainverde.application.usecase.dashboard;
 
 import br.com.anhembi.supplychainverde.application.dto.dashboard.DashboardSummaryResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.dashboard.RecentBatchSummaryDTO;
-import br.com.anhembi.supplychainverde.application.port.DashboardSummaryReader;
+import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
+import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +14,10 @@ import java.time.LocalDate;
 @Service
 @RequiredArgsConstructor
 public class GetDashboardSummaryUseCase {
-    private final DashboardSummaryReader dashboardSummaryReader;
+    private final BatchRepository batchRepository;
+    private final CertificationRepository certificationRepository;
+    private final SupplierRepository supplierRepository;
+    private final CarbonEmissionRepository carbonEmissionRepository;
 
     public DashboardSummaryResponseDTO execute(Integer requestedLimit) {
         int limit = requestedLimit == null ? 10 : requestedLimit;
@@ -20,11 +26,11 @@ public class GetDashboardSummaryUseCase {
         LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
 
         return new DashboardSummaryResponseDTO(
-                dashboardSummaryReader.countActiveBatches(),
-                dashboardSummaryReader.countCertificationsExpiringBetween(today, today.plusDays(30)),
-                dashboardSummaryReader.countSuppliers(),
-                dashboardSummaryReader.sumEmissionsCalculatedBetween(monthStart, monthEnd),
-                dashboardSummaryReader.findRecentBatches(limit).stream()
+                batchRepository.countActiveBatches(),
+                certificationRepository.countByExpiresAtBetween(today, today.plusDays(30)),
+                supplierRepository.countBySearch(""),
+                carbonEmissionRepository.sumEmissionsCalculatedBetween(monthStart, monthEnd),
+                batchRepository.findRecentBatches(limit).stream()
                         .map(batch -> new RecentBatchSummaryDTO(
                                 batch.batchId(),
                                 batch.productName(),
