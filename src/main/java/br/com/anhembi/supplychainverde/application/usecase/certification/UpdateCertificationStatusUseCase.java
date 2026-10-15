@@ -5,6 +5,7 @@ import br.com.anhembi.supplychainverde.application.dto.certification.UpdateCerti
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
+import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UpdateCertificationStatusUseCase {
     private final CertificationRepository certificationRepository;
+    private final CertificationDtoMapper mapper;
 
     @Transactional
     public CertificationResponseDTO execute(Long certificationId, UpdateCertificationStatusRequestDTO request) {
@@ -22,15 +24,6 @@ public class UpdateCertificationStatusUseCase {
         Certification certification = certificationRepository.findById(certificationId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificação não encontrada: " + certificationId));
         certification.setStatus(request.status());
-        Certification updated = certificationRepository.save(certification);
-        return new CertificationResponseDTO(
-                updated.getCertificationId(),
-                updated.getSupplier() != null ? updated.getSupplier().getSupplierId() : null,
-                updated.getCertification(),
-                updated.getIssuingBody(),
-                updated.getIssuedAt(),
-                updated.getExpiresAt(),
-                updated.getStatus()
-        );
+        return mapper.toResponse(certificationRepository.save(certification));
     }
 }

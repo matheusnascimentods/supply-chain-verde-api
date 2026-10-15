@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
+import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.NewSupplierUserDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
@@ -24,7 +25,7 @@ class RegisterSupplierUseCaseTest {
     private final SupplierRepository suppliers = mock(SupplierRepository.class);
     private final AddressRepository addresses = mock(AddressRepository.class);
     private final RegisterUserUseCase registerUser = mock(RegisterUserUseCase.class);
-    private final RegisterSupplierUseCase useCase = new RegisterSupplierUseCase(suppliers, addresses, registerUser);
+    private final RegisterSupplierUseCase useCase = new RegisterSupplierUseCase(suppliers, addresses, registerUser, DtoMappers.SUPPLIER);
 
     @Test
     void shouldCreateLinkedSupplierUserWhenUserBlockIsSent() {

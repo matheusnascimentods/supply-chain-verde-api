@@ -1,7 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.batch;
 
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchPageResponseDTO;
-import br.com.anhembi.supplychainverde.application.dto.batch.BatchResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
 import br.com.anhembi.supplychainverde.application.pagination.PageCount;
 import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
@@ -32,12 +31,9 @@ public class ListBatchesUseCase {
                 batches.stream().map(batch -> batch.getBatchId()).toList());
         return new BatchPageResponseDTO(
                 batches.stream().map(batch -> {
-                    var batchDto = mapper.toDto(batch);
-                    var stages = stagesByBatch.getOrDefault(batch.getBatchId(), List.of());
+                    var stages = stagesByBatch.getOrDefault(batch.getBatchId(), List.<ChainResponseDTO>of());
                     var currentStage = stages.isEmpty() ? null : stages.get(stages.size() - 1).stageType();
-                    return new BatchResponseDTO(
-                            batchDto.batchId(), batchDto.productId(), batchDto.productName(), batchDto.supplierId(),
-                            batchDto.supplierName(), batchDto.quantity(), batchDto.producedAt(), currentStage, stages);
+                    return mapper.toResponse(batch, currentStage, stages);
                 }).toList(),
                 page,
                 size,

@@ -9,5 +9,4 @@ public interface AuditLogDtoMapper {
     @Mapping(target = "userId", source = "user.userId")
     @Mapping(target = "userEmail", source = "user.email")
     AuditLogResponseDTO toResponse(AuditLog auditLog);
-    default AuditLogResponseDTO toDto(AuditLog auditLog) { return toResponse(auditLog); }
 }

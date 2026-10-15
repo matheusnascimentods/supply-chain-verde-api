@@ -7,6 +7,7 @@ import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
+import br.com.anhembi.supplychainverde.application.mapper.UserDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class ListUsersUseCase {
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
+    private final UserDtoMapper mapper;
 
     public OffsetPageResponseDTO<UserResponseDTO> execute(String email, UserRole role, int limit, int offset) {
         List<User> users = userRepository.findPage(email, role, limit, offset);
@@ -28,13 +30,7 @@ public class ListUsersUseCase {
                 .findByUserIdIn(users.stream().map(User::getUserId).toList()).stream()
                 .collect(Collectors.toMap(Supplier::getUserId, Function.identity()));
         List<UserResponseDTO> items = users.stream()
-                .map(user -> {
-                    Supplier supplier = suppliersByUserId.get(user.getUserId());
-                    return new UserResponseDTO(
-                            user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(),
-                            supplier == null ? null : supplier.getSupplierId(),
-                            supplier == null ? null : supplier.getName());
-                })
+                .map(user -> mapper.toResponse(user, suppliersByUserId.get(user.getUserId())))
                 .toList();
         return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
     }

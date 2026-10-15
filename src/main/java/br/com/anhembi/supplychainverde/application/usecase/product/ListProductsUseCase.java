@@ -5,6 +5,7 @@ import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResp
 import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
+import br.com.anhembi.supplychainverde.application.mapper.ProductDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,9 +17,10 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ListProductsUseCase {
     private final ProductRepository productRepository;
+    private final ProductDtoMapper mapper;
 
     public List<ProductResponseDTO> execute() {
-        return productRepository.findAll().stream().map(this::toResponse).toList();
+        return productRepository.findAll().stream().map(mapper::toResponse).toList();
     }
 
     public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search) {
@@ -31,7 +33,7 @@ public class ListProductsUseCase {
                 ? productRepository.countAll()
                 : productRepository.countBySearch(term, categoryCode);
         List<ProductResponseDTO> items = products.stream()
-                .map(this::toResponse)
+                .map(mapper::toResponse)
                 .toList();
 
         return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
@@ -63,9 +65,5 @@ public class ListProductsUseCase {
         return Normalizer.normalize(value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT);
-    }
-
-    private ProductResponseDTO toResponse(Product product) {
-        return new ProductResponseDTO(product.getProductId(), product.getName(), product.getCategory(), product.getUnit(), product.getDescription());
     }
 }

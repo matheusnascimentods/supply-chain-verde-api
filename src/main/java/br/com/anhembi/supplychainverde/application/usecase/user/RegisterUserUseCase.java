@@ -11,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.exception.SupplierNotFoundExceptio
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
+import br.com.anhembi.supplychainverde.application.mapper.UserDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class RegisterUserUseCase {
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
     private final PasswordHasher passwordHasher;
+    private final UserDtoMapper mapper;
 
     @Transactional
     public UserResponseDTO execute(UserRequestDTO request) {
@@ -62,9 +64,7 @@ public class RegisterUserUseCase {
             supplier.setUserId(saved.getUserId());
             supplierRepository.save(supplier);
         }
-        return new UserResponseDTO(saved.getUserId(), saved.getName(), saved.getEmail(), saved.getRole(), saved.getCreatedAt(),
-                supplier == null ? null : supplier.getSupplierId(),
-                supplier == null ? null : supplier.getName());
+        return mapper.toResponse(saved, supplier);
     }
 
     private boolean isBlank(String value) {

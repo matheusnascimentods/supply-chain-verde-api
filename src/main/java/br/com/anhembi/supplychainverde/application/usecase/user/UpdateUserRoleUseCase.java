@@ -7,6 +7,7 @@ import br.com.anhembi.supplychainverde.application.exception.ValidationException
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
+import br.com.anhembi.supplychainverde.application.mapper.UserDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UpdateUserRoleUseCase {
     private final UserRepository userRepository;
+    private final UserDtoMapper mapper;
 
     @Transactional
     public UserResponseDTO execute(Long userId, UpdateUserRoleRequestDTO request) {
@@ -26,7 +28,6 @@ public class UpdateUserRoleUseCase {
             throw new ConflictException("Não é possível alterar o perfil de ou para SUPPLIER.");
         }
         user.updateRole(request.role());
-        User updated = userRepository.save(user);
-        return new UserResponseDTO(updated.getUserId(), updated.getName(), updated.getEmail(), updated.getRole(), updated.getCreatedAt(), null, null);
+        return mapper.toResponse(userRepository.save(user), null);
     }
 }

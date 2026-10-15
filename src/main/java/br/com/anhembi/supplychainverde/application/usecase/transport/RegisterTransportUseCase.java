@@ -7,6 +7,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Chain;
 import br.com.anhembi.supplychainverde.domain.entity.Transport;
 import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
 import br.com.anhembi.supplychainverde.domain.repository.TransportRepository;
+import br.com.anhembi.supplychainverde.application.mapper.TransportDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RegisterTransportUseCase {
     private final TransportRepository transportRepository;
     private final ChainRepository chainRepository;
+    private final TransportDtoMapper mapper;
 
     @Transactional
     public TransportResponseDTO execute(TransportRequestDTO request) {
@@ -23,14 +25,8 @@ public class RegisterTransportUseCase {
         Chain chain = chainRepository.findById(request.chainId())
                 .orElseThrow(() -> new IllegalArgumentException("Etapa não encontrada: " + request.chainId()));
 
-        Transport transport = Transport.builder()
-                .chain(chain)
-                .transportMode(request.transportMode())
-                .distance(request.distance())
-                .fuelType(request.fuelType())
-                .capacity(request.capacity())
-                .build();
-        Transport saved = transportRepository.save(transport);
-        return new TransportResponseDTO(saved.getTransportId(), saved.getChain().getChainId(), saved.getTransportMode(), saved.getDistance(), saved.getFuelType(), saved.getCapacity());
+        Transport transport = mapper.toDomain(request);
+        transport.setChain(chain);
+        return mapper.toResponse(transportRepository.save(transport));
     }
 }

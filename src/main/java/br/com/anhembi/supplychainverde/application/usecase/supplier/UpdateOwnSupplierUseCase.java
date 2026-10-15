@@ -3,6 +3,7 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.UpdateOwnSupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.entity.User;
@@ -23,6 +24,7 @@ public class UpdateOwnSupplierUseCase {
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final GetSupplierUseCase getSupplier;
+    private final AddressDtoMapper addressMapper;
 
     @Transactional
     public SupplierResponseDTO execute(Long supplierId, UpdateOwnSupplierRequestDTO request) {
@@ -47,13 +49,7 @@ public class UpdateOwnSupplierUseCase {
         if (request.phone() != null) supplier.setPhone(request.phone());
         if (request.address() != null) {
             Address address = supplier.getAddress() != null ? supplier.getAddress() : new Address();
-            address.setStreet(request.address().street());
-            address.setNumber(request.address().number());
-            address.setNeighborhood(request.address().neighborhood());
-            address.setComplement(request.address().complement());
-            address.setZipCode(request.address().zipCode());
-            address.setCity(request.address().city());
-            address.setState(request.address().state());
+            addressMapper.update(request.address(), address);
             supplier.setAddress(addressRepository.save(address));
         }
         supplierRepository.save(supplier);

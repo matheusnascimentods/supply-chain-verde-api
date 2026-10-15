@@ -1,9 +1,10 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
-import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
+import br.com.anhembi.supplychainverde.application.mapper.SupplierDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.exception.SupplierNotFoundException;
@@ -19,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateSupplierUseCase {
     private final SupplierRepository supplierRepository;
     private final AddressRepository addressRepository;
+    private final SupplierDtoMapper mapper;
+    private final AddressDtoMapper addressMapper;
 
     @Transactional
     public SupplierResponseDTO execute(Long supplierId, SupplierRequestDTO request) {
@@ -31,49 +34,11 @@ public class UpdateSupplierUseCase {
         supplier.setPhone(request.phone());
 
         if (request.address() != null) {
-            Address current = supplier.getAddress();
-            Address address = current != null ? current : new Address();
-            address.setStreet(request.address().street());
-            address.setNumber(request.address().number());
-            address.setNeighborhood(request.address().neighborhood());
-            address.setComplement(request.address().complement());
-            address.setZipCode(request.address().zipCode());
-            address.setCity(request.address().city());
-            address.setState(request.address().state());
+            Address address = supplier.getAddress() != null ? supplier.getAddress() : new Address();
+            addressMapper.update(request.address(), address);
             supplier.setAddress(addressRepository.save(address));
         }
 
-        Supplier updated = supplierRepository.save(supplier);
-        return toResponse(updated);
-    }
-
-    public SupplierResponseDTO update(Long supplierId, SupplierRequestDTO request) {
-        return execute(supplierId, request);
-    }
-
-    private SupplierResponseDTO toResponse(Supplier supplier) {
-        return new SupplierResponseDTO(
-                supplier.getSupplierId(),
-                supplier.getName(),
-                supplier.getCnpj() != null ? supplier.getCnpj().value() : null,
-                toAddressResponse(supplier.getAddress()),
-                supplier.getPhone(),
-                supplier.getRegisteredAt(),
-                supplier.getUserId()
-        );
-    }
-
-    private AddressResponseDTO toAddressResponse(Address address) {
-        if (address == null) return null;
-        return new AddressResponseDTO(
-                address.getAddressId(),
-                address.getStreet(),
-                address.getNumber(),
-                address.getNeighborhood(),
-                address.getComplement(),
-                address.getZipCode(),
-                address.getCity(),
-                address.getState()
-        );
+        return mapper.toResponse(supplierRepository.save(supplier));
     }
 }

@@ -9,9 +9,12 @@ import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +22,7 @@ public class RegisterBatchUseCase {
     private final BatchRepository batchRepository;
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
+    private final BatchDtoMapper mapper;
 
     @Transactional
     public BatchResponseDTO execute(BatchRequestDTO request) {
@@ -34,7 +38,6 @@ public class RegisterBatchUseCase {
                 .quantity(request.quantity())
                 .producedAt(request.producedAt())
                 .build();
-        Batch saved = batchRepository.save(batch);
-        return new BatchResponseDTO(saved.getBatchId(), product.getProductId(), product.getName(), supplier.getSupplierId(), supplier.getName(), saved.getQuantity(), saved.getProducedAt(), null, java.util.List.of());
+        return mapper.toResponse(batchRepository.save(batch), null, List.of());
     }
 }

@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.user;
 
+import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.domain.entity.User;
@@ -18,7 +19,7 @@ import static org.mockito.Mockito.when;
 
 class UpdateUserRoleUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
-    private final UpdateUserRoleUseCase useCase = new UpdateUserRoleUseCase(users);
+    private final UpdateUserRoleUseCase useCase = new UpdateUserRoleUseCase(users, DtoMappers.USER);
 
     @Test
     void shouldRejectChangingRoleFromSupplier() {

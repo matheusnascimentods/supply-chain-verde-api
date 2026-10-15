@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
+import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.domain.entity.Product;
@@ -35,7 +36,8 @@ class RankSuppliersBySustainabilityUseCaseTest {
     private final ReportRepository reports = mock(ReportRepository.class);
     private final ProductRepository products = mock(ProductRepository.class);
     private final RankSuppliersBySustainabilityUseCase useCase =
-            new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions, reports, products);
+            new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions, reports, products,
+                    DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION);
 
     @Test
     void ordersRecommendedPageByCo2PerUnitWithSuppliersWithoutHistoryLast() {

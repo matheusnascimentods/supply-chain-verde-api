@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.batch;
 
+import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.domain.entity.*;
 import br.com.anhembi.supplychainverde.domain.enums.*;
 import br.com.anhembi.supplychainverde.domain.repository.*;
@@ -21,7 +22,7 @@ class BatchStagesReaderTest {
         ChainRepository chains = mock(ChainRepository.class);
         TransportRepository transports = mock(TransportRepository.class);
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
-        BatchStagesReader reader = new BatchStagesReader(chains, transports, emissions);
+        BatchStagesReader reader = new BatchStagesReader(chains, transports, emissions, DtoMappers.CHAIN);
 
         Batch batch = Batch.builder().batchId(10L).build();
         User user = User.builder().userId(7L).name("Ana").build();
@@ -57,7 +58,7 @@ class BatchStagesReaderTest {
         ChainRepository chains = mock(ChainRepository.class);
         TransportRepository transports = mock(TransportRepository.class);
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
-        BatchStagesReader reader = new BatchStagesReader(chains, transports, emissions);
+        BatchStagesReader reader = new BatchStagesReader(chains, transports, emissions, DtoMappers.CHAIN);
         when(chains.findByBatchIds(List.of(10L))).thenReturn(List.of());
 
         assertThat(reader.findByBatchIds(List.of(10L))).isEmpty();
