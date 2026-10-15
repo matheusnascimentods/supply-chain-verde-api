@@ -1,6 +1,5 @@
 package br.com.anhembi.supplychainverde.application.usecase.chain;
 
-import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
@@ -12,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
+import br.com.anhembi.supplychainverde.application.mapper.ChainDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +23,7 @@ public class RegisterChainStageUseCase {
     private final BatchRepository batchRepository;
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
+    private final ChainDtoMapper mapper;
 
     @Transactional
     public ChainResponseDTO execute(Long batchId, Long responsibleUserId, ChainRequestDTO request) {
@@ -45,33 +46,6 @@ public class RegisterChainStageUseCase {
                 .endedAt(request.endedAt())
                 .build();
 
-        Chain saved = chainRepository.save(stage);
-        return new ChainResponseDTO(
-                saved.getChainId(),
-                batchId,
-                toAddressResponse(origin),
-                toAddressResponse(destination),
-                responsibleUser.getUserId(),
-                responsibleUser.getName(),
-                saved.getStageType(),
-                saved.getStartedAt(),
-                saved.getEndedAt(),
-                null,
-                null
-        );
-    }
-
-    private AddressResponseDTO toAddressResponse(Address address) {
-        if (address == null) return null;
-        return new AddressResponseDTO(
-                address.getAddressId(),
-                address.getStreet(),
-                address.getNumber(),
-                address.getNeighborhood(),
-                address.getComplement(),
-                address.getZipCode(),
-                address.getCity(),
-                address.getState()
-        );
+        return mapper.toResponse(chainRepository.save(stage), null, null);
     }
 }

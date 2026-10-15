@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.application.dto.batch.BatchTraceabilityRe
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
+import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ import java.util.Objects;
 public class GetBatchTraceabilityUseCase {
     private final BatchRepository batchRepository;
     private final BatchStagesReader stagesReader;
+    private final BatchDtoMapper mapper;
 
     public BatchTraceabilityResponseDTO execute(Long batchId) {
         Batch batch = batchRepository.findById(batchId)
@@ -30,14 +32,6 @@ public class GetBatchTraceabilityUseCase {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new BatchTraceabilityResponseDTO(
-                batch.getBatchId(),
-                batch.getProduct() != null ? batch.getProduct().getName() : null,
-                batch.getSupplier() != null ? batch.getSupplier().getName() : null,
-                batch.getQuantity(),
-                batch.getProducedAt(),
-                stages,
-                totalCo2Kg
-        );
+        return mapper.toTraceability(batch, stages, totalCo2Kg);
     }
 }

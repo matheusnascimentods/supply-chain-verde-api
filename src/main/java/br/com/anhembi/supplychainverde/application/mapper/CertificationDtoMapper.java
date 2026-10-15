@@ -1,18 +1,20 @@
 package br.com.anhembi.supplychainverde.application.mapper;
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationResponseDTO;
+import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierCertificationDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface CertificationDtoMapper {
+    @Mapping(target = "certificationId", ignore = true)
+    @Mapping(target = "supplier", ignore = true)
+    @Mapping(target = "status", ignore = true)
     Certification toDomain(CertificationRequestDTO request);
 
-    @Mapping(source = "supplier.supplierId", target = "supplierId")
+    @Mapping(target = "supplierId", source = "supplier.supplierId")
     CertificationResponseDTO toResponse(Certification certification);
 
-    default CertificationResponseDTO toDto(Certification certification) {
-        return toResponse(certification);
-    }
+    SupplierCertificationDTO toSupplierCertification(Certification certification);
 }

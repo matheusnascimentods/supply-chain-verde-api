@@ -1,17 +1,15 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
-import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.mapper.SupplierDtoMapper;
 import br.com.anhembi.supplychainverde.application.usecase.user.RegisterUserUseCase;
-import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
-import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,28 +20,15 @@ public class RegisterSupplierUseCase {
     private final SupplierRepository supplierRepository;
     private final AddressRepository addressRepository;
     private final RegisterUserUseCase registerUser;
+    private final SupplierDtoMapper mapper;
 
     @Transactional
     public SupplierResponseDTO execute(SupplierRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de fornecedor é obrigatória.");
         if (request.address() == null) throw new ValidationException("Endereço do fornecedor é obrigatório.");
 
-        Address address = new Address();
-        address.setStreet(request.address().street());
-        address.setNumber(request.address().number());
-        address.setNeighborhood(request.address().neighborhood());
-        address.setComplement(request.address().complement());
-        address.setZipCode(request.address().zipCode());
-        address.setCity(request.address().city());
-        address.setState(request.address().state());
-        Address savedAddress = addressRepository.save(address);
-
-        Supplier supplier = Supplier.builder()
-                .name(request.name())
-                .cnpj(new Cnpj(request.cnpj()))
-                .address(savedAddress)
-                .phone(request.phone())
-                .build();
+        Supplier supplier = mapper.toDomain(request);
+        supplier.setAddress(addressRepository.save(supplier.getAddress()));
 
         Supplier savedSupplier = supplierRepository.save(supplier);
         if (request.user() != null) {
@@ -53,36 +38,6 @@ public class RegisterSupplierUseCase {
                     UserRole.SUPPLIER, savedSupplier.getSupplierId())).userId();
             savedSupplier.setUserId(userId);
         }
-        return toResponse(savedSupplier);
-    }
-
-    public SupplierResponseDTO register(SupplierRequestDTO request) {
-        return execute(request);
-    }
-
-    private SupplierResponseDTO toResponse(Supplier supplier) {
-        return new SupplierResponseDTO(
-                supplier.getSupplierId(),
-                supplier.getName(),
-                supplier.getCnpj() != null ? supplier.getCnpj().value() : null,
-                toAddressResponse(supplier.getAddress()),
-                supplier.getPhone(),
-                supplier.getRegisteredAt(),
-                supplier.getUserId()
-        );
-    }
-
-    private AddressResponseDTO toAddressResponse(Address address) {
-        if (address == null) return null;
-        return new AddressResponseDTO(
-                address.getAddressId(),
-                address.getStreet(),
-                address.getNumber(),
-                address.getNeighborhood(),
-                address.getComplement(),
-                address.getZipCode(),
-                address.getCity(),
-                address.getState()
-        );
+        return mapper.toResponse(savedSupplier);
     }
 }

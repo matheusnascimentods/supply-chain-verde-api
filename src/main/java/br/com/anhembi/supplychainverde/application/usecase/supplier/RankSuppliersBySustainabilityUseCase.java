@@ -1,13 +1,12 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
-import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
-import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierCertificationDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
+import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
+import br.com.anhembi.supplychainverde.application.mapper.SupplierDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
-import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
@@ -45,6 +44,8 @@ public class RankSuppliersBySustainabilityUseCase {
     private final CarbonEmissionRepository carbonEmissionRepository;
     private final ReportRepository reportRepository;
     private final ProductRepository productRepository;
+    private final SupplierDtoMapper mapper;
+    private final CertificationDtoMapper certificationMapper;
     private final SustainabilityScoreCalculator calculator = new SustainabilityScoreCalculator();
 
     public List<SupplierRankingDTO> execute() {
@@ -98,40 +99,16 @@ public class RankSuppliersBySustainabilityUseCase {
             List<Certification> certifications = certificationRepository.findBySupplierId(supplier.getSupplierId());
             List<CarbonEmission> emissions = carbonEmissionRepository.findBySupplierId(supplier.getSupplierId());
             BigDecimal score = calculator.calculate(certifications, emissions);
-            rankings.add(new SupplierRankingDTO(
-                    supplier.getSupplierId(),
-                    supplier.getName(),
-                    supplier.getCnpj() == null ? null : supplier.getCnpj().value(),
-                    toAddressResponse(supplier.getAddress()),
-                    supplier.getPhone(),
-                    supplier.getRegisteredAt(),
-                    supplier.getUserId(),
+            rankings.add(mapper.toRanking(
+                    supplier,
                     score,
                     calculator.countActiveCertifications(certifications),
                     emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add),
                     reportCounts.getOrDefault(supplier.getSupplierId(), 0L),
-                    certifications.stream().map(SupplierCertificationDTO::from).toList(),
+                    certifications.stream().map(certificationMapper::toSupplierCertification).toList(),
                     co2.get(supplier.getSupplierId())
             ));
         }
         return rankings;
-    }
-
-    private AddressResponseDTO toAddressResponse(Address address) {
-        if (address == null) return null;
-        return new AddressResponseDTO(
-                address.getAddressId(),
-                address.getStreet(),
-                address.getNumber(),
-                address.getNeighborhood(),
-                address.getComplement(),
-                address.getZipCode(),
-                address.getCity(),
-                address.getState()
-        );
-    }
-
-    public List<SupplierRankingDTO> rank() {
-        return execute();
     }
 }

@@ -24,7 +24,7 @@ public class ListCertificationsUseCase {
 
         int totalPages = PageCount.totalPages(totalElements, size);
         return new CertificationPageResponseDTO(
-                certifications.stream().map(mapper::toDto).toList(),
+                certifications.stream().map(mapper::toResponse).toList(),
                 page,
                 size,
                 totalElements,

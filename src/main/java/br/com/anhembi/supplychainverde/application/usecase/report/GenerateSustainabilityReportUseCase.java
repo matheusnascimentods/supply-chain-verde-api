@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Report;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.application.mapper.ReportDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 public class GenerateSustainabilityReportUseCase {
     private final ReportRepository reportRepository;
     private final SupplierRepository supplierRepository;
+    private final ReportDtoMapper mapper;
 
     @Transactional
     public ReportResponseDTO execute(Long supplierId, ReportRequestDTO request) {
@@ -33,7 +35,6 @@ public class GenerateSustainabilityReportUseCase {
                 .generatedAt(LocalDateTime.now())
                 .build();
 
-        Report saved = reportRepository.save(report);
-        return new ReportResponseDTO(saved.getReportId(), supplierId, saved.getPeriodStartAt(), saved.getPeriodEndAt(), saved.getTotalCo2Kg(), saved.getTrackedProductCount(), saved.getGeneratedAt());
+        return mapper.toResponse(reportRepository.save(report));
     }
 }

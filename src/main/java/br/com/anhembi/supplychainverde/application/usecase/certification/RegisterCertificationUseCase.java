@@ -9,6 +9,7 @@ import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
 import br.com.anhembi.supplychainverde.domain.exception.SupplierNotFoundException;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RegisterCertificationUseCase {
     private final CertificationRepository certificationRepository;
     private final SupplierRepository supplierRepository;
+    private final CertificationDtoMapper mapper;
 
     @Transactional
     public CertificationResponseDTO execute(Long supplierId, CertificationRequestDTO request) {
@@ -25,28 +27,9 @@ public class RegisterCertificationUseCase {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new SupplierNotFoundException(supplierId));
 
-        Certification certification = Certification.builder()
-                .supplier(supplier)
-                .certification(request.certification())
-                .issuingBody(request.issuingBody())
-                .issuedAt(request.issuedAt())
-                .expiresAt(request.expiresAt())
-                .status(CertificationStatus.ACTIVE)
-                .build();
-
-        Certification saved = certificationRepository.save(certification);
-        return new CertificationResponseDTO(
-                saved.getCertificationId(),
-                supplierId,
-                saved.getCertification(),
-                saved.getIssuingBody(),
-                saved.getIssuedAt(),
-                saved.getExpiresAt(),
-                saved.getStatus()
-        );
-    }
-
-    public CertificationResponseDTO register(Long supplierId, CertificationRequestDTO request) {
-        return execute(supplierId, request);
+        Certification certification = mapper.toDomain(request);
+        certification.setSupplier(supplier);
+        certification.setStatus(CertificationStatus.ACTIVE);
+        return mapper.toResponse(certificationRepository.save(certification));
     }
 }

@@ -10,6 +10,7 @@ import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepositor
 import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
 import br.com.anhembi.supplychainverde.domain.repository.TransportRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor;
+import br.com.anhembi.supplychainverde.application.mapper.CarbonEmissionDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class CalculateCarbonEmissionUseCase {
     private final CarbonEmissionRepository carbonEmissionRepository;
     private final ChainRepository chainRepository;
     private final TransportRepository transportRepository;
+    private final CarbonEmissionDtoMapper mapper;
 
     @Transactional
     public CarbonEmissionResponseDTO execute(Long chainId, CarbonEmissionRequestDTO request) {
@@ -39,7 +41,6 @@ public class CalculateCarbonEmissionUseCase {
                 .co2Kg(co2Kg)
                 .calculationMethod(request.calculationMethod())
                 .build();
-        CarbonEmission saved = carbonEmissionRepository.save(emission);
-        return new CarbonEmissionResponseDTO(saved.getEmissionId(), chainId, saved.getEmissionFactor().value(), saved.getCo2Kg(), saved.getCalculationMethod(), saved.getCalculatedAt());
+        return mapper.toResponse(carbonEmissionRepository.save(emission));
     }
 }

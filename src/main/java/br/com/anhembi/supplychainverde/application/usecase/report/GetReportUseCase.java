@@ -1,35 +1,30 @@
 package br.com.anhembi.supplychainverde.application.usecase.report;
 
-import br.com.anhembi.supplychainverde.application.dto.address.AddressResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.report.ReportDetailDTO;
-import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierCertificationDTO;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
+import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
+import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.Report;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class GetReportUseCase {
     private final ReportRepository reportRepository;
     private final BatchRepository batchRepository;
     private final CarbonEmissionRepository carbonEmissionRepository;
     private final CertificationRepository certificationRepository;
-
-    public GetReportUseCase(ReportRepository reportRepository, BatchRepository batchRepository,
-                            CarbonEmissionRepository carbonEmissionRepository,
-                            CertificationRepository certificationRepository) {
-        this.reportRepository = reportRepository;
-        this.batchRepository = batchRepository;
-        this.carbonEmissionRepository = carbonEmissionRepository;
-        this.certificationRepository = certificationRepository;
-    }
+    private final AddressDtoMapper addressMapper;
+    private final CertificationDtoMapper certificationMapper;
 
     public ReportDetailDTO execute(Long reportId) {
         Report report = reportRepository.findById(reportId)
@@ -51,11 +46,11 @@ public class GetReportUseCase {
                 report.getTrackedProductCount(),
                 report.getGeneratedAt(),
                 supplier == null ? null : new ReportDetailDTO.Supplier(
-                        supplier.getPhone(), AddressResponseDTO.from(supplier.getAddress())),
+                        supplier.getPhone(), addressMapper.toResponse(supplier.getAddress())),
                 hasSupplier ? emissions(supplierId, start, end) : emptyEmissions(),
                 hasSupplier
                         ? certificationRepository.findBySupplierIdOverlapping(supplierId, start, end).stream()
-                                .map(SupplierCertificationDTO::from).toList()
+                                .map(certificationMapper::toSupplierCertification).toList()
                         : List.of()
         );
     }

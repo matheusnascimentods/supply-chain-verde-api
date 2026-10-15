@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.user;
 
+import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.user.UserResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.entity.User;
@@ -18,7 +19,7 @@ import static org.mockito.Mockito.when;
 class ListUsersUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
     private final SupplierRepository suppliers = mock(SupplierRepository.class);
-    private final ListUsersUseCase useCase = new ListUsersUseCase(users, suppliers);
+    private final ListUsersUseCase useCase = new ListUsersUseCase(users, suppliers, DtoMappers.USER);
 
     @Test
     void shouldIncludeLinkedSupplierOnlyForSupplierUsers() {

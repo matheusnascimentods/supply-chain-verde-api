@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.user;
 
+import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UserResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
@@ -27,7 +28,7 @@ class RegisterUserUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
     private final SupplierRepository suppliers = mock(SupplierRepository.class);
     private final PasswordHasher hasher = mock(PasswordHasher.class);
-    private final RegisterUserUseCase useCase = new RegisterUserUseCase(users, suppliers, hasher);
+    private final RegisterUserUseCase useCase = new RegisterUserUseCase(users, suppliers, hasher, DtoMappers.USER);
 
     @Test
     void shouldLinkSupplierUserToSupplierWithoutUser() {

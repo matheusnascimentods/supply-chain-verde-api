@@ -2,9 +2,9 @@ package br.com.anhembi.supplychainverde.application.usecase.audit;
 
 import br.com.anhembi.supplychainverde.application.dto.audit.AuditLogResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
-import br.com.anhembi.supplychainverde.domain.entity.AuditLog;
 import br.com.anhembi.supplychainverde.domain.enums.AuditAction;
 import br.com.anhembi.supplychainverde.domain.repository.AuditLogRepository;
+import br.com.anhembi.supplychainverde.application.mapper.AuditLogDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +15,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ListAuditLogsUseCase {
     private final AuditLogRepository auditLogRepository;
+    private final AuditLogDtoMapper mapper;
 
     public OffsetPageResponseDTO<AuditLogResponseDTO> execute(
             LocalDate from,
@@ -32,21 +33,7 @@ public class ListAuditLogsUseCase {
                 : userEmail.trim().toLowerCase(Locale.ROOT);
         var logs = auditLogRepository.findByFilters(from, to, action, emailFilter, limit, offset);
         long totalElements = auditLogRepository.countByFilters(from, to, action, emailFilter);
-        var items = logs.stream().map(this::toResponse).toList();
+        var items = logs.stream().map(mapper::toResponse).toList();
         return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
-    }
-
-    private AuditLogResponseDTO toResponse(AuditLog auditLog) {
-        return new AuditLogResponseDTO(
-                auditLog.getLogId(),
-                auditLog.getUser() != null ? auditLog.getUser().getUserId() : null,
-                auditLog.getUser() != null ? auditLog.getUser().getEmail() : null,
-                auditLog.getAction(),
-                auditLog.getAffectedTable(),
-                auditLog.getAffectedEntityId(),
-                auditLog.getBeforeData(),
-                auditLog.getAfterData(),
-                auditLog.getPerformedAt()
-        );
     }
 }
