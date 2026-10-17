@@ -4,9 +4,15 @@ package br.com.anhembi.supplychainverde.domain.enums;
 public enum StageType {
     PRODUCTION, STORAGE, PROCESSING, TRANSPORT, DISTRIBUTION, RETAIL;
 
-    /** Próxima etapa da sequência; null depois de RETAIL. */
+    /** Próxima etapa da sequência; null depois de RETAIL. Espelha o CASE de previous_stage_type na V39. */
     public StageType next() {
-        StageType[] stages = values();
-        return ordinal() + 1 < stages.length ? stages[ordinal() + 1] : null;
+        return switch (this) {
+            case PRODUCTION -> STORAGE;
+            case STORAGE -> PROCESSING;
+            case PROCESSING -> TRANSPORT;
+            case TRANSPORT -> DISTRIBUTION;
+            case DISTRIBUTION -> RETAIL;
+            case RETAIL -> null;
+        };
     }
 }
