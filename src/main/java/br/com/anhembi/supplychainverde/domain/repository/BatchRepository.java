@@ -5,7 +5,6 @@ import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +25,6 @@ public interface BatchRepository {
 
     long countBySupplierId(Long supplierId);
 
-    long countBySupplierIdAndProducedAtBetween(Long supplierId, LocalDate from, LocalDate to);
 
     List<Batch> findByProductId(Long productId);
 

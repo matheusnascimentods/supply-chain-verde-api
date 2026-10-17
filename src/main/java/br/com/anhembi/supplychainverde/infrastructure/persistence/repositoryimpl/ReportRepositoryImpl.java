@@ -8,6 +8,7 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.Rep
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
@@ -23,10 +24,17 @@ public class ReportRepositoryImpl implements ReportRepository {
     private final ReportJpaRepository jpaRepository;
     private final ReportJpaMapper mapper;
     private final EntityManager entityManager;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public Report save(Report report) {
         return mapper.toDomain(jpaRepository.save(mapper.toJpaEntity(report)));
+    }
+
+    @Override
+    public Long generate(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt) {
+        return jdbcTemplate.queryForObject("CALL sp_generate_sustainability_report(?, ?, ?, NULL)",
+                Long.class, supplierId, periodStartAt, periodEndAt);
     }
 
     @Override

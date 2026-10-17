@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    build: docker/postgres
     container_name: supply-chain-verde-db
     restart: unless-stopped
     environment:

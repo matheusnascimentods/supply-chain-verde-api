@@ -122,6 +122,14 @@ Os contratos detalhados de request/response estão em [`reference.md`](reference
 
 O desenho e suas consequências operacionais estão registrados em [`adr/0001-auditoria-no-postgresql.md`](../../adr/0001-auditoria-no-postgresql.md).
 
+### 5.2 Views e procedures
+
+- Views: `vw_stage_emission`, `vw_supplier_product_emission`, `vw_monthly_emission`, `vw_supplier_sustainability` (score do ranking) e `vw_batch_current_stage` (etapa atual do lote, usada no dashboard).
+- `sp_generate_sustainability_report` grava o relatório como retrato do momento da geração: CO₂ total, nº de lotes e nº de produtos do período. Dados lançados depois exigem gerar um novo relatório.
+- `sp_expire_certifications` marca como `EXPIRED` as certificações `ACTIVE` vencidas; o `pg_cron` a executa todo dia às 03:00 UTC, e a auditoria registra a mudança com `user_id` nulo.
+- Não se cadastra certificação já vencida, e certificação vencida não volta para `ACTIVE` (400).
+- Detalhes em [`006-views-procedures`](../006-views-procedures/spec.md); consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](../../sql/consultas-relatorio.sql).
+
 ## 6. Fluxos principais
 
 ### 6.1 Login

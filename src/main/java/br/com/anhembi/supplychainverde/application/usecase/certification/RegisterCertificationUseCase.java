@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 public class RegisterCertificationUseCase {
@@ -24,6 +26,9 @@ public class RegisterCertificationUseCase {
     @Transactional
     public CertificationResponseDTO execute(Long supplierId, CertificationRequestDTO request) {
         if (request == null) throw new ValidationException("Requisição de certificação é obrigatória.");
+        if (request.expiresAt() != null && request.expiresAt().isBefore(LocalDate.now())) {
+            throw new ValidationException("Não é possível cadastrar uma certificação já vencida.");
+        }
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new SupplierNotFoundException(supplierId));
 

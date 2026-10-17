@@ -77,8 +77,18 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     }
 
     @Override
-    public long countBySearch(String search) {
-        return jpaRepository.countBySearch(search, search.replaceAll("\\D", ""));
+    public long countBySearch(String search, boolean withoutUser) {
+        return jpaRepository.countBySearch(search, search.replaceAll("\\D", ""), withoutUser);
+    }
+
+    @Override
+    public List<Long> findIdsRankedByScore(String search, boolean withoutUser, int limit, int offset) {
+        return jpaRepository.findIdsRankedByScore(search, search.replaceAll("\\D", ""), withoutUser, limit, offset);
+    }
+
+    @Override
+    public List<SupplierScore> findScoresByIds(Collection<Long> supplierIds) {
+        return supplierIds.isEmpty() ? List.of() : jpaRepository.findScoresByIds(supplierIds);
     }
 
     @Override

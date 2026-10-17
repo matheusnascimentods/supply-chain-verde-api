@@ -10,6 +10,7 @@ import java.util.Set;
 
 public interface ReportRepository {
     Report save(Report report);
+    Long generate(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt);
 
     Optional<Report> findById(Long reportId);
 

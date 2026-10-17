@@ -5,27 +5,25 @@ import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingD
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.application.mapper.SupplierDtoMapper;
-import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
-import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierScore;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
-import br.com.anhembi.supplychainverde.domain.service.SustainabilityScoreCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,34 +39,32 @@ public class RankSuppliersBySustainabilityUseCase {
 
     private final SupplierRepository supplierRepository;
     private final CertificationRepository certificationRepository;
-    private final CarbonEmissionRepository carbonEmissionRepository;
     private final ReportRepository reportRepository;
     private final ProductRepository productRepository;
     private final SupplierDtoMapper mapper;
     private final CertificationDtoMapper certificationMapper;
-    private final SustainabilityScoreCalculator calculator = new SustainabilityScoreCalculator();
 
     public List<SupplierRankingDTO> execute() {
         return executeAll(false);
     }
 
     public List<SupplierRankingDTO> executeAll(boolean withoutUser) {
-        List<SupplierRankingDTO> rankings = toRankingDTOs(filterWithoutUser(supplierRepository.findAll(), withoutUser), Map.of());
+        List<Supplier> suppliers = supplierRepository.findAll();
+        if (withoutUser) {
+            suppliers = suppliers.stream().filter(supplier -> supplier.getUserId() == null).toList();
+        }
+        List<SupplierRankingDTO> rankings = toRankingDTOs(suppliers, Map.of());
         rankings.sort(SCORE_ORDER);
         return rankings;
     }
 
     public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search, boolean withoutUser) {
-        List<Supplier> suppliers = search == null || search.isBlank()
-                ? supplierRepository.findAll()
-                : supplierRepository.findBySearch(search.trim());
-        List<SupplierRankingDTO> rankings = toRankingDTOs(filterWithoutUser(suppliers, withoutUser), Map.of());
-        rankings.sort(SCORE_ORDER);
-        int fromIndex = Math.min(offset, rankings.size());
-        int toIndex = (int) Math.min((long) fromIndex + limit, rankings.size());
-
-        return OffsetPageResponseDTO.of(
-                rankings.subList(fromIndex, toIndex), limit, offset, rankings.size());
+        String term = search == null ? "" : search.trim();
+        // Ordem e paginação vêm da vw_supplier_sustainability; findAllById perde a ordem, por isso o sort da página.
+        List<Long> ids = supplierRepository.findIdsRankedByScore(term, withoutUser, limit, offset);
+        List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(ids), Map.of());
+        items.sort(SCORE_ORDER);
+        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, withoutUser));
     }
 
     public OffsetPageResponseDTO<SupplierRankingDTO> executeRecommended(Long productId, ProductCategory category,
@@ -83,29 +79,28 @@ public class RankSuppliersBySustainabilityUseCase {
                 .forEach(rank -> co2.put(rank.supplierId(), rank.co2KgPerUnit()));
         List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(co2.keySet()), co2);
         items.sort(RECOMMENDED_ORDER);
-        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term));
-    }
-
-    private List<Supplier> filterWithoutUser(List<Supplier> suppliers, boolean withoutUser) {
-        return withoutUser ? suppliers.stream().filter(supplier -> supplier.getUserId() == null).toList() : suppliers;
+        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, false));
     }
 
     private List<SupplierRankingDTO> toRankingDTOs(List<Supplier> suppliers, Map<Long, BigDecimal> co2) {
+        Set<Long> ids = suppliers.stream().map(Supplier::getSupplierId).collect(Collectors.toSet());
+        Map<Long, Long> reportCounts = reportRepository.countBySupplierIds(ids);
+        Map<Long, SupplierScore> scores = supplierRepository.findScoresByIds(ids).stream()
+                .collect(Collectors.toMap(SupplierScore::supplierId, Function.identity()));
+        Map<Long, List<Certification>> certifications = certificationRepository.findBySupplierIds(ids).stream()
+                .collect(Collectors.groupingBy(certification -> certification.getSupplier().getSupplierId()));
+
         List<SupplierRankingDTO> rankings = new ArrayList<>();
-        Map<Long, Long> reportCounts = reportRepository.countBySupplierIds(suppliers.stream()
-                .map(Supplier::getSupplierId)
-                .collect(Collectors.toSet()));
         for (Supplier supplier : suppliers) {
-            List<Certification> certifications = certificationRepository.findBySupplierId(supplier.getSupplierId());
-            List<CarbonEmission> emissions = carbonEmissionRepository.findBySupplierId(supplier.getSupplierId());
-            BigDecimal score = calculator.calculate(certifications, emissions);
+            SupplierScore score = scores.get(supplier.getSupplierId());
             rankings.add(mapper.toRanking(
                     supplier,
-                    score,
-                    calculator.countActiveCertifications(certifications),
-                    emissions.stream().map(CarbonEmission::getCo2Kg).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add),
+                    score.sustainabilityScore(),
+                    score.activeCertificationCount(),
+                    score.totalCo2Kg(),
                     reportCounts.getOrDefault(supplier.getSupplierId(), 0L),
-                    certifications.stream().map(certificationMapper::toSupplierCertification).toList(),
+                    certifications.getOrDefault(supplier.getSupplierId(), List.of()).stream()
+                            .map(certificationMapper::toSupplierCertification).toList(),
                     co2.get(supplier.getSupplierId())
             ));
         }

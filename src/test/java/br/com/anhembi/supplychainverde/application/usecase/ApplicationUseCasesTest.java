@@ -170,7 +170,6 @@ class ApplicationUseCasesTest {
         AddressRepository addresses = mock(AddressRepository.class);
         SupplierRepository suppliers = mock(SupplierRepository.class);
         CertificationRepository certifications = mock(CertificationRepository.class);
-        CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
         ReportRepository reports = mock(ReportRepository.class);
 
         Batch batch = Batch.builder().batchId(9L).build();
@@ -183,15 +182,15 @@ class ApplicationUseCasesTest {
         when(chains.save(any())).thenReturn(stage);
         when(chains.findByBatchId(9L)).thenReturn(List.of(stage));
         when(suppliers.findAll()).thenReturn(List.of(supplier));
-        when(certifications.findBySupplierId(2L)).thenReturn(List.of());
-        when(emissions.findBySupplierId(2L)).thenReturn(List.of());
+        when(suppliers.findScoresByIds(any())).thenReturn(List.of(
+                new SupplierRepository.SupplierScore(2L, new BigDecimal("100.00"), 0, BigDecimal.ZERO)));
         when(reports.countBySupplierIds(any())).thenReturn(java.util.Map.of());
 
         ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.PRODUCTION, LocalDateTime.now(), null);
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, DtoMappers.CHAIN)
                 .execute(9L, 11L, request).chainId()).isEqualTo(13L);
         assertThat(new ListChainStagesByBatchUseCase(chains, DtoMappers.CHAIN).execute(9L)).hasSize(1);
-        assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, emissions, reports,
+        assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, reports,
                 mock(ProductRepository.class), DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION)
                 .execute()).singleElement().satisfies(ranking -> assertThat(ranking.supplierId()).isEqualTo(2L));
     }
@@ -201,15 +200,15 @@ class ApplicationUseCasesTest {
         ReportRepository reports = mock(ReportRepository.class);
         SupplierRepository suppliers = mock(SupplierRepository.class);
         Supplier supplier = Supplier.builder().supplierId(2L).build();
-        Report report = Report.builder().reportId(10L).supplier(supplier).periodStartAt(LocalDate.now().minusDays(30)).periodEndAt(LocalDate.now()).totalCo2Kg(BigDecimal.ZERO).trackedProductCount(1).generatedAt(LocalDateTime.now()).build();
+        Report report = Report.builder().reportId(10L).supplier(supplier).periodStartAt(LocalDate.now().minusDays(30)).periodEndAt(LocalDate.now()).totalCo2Kg(BigDecimal.ZERO).batchCount(1).trackedProductCount(1).generatedAt(LocalDateTime.now()).build();
         when(suppliers.findById(2L)).thenReturn(Optional.of(supplier));
-        when(reports.save(any())).thenReturn(report);
+        when(reports.generate(2L, report.getPeriodStartAt(), report.getPeriodEndAt())).thenReturn(10L);
         when(reports.findById(10L)).thenReturn(Optional.of(report));
         when(reports.findBySupplierId(2L)).thenReturn(List.of(report));
 
         ReportRequestDTO request = new ReportRequestDTO(2L, report.getPeriodStartAt(), report.getPeriodEndAt());
         assertThat(new GenerateSustainabilityReportUseCase(reports, suppliers, DtoMappers.REPORT).execute(2L, request).reportId()).isEqualTo(10L);
-        assertThat(new GetReportUseCase(reports, mock(BatchRepository.class), mock(CarbonEmissionRepository.class),
+        assertThat(new GetReportUseCase(reports, mock(CarbonEmissionRepository.class),
                 mock(CertificationRepository.class), DtoMappers.ADDRESS, DtoMappers.CERTIFICATION).execute(10L).reportId()).isEqualTo(10L);
         assertThat(new ListReportsBySupplierUseCase(reports, DtoMappers.REPORT).execute(2L)).hasSize(1);
     }

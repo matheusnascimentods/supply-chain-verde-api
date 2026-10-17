@@ -4,7 +4,6 @@ import br.com.anhembi.supplychainverde.application.dto.report.ReportListItemDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Report;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
-import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ListReportsUseCase {
     private final ReportRepository reportRepository;
-    private final BatchRepository batchRepository;
 
     public OffsetPageResponseDTO<ReportListItemDTO> execute(Long supplierId, int limit, int offset) {
         List<Report> reports = reportRepository.findPage(supplierId, limit, offset);
@@ -29,8 +27,6 @@ public class ListReportsUseCase {
     private ReportListItemDTO toResponse(Report report) {
         Supplier supplier = report.getSupplier();
         Long supplierId = supplier == null ? null : supplier.getSupplierId();
-        long batchCount = supplierId == null ? 0 : batchRepository.countBySupplierIdAndProducedAtBetween(
-                supplierId, report.getPeriodStartAt(), report.getPeriodEndAt());
         return new ReportListItemDTO(
                 report.getReportId(),
                 supplierId,
@@ -39,7 +35,7 @@ public class ListReportsUseCase {
                 report.getPeriodStartAt(),
                 report.getPeriodEndAt(),
                 report.getTotalCo2Kg(),
-                batchCount,
+                report.getBatchCount(),
                 report.getGeneratedAt()
         );
     }

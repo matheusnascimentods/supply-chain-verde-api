@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,6 +38,12 @@ public class CertificationRepositoryImpl implements CertificationRepository {
     @Override
     public List<Certification> findBySupplierId(Long supplierId) {
         return jpaRepository.findBySupplierSupplierId(supplierId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Certification> findBySupplierIds(Collection<Long> supplierIds) {
+        return supplierIds.isEmpty() ? List.of()
+                : jpaRepository.findBySupplierSupplierIdIn(supplierIds).stream().map(mapper::toDomain).toList();
     }
 
     @Override

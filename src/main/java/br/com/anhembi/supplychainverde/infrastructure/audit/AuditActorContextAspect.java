@@ -19,7 +19,8 @@ public class AuditActorContextAspect {
     private final JdbcTemplate jdbcTemplate;
 
     @Before("execution(* br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl.*RepositoryImpl.save(..))"
-            + " || execution(* br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl.*RepositoryImpl.deleteById(..))")
+            + " || execution(* br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl.*RepositoryImpl.deleteById(..))"
+            + " || execution(* br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl.*RepositoryImpl.generate(..))")
     public void setAuthenticatedActorForTransaction() {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("Audited writes require an active transaction.");
