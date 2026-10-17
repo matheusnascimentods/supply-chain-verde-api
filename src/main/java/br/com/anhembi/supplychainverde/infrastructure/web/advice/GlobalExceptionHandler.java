@@ -7,6 +7,7 @@ import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundExc
 import br.com.anhembi.supplychainverde.domain.exception.DomainException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -57,6 +58,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleInvalidRequest(Exception exception) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(error(status, exception.getMessage()));
+    }
+
+    // Rede de segurança da V39 para requisições simultâneas que passaram pela validação do caso de uso.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
+        String cause = String.valueOf(exception.getMostSpecificCause().getMessage());
+        if (cause.contains("uq_chain_batch_stage") || cause.contains("fk_chain_previous_stage")) {
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(error(status,
+                    "Transição de etapa inválida: a etapa já existe no lote ou a anterior ainda não foi registrada."));
+        }
+        return handleUnexpectedException(exception);
     }
 
     @ExceptionHandler(Exception.class)

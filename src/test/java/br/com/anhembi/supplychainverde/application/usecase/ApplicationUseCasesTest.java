@@ -186,7 +186,7 @@ class ApplicationUseCasesTest {
                 new SupplierRepository.SupplierScore(2L, new BigDecimal("100.00"), 0, BigDecimal.ZERO)));
         when(reports.countBySupplierIds(any())).thenReturn(java.util.Map.of());
 
-        ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.PRODUCTION, LocalDateTime.now(), null);
+        ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.STORAGE, LocalDateTime.now(), null);
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, DtoMappers.CHAIN)
                 .execute(9L, 11L, request).chainId()).isEqualTo(13L);
         assertThat(new ListChainStagesByBatchUseCase(chains, DtoMappers.CHAIN).execute(9L)).hasSize(1);
