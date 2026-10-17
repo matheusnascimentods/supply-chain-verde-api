@@ -16,7 +16,7 @@
 
 - [x] Migration com `report.batch_count` e `sp_generate_sustainability_report`
 - [x] `ListReportsUseCase` e `GetReportUseCase` leem `batch_count` (sai o N+1)
-- [ ] Frontend (`supply-chain-verde-web`), adiado para a [008](../008-contrato-frontend/tasks.md): aviso de que o relatório é um retrato do momento da geração
+- [ ] Frontend, adiado para `supply-chain-verde-web/docs/features/006-contrato-api/tasks.md` (Task 3): aviso de que o relatório é um retrato do momento da geração
 - [x] `GenerateSustainabilityReportUseCase` chama a procedure e relê o `report` gravado
 - [x] Testes: totais preenchidos, fornecedor sem emissão, auditoria registrada
 
