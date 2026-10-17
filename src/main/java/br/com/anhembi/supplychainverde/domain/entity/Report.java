@@ -17,6 +17,7 @@ public class Report {
     private LocalDate periodStartAt;
     private LocalDate periodEndAt;
     private BigDecimal totalCo2Kg;
+    private Integer batchCount;
     private Integer trackedProductCount;
     private LocalDateTime generatedAt;
 

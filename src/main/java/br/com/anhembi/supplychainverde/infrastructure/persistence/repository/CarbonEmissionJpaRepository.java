@@ -35,13 +35,6 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
     })
     List<CarbonEmissionJpaEntity> findByChainBatchBatchId(Long batchId);
 
-    @EntityGraph(attributePaths = {
-            "chain", "chain.batch", "chain.batch.product",
-            "chain.batch.supplier", "chain.batch.supplier.address",
-            "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
-    })
-    List<CarbonEmissionJpaEntity> findByChainBatchSupplierSupplierId(Long supplierId);
-
     @Override
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product",

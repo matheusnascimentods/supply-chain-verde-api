@@ -6,7 +6,6 @@ import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.Report;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
-import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
@@ -20,7 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GetReportUseCase {
     private final ReportRepository reportRepository;
-    private final BatchRepository batchRepository;
     private final CarbonEmissionRepository carbonEmissionRepository;
     private final CertificationRepository certificationRepository;
     private final AddressDtoMapper addressMapper;
@@ -42,7 +40,7 @@ public class GetReportUseCase {
                 start,
                 end,
                 report.getTotalCo2Kg(),
-                hasSupplier ? batchRepository.countBySupplierIdAndProducedAtBetween(supplierId, start, end) : 0,
+                report.getBatchCount(),
                 report.getTrackedProductCount(),
                 report.getGeneratedAt(),
                 supplier == null ? null : new ReportDetailDTO.Supplier(

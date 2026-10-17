@@ -32,6 +32,9 @@ public class ReportJpaEntity {
     @Column(name = "total_co2_kg", nullable = false)
     private BigDecimal totalCo2Kg;
 
+    @Column(name = "batch_count", nullable = false)
+    private Integer batchCount;
+
     @Column(name = "tracked_product_count", nullable = false)
     private Integer trackedProductCount;
 

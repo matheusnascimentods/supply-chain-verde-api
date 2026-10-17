@@ -106,6 +106,7 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
 - **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
 - **Auditoria — implementação atual**: captura por triggers PostgreSQL na migration V29; aplicação nos ambientes depende do rollout coordenado descrito na [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md).
+- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada pelo `pg_cron` (V36–V38). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
@@ -120,7 +121,179 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 
 ---
 
+## 🗄️ Banco de Dados
+
+PostgreSQL 17 com a extensão `pg_cron`, versionado por migrations Flyway em [`src/main/resources/db/migration`](src/main/resources/db/migration). Grande parte da regra de dados vive no próprio banco: constraints, triggers de auditoria, views de relatório e procedures.
+
+### Modelo de dados
+
+Todas as tabelas têm `created_at` e `updated_at` (`TIMESTAMPTZ`, mantidos por trigger), omitidos abaixo.
+
+```mermaid
+erDiagram
+    address ||--o{ supplier : "sede de"
+    users ||--o| supplier : "acessa como"
+    supplier ||--o{ certification : possui
+    supplier ||--o{ batch : produz
+    product ||--o{ batch : "é produzido em"
+    supplier ||--o{ report : recebe
+    batch ||--o{ chain : "passa por"
+    users ||--o{ chain : "é responsável por"
+    address |o--o{ chain : "origem / destino"
+    chain ||--o| transport : "transportada por"
+    chain ||--o| carbon_emission : emite
+    users |o--o{ audit_log : executa
+
+    users {
+        bigint id PK
+        varchar name
+        varchar email UK
+        varchar password "hash BCrypt"
+        user_role role
+    }
+    address {
+        bigint id PK
+        varchar street
+        varchar number
+        varchar neighborhood
+        varchar complement
+        varchar zip_code
+        varchar city
+        varchar state
+    }
+    supplier {
+        bigint id PK
+        varchar name
+        char cnpj UK
+        bigint address_id FK
+        bigint user_id FK,UK
+        varchar phone
+    }
+    certification {
+        bigint id PK
+        bigint supplier_id FK
+        varchar certification
+        varchar issuing_body
+        date issued_at
+        date expires_at
+        certification_status status
+    }
+    product {
+        bigint id PK
+        varchar name
+        product_category category
+        product_unit unit
+        text description
+    }
+    batch {
+        bigint id PK
+        bigint product_id FK
+        bigint supplier_id FK
+        numeric quantity
+        date produced_at
+    }
+    chain {
+        bigint id PK
+        bigint batch_id FK
+        bigint origin_address_id FK
+        bigint destination_address_id FK
+        bigint responsible_user_id FK
+        stage_type stage_type
+        timestamp started_at
+        timestamp ended_at
+    }
+    transport {
+        bigint id PK
+        bigint chain_id FK,UK
+        transport_mode transport_mode
+        numeric distance
+        fuel_type fuel_type
+        numeric capacity
+    }
+    carbon_emission {
+        bigint id PK
+        bigint chain_id FK,UK
+        numeric emission_factor
+        numeric co2_kg
+        calculation_method calculation_method
+    }
+    report {
+        bigint id PK
+        bigint supplier_id FK
+        date period_start_at
+        date period_end_at
+        numeric total_co2_kg
+        integer batch_count
+        integer tracked_product_count
+    }
+    audit_log {
+        bigint id PK
+        bigint user_id FK
+        audit_action action
+        varchar affected_table
+        bigint affected_entity_id
+        jsonb before_data
+        jsonb after_data
+    }
+```
+
+Os tipos `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são `ENUM`s do PostgreSQL.
+
+### Views
+
+| View | O que entrega | Quem usa |
+|---|---|---|
+| `vw_stage_emission` | Uma linha por etapa com emissão: lote, fornecedor, produto, etapa, CO₂, fator e data do cálculo | Base das demais; detalhe do relatório |
+| `vw_supplier_product_emission` | CO₂ total, quantidade e CO₂ médio por unidade por fornecedor e produto | Recomendação de fornecedores |
+| `vw_monthly_emission` | CO₂ por fornecedor e mês | Gráfico de emissões |
+| `vw_supplier_sustainability` | Certificações ativas, CO₂ total e score (`100 + 10 × ativas − CO₂ ÷ 100`, mínimo 0) | Ranking de fornecedores |
+| `vw_batch_current_stage` | Etapa mais recente de cada lote | Dashboard (lotes ativos e recentes) |
+
+### Procedures e rotinas
+
+| Objeto | Tipo | O que faz | Quem dispara |
+|---|---|---|---|
+| `sp_generate_sustainability_report` | Procedure | Grava o relatório como retrato do período: CO₂ total, nº de lotes e nº de produtos | `POST /api/v1/suppliers/{id}/reports` |
+| `sp_expire_certifications` | Procedure | Marca como `EXPIRED` as certificações `ACTIVE` vencidas | `pg_cron`, todo dia às 03:00 UTC (00:00 em São Paulo) |
+| `capture_audit_log()` | Função de trigger | Grava `INSERT`/`UPDATE`/`DELETE` de todas as tabelas de negócio no `audit_log` | Triggers `audit_*` |
+| `set_updated_at()` | Função de trigger | Atualiza `updated_at` a cada alteração | Triggers por tabela |
+
+### pg_cron
+
+O agendamento roda dentro do banco, sem depender da API estar no ar. A extensão não vem na imagem oficial do Postgres: [`docker/postgres/Dockerfile`](docker/postgres/Dockerfile) instala o pacote `postgresql-17-cron` e inicia o servidor com `shared_preload_libraries=pg_cron` e `cron.database_name=supply_chain_verde`. A migration V37 cria a extensão e o job.
+
+```sql
+-- Jobs agendados
+SELECT jobname, schedule, command FROM cron.job;
+
+-- Histórico de execuções
+SELECT status, return_message, start_time FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
+```
+
+Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql).
+
+---
+
 ## 📁 Estrutura do Projeto
+
+```text
+supply-chain-verde-api/
+├── docker/postgres/Dockerfile   # PostgreSQL 17 + pg_cron (usado pelo compose e pelo Testcontainers)
+├── docker-compose.yml
+├── docs/
+│   ├── adr/                     # Decisões de arquitetura (ex.: auditoria no PostgreSQL)
+│   ├── features/                # Specs SDD por feature (spec, plan, tasks)
+│   └── sql/                     # Consultas de relatório sobre views e procedures
+└── src/
+    ├── main/
+    │   ├── java/…/supplychainverde/   # Código da API (detalhe abaixo)
+    │   └── resources/
+    │       ├── application.properties
+    │       └── db/migration/          # Migrations Flyway: tabelas, seeds, triggers, views e procedures
+    └── test/
+        ├── java/…/supplychainverde/   # Testes unitários (*Test) e de integração com Testcontainers (*IT)
+        └── resources/seed/            # Massa de dados extra para testes
+```
 
 ```text
 src/main/java/br/com/anhembi/supplychainverde/
@@ -130,21 +303,21 @@ src/main/java/br/com/anhembi/supplychainverde/
 │   ├── enums/                   # Enums tipados (StageType, TransportMode, etc.)
 │   ├── valueobject/             # Records com validação compacta (Cnpj, EmissionFactor)
 │   ├── repository/              # Interfaces puras de persistência
-│   ├── service/                 # Serviços de domínio (Calculators, Hasher interface)
+│   ├── service/                 # Serviços de domínio (CarbonFootprintCalculator, PasswordHasher)
 │   └── exception/               # Exceções de domínio
 │
 ├── application/                 # Camada de Aplicação (Casos de Uso)
 │   ├── usecase/                 # Classes UseCase com método execute()
 │   ├── dto/                     # Records imutáveis de Request e Response
 │   ├── mapper/                  # Mappers MapStruct (DTO ↔ Domínio)
+│   ├── pagination/              # Cálculo de páginas
 │   └── exception/               # Exceções da aplicação
 │
 ├── infrastructure/              # Camada de Infraestrutura (Frameworks & Drivers)
-│   ├── web/                     # Controllers REST, ExceptionHandler e Configs Web
+│   ├── web/                     # Controllers REST, ExceptionHandler e configs (CORS, Swagger)
 │   ├── persistence/             # JPA Entities, Repositories Spring Data e Mappers JPA
 │   ├── security/                # JWT Provider, Filtro, BCrypt e SecurityConfig
-│   ├── audit/                   # Consulta da auditoria; captura fica nas triggers PostgreSQL
-│   └── config/                  # Beans de configuração da aplicação
+│   └── audit/                   # Propaga o usuário autenticado para as triggers de auditoria
 │
 └── SupplyChainVerdeApplication.java
 ```
@@ -189,7 +362,9 @@ O projeto disponibiliza um `docker-compose.yml` pré-configurado:
 ```bash
 docker compose up -d
 ```
-Isso iniciará o PostgreSQL na porta `5432` com o banco `supply_chain_verde`.
+Isso iniciará o PostgreSQL na porta `5432` com o banco `supply_chain_verde`. A imagem é construída a partir de [`docker/postgres/Dockerfile`](docker/postgres/Dockerfile) (PostgreSQL 17 + `pg_cron`), que a migration V37 exige; os testes com Testcontainers usam a mesma imagem.
+
+Quem já tinha o volume criado com a imagem `postgres:17-alpine` deve recriá-lo (`docker compose down -v`), porque a ordenação de texto da alpine (musl) difere da Debian (glibc) e os índices de texto ficariam inconsistentes. Num banco que não pode ser recriado, rode `REINDEX DATABASE supply_chain_verde;` logo após a troca.
 
 ### 3. Executar a Aplicação
 ```bash
@@ -223,8 +398,11 @@ O seed ampliado de demonstração é carregado pelas migrations padrão em `src/
 # Compilar o projeto e processar anotações (Lombok + MapStruct)
 ./mvnw clean compile
 
-# Rodar todos os testes unitários e de integração (com Testcontainers)
+# Rodar os testes unitários (*Test)
 ./mvnw test
+
+# Rodar também os testes de integração com Testcontainers (*IT); exige Docker
+./mvnw test -Dtest='*IT,*Test,*Tests'
 
 # Empacotar artefato JAR final
 ./mvnw clean package

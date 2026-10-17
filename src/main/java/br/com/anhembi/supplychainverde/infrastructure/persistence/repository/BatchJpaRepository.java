@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
-import java.time.LocalDate;
 
 public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> {
     List<BatchJpaEntity> findBySupplierSupplierId(Long supplierId);
@@ -22,19 +21,10 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
 
     long countBySupplierSupplierId(Long supplierId);
 
-    long countBySupplierSupplierIdAndProducedAtBetween(Long supplierId, LocalDate from, LocalDate to);
-
     @Query(value = """
             select count(*)
-            from batch b
-            cross join lateral (
-                select c.stage_type
-                from chain c
-                where c.batch_id = b.id
-                order by c.started_at desc, c.id desc
-                limit 1
-            ) latest
-            where latest.stage_type <> 'RETAIL'
+            from vw_batch_current_stage
+            where stage_type <> 'RETAIL'
             """, nativeQuery = true)
     long countActiveBatches();
 
@@ -48,13 +38,7 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
             from batch b
             join product p on p.id = b.product_id
             join supplier s on s.id = b.supplier_id
-            cross join lateral (
-                select c.stage_type
-                from chain c
-                where c.batch_id = b.id
-                order by c.started_at desc, c.id desc
-                limit 1
-            ) latest
+            join vw_batch_current_stage latest on latest.batch_id = b.id
             order by b.produced_at desc, b.id desc
             """, nativeQuery = true)
     List<DashboardBatchProjection> findRecentWithLatestStage(Pageable pageable);

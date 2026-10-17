@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,6 +16,8 @@ public interface CertificationRepository {
     List<Certification> findAll();
 
     List<Certification> findBySupplierId(Long supplierId);
+
+    List<Certification> findBySupplierIds(Collection<Long> supplierIds);
 
     List<Certification> findBySupplierIdAndStatus(Long supplierId, CertificationStatus status);
 

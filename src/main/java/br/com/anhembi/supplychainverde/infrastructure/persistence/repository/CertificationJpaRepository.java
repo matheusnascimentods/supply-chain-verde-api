@@ -7,11 +7,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface CertificationJpaRepository extends JpaRepository<CertificationJpaEntity, Long> {
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     List<CertificationJpaEntity> findBySupplierSupplierId(Long supplierId);
+
+    @EntityGraph(attributePaths = {"supplier", "supplier.address"})
+    List<CertificationJpaEntity> findBySupplierSupplierIdIn(Collection<Long> supplierIds);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
     List<CertificationJpaEntity> findBySupplierSupplierIdAndStatus(Long supplierId, CertificationStatus status);

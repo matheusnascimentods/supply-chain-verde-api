@@ -25,7 +25,6 @@ public interface CarbonEmissionRepository {
 
     List<CarbonEmission> findByBatchId(Long batchId);
 
-    List<CarbonEmission> findBySupplierId(Long supplierId);
 
     void deleteById(Long emissionId);
 

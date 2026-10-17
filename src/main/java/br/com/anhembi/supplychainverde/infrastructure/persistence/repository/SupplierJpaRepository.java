@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierEmissionRank;
+import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierScore;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.SupplierJpaEntity;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -66,11 +67,42 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
     @Query(value = """
             SELECT COUNT(*)
             FROM supplier s
-            WHERE :search = ''
+            WHERE (:search = ''
                OR to_tsvector('portuguese'::regconfig, coalesce(s.name, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%')
+               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%'))
+              AND (:withoutUser = false OR s.user_id IS NULL)
             """, nativeQuery = true)
-    long countBySearch(@Param("search") String search, @Param("cnpjSearch") String cnpjSearch);
+    long countBySearch(@Param("search") String search, @Param("cnpjSearch") String cnpjSearch,
+            @Param("withoutUser") boolean withoutUser);
+
+    @Query(value = """
+            SELECT s.id
+            FROM supplier s
+            JOIN vw_supplier_sustainability v ON v.supplier_id = s.id
+            WHERE (:search = ''
+               OR to_tsvector('portuguese'::regconfig, coalesce(s.name, '')) @@ websearch_to_tsquery('portuguese', :search)
+               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%'))
+              AND (:withoutUser = false OR s.user_id IS NULL)
+            ORDER BY v.sustainability_score DESC, s.id
+            LIMIT :limit OFFSET :offset
+            """, nativeQuery = true)
+    List<Long> findIdsRankedByScore(
+            @Param("search") String search,
+            @Param("cnpjSearch") String cnpjSearch,
+            @Param("withoutUser") boolean withoutUser,
+            @Param("limit") int limit,
+            @Param("offset") int offset
+    );
+
+    @Query(value = """
+            SELECT supplier_id AS "supplierId",
+                   sustainability_score AS "sustainabilityScore",
+                   CAST(active_certifications AS INTEGER) AS "activeCertificationCount",
+                   total_co2_kg AS "totalCo2Kg"
+            FROM vw_supplier_sustainability
+            WHERE supplier_id IN (:supplierIds)
+            """, nativeQuery = true)
+    List<SupplierScore> findScoresByIds(@Param("supplierIds") Collection<Long> supplierIds);
 
     @EntityGraph(attributePaths = "address")
     Optional<SupplierJpaEntity> findByUserId(Long userId);

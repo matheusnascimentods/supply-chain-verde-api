@@ -28,7 +28,7 @@ public class GetDashboardSummaryUseCase {
         return new DashboardSummaryResponseDTO(
                 batchRepository.countActiveBatches(),
                 certificationRepository.countByExpiresAtBetween(today, today.plusDays(30)),
-                supplierRepository.countBySearch(""),
+                supplierRepository.countBySearch("", false),
                 carbonEmissionRepository.sumEmissionsCalculatedBetween(monthStart, monthEnd),
                 batchRepository.findRecentBatches(limit).stream()
                         .map(batch -> new RecentBatchSummaryDTO(

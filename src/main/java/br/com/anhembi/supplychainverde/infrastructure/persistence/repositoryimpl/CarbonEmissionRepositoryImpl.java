@@ -54,11 +54,6 @@ public class CarbonEmissionRepositoryImpl implements CarbonEmissionRepository {
     }
 
     @Override
-    public List<CarbonEmission> findBySupplierId(Long supplierId) {
-        return jpaRepository.findByChainBatchSupplierSupplierId(supplierId).stream().map(mapper::toDomain).toList();
-    }
-
-    @Override
     public void deleteById(Long emissionId) {
         jpaRepository.deleteById(emissionId);
     }
