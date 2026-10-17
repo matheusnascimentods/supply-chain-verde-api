@@ -106,7 +106,7 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
 - **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
 - **Auditoria — implementação atual**: captura por triggers PostgreSQL na migration V29; aplicação nos ambientes depende do rollout coordenado descrito na [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md).
-- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada pelo `pg_cron` (V36–V38). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
+- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada pelo `pg_cron` (V36–V38). Ordem obrigatória das etapas garantida por constraints (V39). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
@@ -199,6 +199,7 @@ erDiagram
         bigint destination_address_id FK
         bigint responsible_user_id FK
         stage_type stage_type
+        stage_type previous_stage_type "gerada; NULL em PRODUCTION"
         timestamp started_at
         timestamp ended_at
     }
@@ -236,6 +237,8 @@ erDiagram
         jsonb after_data
     }
 ```
+
+Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
 Os tipos `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são `ENUM`s do PostgreSQL.
 
@@ -480,7 +483,7 @@ Exemplo de item sem etapas: `{"batchId": 100, "productId": 9, "productName": "Ar
 ### 🔗 Etapas da Cadeia (`/api/v1/batches/{batchId}/stages`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/batches/{batchId}/stages` | Registro de nova etapa na cadeia | `SUPPLIER`, `MANAGER`, `ADMIN` |
+| `POST` | `/api/v1/batches/{batchId}/stages` | Registro da próxima etapa do lote (ordem obrigatória; fora de ordem → 400) | `SUPPLIER`, `MANAGER`, `ADMIN` |
 | `GET` | `/api/v1/batches/{batchId}/stages` | Etapas percorridas pelo lote em ordem | Autenticado |
 | `POST` | `/api/v1/stages/{chainId}/transport` | Registro do transporte da etapa | `SUPPLIER`, `MANAGER`, `ADMIN` |
 

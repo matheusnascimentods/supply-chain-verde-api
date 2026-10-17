@@ -50,7 +50,7 @@ O backend serve o frontend web e também disponibiliza consultas públicas para 
 
 ### 3.4 Etapas, transporte e emissões
 
-- Registrar etapas de produção, armazenagem, transporte, distribuição ou varejo.
+- Registrar etapas na ordem obrigatória: produção → armazenagem → processamento → transporte → distribuição → varejo.
 - Associar usuário responsável e endereços de origem/destino quando aplicável.
 - Registrar transporte de uma etapa com modal, distância, combustível e capacidade.
 - Calcular e persistir a emissão de carbono usando uma metodologia escolhida.
@@ -108,6 +108,7 @@ Os contratos detalhados de request/response estão em [`reference.md`](reference
 7. Valores fechados usam enums tipados.
 8. Perfis controlam autorização dos endpoints.
 9. A exposição de IDs sequenciais em rotas públicas é um risco conhecido; rate limiting ou identificador público não sequencial são evoluções futuras.
+10. Todo lote começa em `PRODUCTION` e cada nova etapa é a imediatamente seguinte à atual; não se pula nem se repete etapa, e uma etapa com sucessora não pode ser apagada. A API valida antes (400 com `InvalidStageTransitionException`) e o banco garante com `uq_chain_batch_stage` e `fk_chain_previous_stage` ([007](../007-ordem-etapas/spec.md)).
 
 ### 5.1 Auditoria mantida pelo PostgreSQL
 
