@@ -8,13 +8,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Aspect
 @Component
 @RequiredArgsConstructor
 public class AuditActorContextAspect {
-    private static final String SET_ACTOR_SQL = "SELECT set_config('app.user_id', ?, true)";
+    private static final String SET_ACTOR_SQL = "SET @app_user_id = NULLIF(?, '')";
+    private static final String CLEAR_ACTOR_SQL = "SET @app_user_id = NULL";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -32,6 +34,14 @@ public class AuditActorContextAspect {
                 ? currentUser.userId().toString()
                 : "";
 
-        jdbcTemplate.queryForObject(SET_ACTOR_SQL, String.class, actorId);
+        jdbcTemplate.update(SET_ACTOR_SQL, actorId);
+        // A variável vale para a sessão, e o pool reaproveita a conexão: limpa antes de devolvê-la.
+        // No afterCompletion a conexão da transação ainda está vinculada à thread.
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                jdbcTemplate.update(CLEAR_ACTOR_SQL);
+            }
+        });
     }
 }

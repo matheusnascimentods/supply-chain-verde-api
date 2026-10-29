@@ -96,7 +96,7 @@ public class RankSuppliersBySustainabilityUseCase {
             rankings.add(mapper.toRanking(
                     supplier,
                     score.sustainabilityScore(),
-                    score.activeCertificationCount(),
+                    Math.toIntExact(score.activeCertificationCount()),
                     score.totalCo2Kg(),
                     reportCounts.getOrDefault(supplier.getSupplierId(), 0L),
                     certifications.getOrDefault(supplier.getSupplierId(), List.of()).stream()

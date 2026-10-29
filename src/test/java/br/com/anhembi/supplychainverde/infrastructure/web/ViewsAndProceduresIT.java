@@ -11,15 +11,18 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.mysql.MySQLContainer;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -38,6 +41,9 @@ class ViewsAndProceduresIT {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private MySQLContainer mysql;
+
     private long userId;
     private long supplierId;
     private long productId;
@@ -45,15 +51,14 @@ class ViewsAndProceduresIT {
     @BeforeEach
     void setUp() {
         userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
-        long addressId = jdbcTemplate.queryForObject("""
+        long addressId = insert(jdbcTemplate, """
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
-                VALUES ('Rua Teste', '1', 'Centro', '01000000', 'São Paulo', 'SP') RETURNING id
-                """, Long.class);
-        supplierId = jdbcTemplate.queryForObject(
-                "INSERT INTO supplier (name, cnpj, address_id) VALUES ('Fornecedor IT', '98765432000198', ?) RETURNING id",
-                Long.class, addressId);
-        productId = jdbcTemplate.queryForObject(
-                "INSERT INTO product (name, category, unit) VALUES ('Café IT', 'AGRICULTURE', 'KG') RETURNING id", Long.class);
+                VALUES ('Rua Teste', '1', 'Centro', '01000000', 'São Paulo', 'SP')
+                """);
+        supplierId = insert(jdbcTemplate,
+                "INSERT INTO supplier (name, cnpj, address_id) VALUES ('Fornecedor IT', '98765432000198', ?)", addressId);
+        productId = insert(jdbcTemplate,
+                "INSERT INTO product (name, category, unit) VALUES ('Café IT', 'AGRICULTURE', 'KG')");
     }
 
     // Dois lotes do mesmo produto: 2 lotes, 1 produto. O relatório grava o retrato e a auditoria tem o autor.
@@ -81,8 +86,9 @@ class ViewsAndProceduresIT {
                 Long.class, reportId)).isEqualTo(userId);
 
         // Fora do período: relatório zerado, não erro.
-        Long empty = jdbcTemplate.queryForObject("CALL sp_generate_sustainability_report(?, ?, ?, NULL)",
-                Long.class, supplierId, LocalDate.of(1990, 1, 1), LocalDate.of(1990, 12, 31));
+        jdbcTemplate.update("CALL sp_generate_sustainability_report(?, ?, ?, @report_id)",
+                supplierId, LocalDate.of(1990, 1, 1), LocalDate.of(1990, 12, 31));
+        Long empty = jdbcTemplate.queryForObject("SELECT @report_id", Long.class);
         assertThat(jdbcTemplate.queryForObject("SELECT total_co2_kg FROM report WHERE id = ?", BigDecimal.class, empty))
                 .isEqualByComparingTo("0");
     }
@@ -93,13 +99,19 @@ class ViewsAndProceduresIT {
         long suspended = certification("SUSPENDED", LocalDate.now().minusDays(1));
         long valid = certification("ACTIVE", LocalDate.now());
 
-        jdbcTemplate.execute("CALL sp_expire_certifications()");
+        jdbcTemplate.execute("CALL sp_expire_certifications(@expired_count)");
 
         assertThat(certificationStatus(expired)).isEqualTo("EXPIRED");
         assertThat(certificationStatus(suspended)).isEqualTo("SUSPENDED");
         assertThat(certificationStatus(valid)).isEqualTo("ACTIVE");
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT schedule FROM cron.job WHERE jobname = 'expire-certifications'", String.class)).isEqualTo("0 3 * * *");
+        assertThat(jdbcTemplate.queryForObject("SELECT @expired_count", Integer.class)).isPositive();
+        // supply_app não enxerga events em information_schema; a leitura é como root.
+        var root = new JdbcTemplate(new DriverManagerDataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword()));
+        assertThat(root.queryForMap("""
+                SELECT interval_value, interval_field, TIME_FORMAT(starts, '%H:%i') AS starts_at, status FROM information_schema.events
+                WHERE event_schema = 'supply_chain_verde' AND event_name = 'ev_expire_certifications'
+                """)).containsEntry("interval_value", "1").containsEntry("interval_field", "DAY")
+                .containsEntry("starts_at", "00:00").containsEntry("status", "ENABLED");
     }
 
     @Test
@@ -135,26 +147,26 @@ class ViewsAndProceduresIT {
     }
 
     private void batchWithEmission(String co2Kg) {
-        long batchId = jdbcTemplate.queryForObject(
-                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, 100, CURRENT_DATE) RETURNING id",
-                Long.class, productId, supplierId);
-        long chainId = jdbcTemplate.queryForObject(
-                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW()) RETURNING id",
-                Long.class, batchId, userId);
+        long batchId = insert(jdbcTemplate,
+                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, 100, CURRENT_DATE)",
+                productId, supplierId);
+        long chainId = insert(jdbcTemplate,
+                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW())",
+                batchId, userId);
         jdbcTemplate.update(
-                "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?::numeric, 'IPCC')",
+                "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'IPCC')",
                 chainId, co2Kg);
     }
 
     private long certification(String status, LocalDate expiresAt) {
-        return jdbcTemplate.queryForObject("""
+        return insert(jdbcTemplate, """
                 INSERT INTO certification (supplier_id, certification, issuing_body, issued_at, expires_at, status)
-                VALUES (?, 'Certificação IT', 'IBD', DATE '2020-01-01', ?, ?::certification_status) RETURNING id
-                """, Long.class, supplierId, expiresAt, status);
+                VALUES (?, 'Certificação IT', 'IBD', DATE '2020-01-01', ?, ?)
+                """, supplierId, expiresAt, status);
     }
 
     private String certificationStatus(long certificationId) {
-        return jdbcTemplate.queryForObject("SELECT status::text FROM certification WHERE id = ?", String.class, certificationId);
+        return jdbcTemplate.queryForObject("SELECT status FROM certification WHERE id = ?", String.class, certificationId);
     }
 
     private BigDecimal score() {

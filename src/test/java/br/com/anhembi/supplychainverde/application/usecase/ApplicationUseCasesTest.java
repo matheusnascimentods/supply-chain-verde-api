@@ -183,7 +183,7 @@ class ApplicationUseCasesTest {
         when(chains.findByBatchId(9L)).thenReturn(List.of(stage));
         when(suppliers.findAll()).thenReturn(List.of(supplier));
         when(suppliers.findScoresByIds(any())).thenReturn(List.of(
-                new SupplierRepository.SupplierScore(2L, new BigDecimal("100.00"), 0, BigDecimal.ZERO)));
+                new SupplierRepository.SupplierScore(2L, new BigDecimal("100.00"), 0L, BigDecimal.ZERO)));
         when(reports.countBySupplierIds(any())).thenReturn(java.util.Map.of());
 
         ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.STORAGE, LocalDateTime.now(), null);

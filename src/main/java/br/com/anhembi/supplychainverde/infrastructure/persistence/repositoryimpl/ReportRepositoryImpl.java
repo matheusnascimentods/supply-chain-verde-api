@@ -33,8 +33,10 @@ public class ReportRepositoryImpl implements ReportRepository {
 
     @Override
     public Long generate(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt) {
-        return jdbcTemplate.queryForObject("CALL sp_generate_sustainability_report(?, ?, ?, NULL)",
-                Long.class, supplierId, periodStartAt, periodEndAt);
+        // Mesma conexão nas duas chamadas: o aspect exige transação ativa para generate.
+        jdbcTemplate.update("CALL sp_generate_sustainability_report(?, ?, ?, @report_id)",
+                supplierId, periodStartAt, periodEndAt);
+        return jdbcTemplate.queryForObject("SELECT @report_id", Long.class);
     }
 
     @Override

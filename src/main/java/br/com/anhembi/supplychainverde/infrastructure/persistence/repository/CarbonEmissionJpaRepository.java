@@ -44,10 +44,10 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
     List<CarbonEmissionJpaEntity> findAll();
 
     @Query(value = """
-        SELECT to_char(month, 'YYYY-MM') AS "month", SUM(co2_kg) AS "co2Kg"
+        SELECT DATE_FORMAT(month, '%Y-%m') AS month, SUM(co2_kg) AS co2Kg
         FROM vw_monthly_emission
         WHERE month BETWEEN :from AND :to
-          AND (CAST(:supplierId AS BIGINT) IS NULL OR supplier_id = :supplierId)
+          AND (:supplierId IS NULL OR supplier_id = :supplierId)
         GROUP BY month
         ORDER BY month
         """, nativeQuery = true)
@@ -57,7 +57,7 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
             @Param("supplierId") Long supplierId);
 
     @Query(value = """
-        SELECT CAST(stage_type AS TEXT) AS "stageType", SUM(co2_kg) AS "co2Kg"
+        SELECT stage_type AS stageType, SUM(co2_kg) AS co2Kg
         FROM vw_stage_emission
         WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
         GROUP BY stage_type
@@ -67,8 +67,8 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
             @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
     @Query(value = """
-        SELECT batch_id AS "batchId", product_name AS "productName", quantity AS "quantity",
-               CAST(unit AS TEXT) AS "unit", SUM(co2_kg) AS "co2Kg"
+        SELECT batch_id AS batchId, product_name AS productName, quantity AS quantity,
+               unit AS unit, SUM(co2_kg) AS co2Kg
         FROM vw_stage_emission
         WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
         GROUP BY batch_id, product_name, quantity, unit
@@ -78,8 +78,8 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
             @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
     @Query(value = """
-        SELECT CAST(calculation_method AS TEXT) AS "calculationMethod", emission_factor AS "emissionFactor",
-               SUM(co2_kg) AS "co2Kg"
+        SELECT calculation_method AS calculationMethod, emission_factor AS emissionFactor,
+               SUM(co2_kg) AS co2Kg
         FROM vw_stage_emission
         WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
         GROUP BY calculation_method, emission_factor

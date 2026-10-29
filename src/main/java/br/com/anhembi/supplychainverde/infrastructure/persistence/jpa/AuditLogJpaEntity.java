@@ -26,7 +26,6 @@ public class AuditLogJpaEntity {
     private UserJpaEntity user;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "action", nullable = false)
     private AuditAction action;
 
@@ -37,11 +36,11 @@ public class AuditLogJpaEntity {
     private Long affectedEntityId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "before_data", columnDefinition = "jsonb")
+    @Column(name = "before_data", columnDefinition = "json")
     private Map<String, Object> beforeData;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "after_data", columnDefinition = "jsonb")
+    @Column(name = "after_data", columnDefinition = "json")
     private Map<String, Object> afterData;
 
     @Column(name = "created_at", nullable = false)

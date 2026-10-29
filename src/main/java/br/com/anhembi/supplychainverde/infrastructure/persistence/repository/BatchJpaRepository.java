@@ -29,12 +29,12 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
     long countActiveBatches();
 
     @Query(value = """
-            select b.id as "batchId",
-                   p.name as "productName",
-                   s.name as "supplierName",
-                   b.quantity as "quantity",
-                   cast(p.unit as text) as "unit",
-                   cast(latest.stage_type as text) as "status"
+            select b.id as batchId,
+                   p.name as productName,
+                   s.name as supplierName,
+                   b.quantity as quantity,
+                   p.unit as unit,
+                   latest.stage_type as status
             from batch b
             join product p on p.id = b.product_id
             join supplier s on s.id = b.supplier_id
