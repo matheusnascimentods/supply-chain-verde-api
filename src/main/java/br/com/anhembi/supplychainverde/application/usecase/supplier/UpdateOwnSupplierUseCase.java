@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierResponse
 import br.com.anhembi.supplychainverde.application.dto.supplier.UpdateOwnSupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
+import br.com.anhembi.supplychainverde.application.usecase.user.OwnAccountChanges;
 import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.entity.User;
@@ -11,7 +12,6 @@ import br.com.anhembi.supplychainverde.domain.exception.SupplierNotFoundExceptio
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
-import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ public class UpdateOwnSupplierUseCase {
     private final SupplierRepository supplierRepository;
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
-    private final PasswordHasher passwordHasher;
+    private final OwnAccountChanges ownAccountChanges;
     private final GetSupplierUseCase getSupplier;
     private final AddressDtoMapper addressMapper;
 
@@ -37,13 +37,7 @@ public class UpdateOwnSupplierUseCase {
 
         // Valida tudo antes de gravar qualquer coisa.
         if (isBlankWhenSent(request.name())) throw new ValidationException("Razão social não pode ser vazia.");
-        if (isBlankWhenSent(request.userName())) throw new ValidationException("Nome do usuário não pode ser vazio.");
-        if (request.newPassword() != null) {
-            if (request.newPassword().isBlank()) throw new ValidationException("Nova senha não pode ser vazia.");
-            if (request.currentPassword() == null || !passwordHasher.matches(request.currentPassword(), user.getPassword())) {
-                throw new ValidationException("Senha atual incorreta.");
-            }
-        }
+        ownAccountChanges.validate(user, request.userName(), request.currentPassword(), request.newPassword());
 
         if (request.name() != null) supplier.setName(request.name());
         if (request.phone() != null) supplier.setPhone(request.phone());
@@ -54,9 +48,7 @@ public class UpdateOwnSupplierUseCase {
         }
         supplierRepository.save(supplier);
 
-        if (request.userName() != null || request.newPassword() != null) {
-            if (request.userName() != null) user.setName(request.userName());
-            if (request.newPassword() != null) user.setPassword(passwordHasher.hash(request.newPassword()));
+        if (ownAccountChanges.apply(user, request.userName(), request.newPassword())) {
             userRepository.save(user);
         }
         return getSupplier.execute(supplierId);
