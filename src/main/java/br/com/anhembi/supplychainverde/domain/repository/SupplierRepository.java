@@ -34,7 +34,7 @@ public interface SupplierRepository {
     long countBySearch(String search, boolean withoutUser);
     List<Long> findIdsRankedByScore(String search, boolean withoutUser, int limit, int offset);
     List<SupplierScore> findScoresByIds(Collection<Long> supplierIds);
-    record SupplierScore(Long supplierId, BigDecimal sustainabilityScore, Integer activeCertificationCount, BigDecimal totalCo2Kg) {}
+    record SupplierScore(Long supplierId, BigDecimal sustainabilityScore, Long activeCertificationCount, BigDecimal totalCo2Kg) {}
 
     record SupplierEmissionRank(Long supplierId, BigDecimal co2KgPerUnit) {};
 

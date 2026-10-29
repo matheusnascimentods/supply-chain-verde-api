@@ -1,22 +1,23 @@
 services:
-  postgres:
-    build: docker/postgres
+  mysql:
+    image: mysql:8.4
     container_name: supply-chain-verde-db
     restart: unless-stopped
+    command: --default-time-zone=America/Sao_Paulo --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_as_cs
     environment:
-      POSTGRES_DB: supply_chain_verde
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      MYSQL_DATABASE: supply_chain_verde
+      MYSQL_ROOT_PASSWORD: root
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d supply_chain_verde"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
-  postgres_data:
+  mysql_data:
     driver: local

@@ -3,8 +3,6 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,7 +35,6 @@ public class ChainJpaEntity {
     private UserJpaEntity responsibleUser;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "stage_type", nullable = false)
     private StageType stageType;
 

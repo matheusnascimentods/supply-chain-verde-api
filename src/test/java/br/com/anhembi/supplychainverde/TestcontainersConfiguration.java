@@ -1,29 +1,36 @@
 package br.com.anhembi.supplychainverde;
 
-import java.nio.file.Path;
-
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
-import org.testcontainers.images.builder.ImageFromDockerfile;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import org.springframework.test.context.DynamicPropertyRegistrar;
+import org.testcontainers.mysql.MySQLContainer;
+import org.testcontainers.utility.MountableFile;
 
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
 
-	// Mesma imagem do docker-compose: a migration do pg_cron precisa da extensão.
-	private static final String IMAGE = new ImageFromDockerfile("supply-chain-verde-postgres", false)
-			.withDockerfile(Path.of("docker/postgres/Dockerfile"))
-			.get();
-
+	// Mesma imagem, flags e init do docker-compose: o init cria supply_app e supply_audit.
 	@Bean
-	@ServiceConnection
-	PostgreSQLContainer postgresContainer() {
-		return new PostgreSQLContainer(DockerImageName.parse(IMAGE).asCompatibleSubstituteFor("postgres"))
+	MySQLContainer mysqlContainer() {
+		return new MySQLContainer("mysql:8.4")
 				.withDatabaseName("supply_chain_verde")
-				.withCommand("postgres", "-c", "fsync=off",
-						"-c", "shared_preload_libraries=pg_cron", "-c", "cron.database_name=supply_chain_verde");
+				.withUsername("root")
+				.withPassword("root")
+				.withUrlParam("connectionTimeZone", "SERVER")
+				.withCopyFileToContainer(MountableFile.forHostPath("docker/mysql/init"), "/docker-entrypoint-initdb.d")
+				.withCommand("--default-time-zone=America/Sao_Paulo", "--character-set-server=utf8mb4",
+						"--collation-server=utf8mb4_0900_as_cs");
+	}
+
+	// Sem @ServiceConnection: ele entregaria um usuário só. A API conecta como supply_app (usuário e senha de
+	// application.properties) e o Flyway como root.
+	@Bean
+	DynamicPropertyRegistrar mysqlProperties(MySQLContainer mysql) {
+		return registry -> {
+			registry.add("spring.datasource.url", mysql::getJdbcUrl);
+			registry.add("spring.flyway.user", mysql::getUsername);
+			registry.add("spring.flyway.password", mysql::getPassword);
+		};
 	}
 
 }

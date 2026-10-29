@@ -101,7 +101,7 @@ class RankSuppliersBySustainabilityUseCaseTest {
     @SuppressWarnings("unchecked")
     private void stubScores() {
         when(suppliers.findScoresByIds(any())).thenAnswer(invocation -> ((Collection<Long>) invocation.getArgument(0)).stream()
-                .map(id -> new SupplierScore(id, new BigDecimal("100.00"), 0, BigDecimal.ZERO))
+                .map(id -> new SupplierScore(id, new BigDecimal("100.00"), 0L, BigDecimal.ZERO))
                 .toList());
     }
 

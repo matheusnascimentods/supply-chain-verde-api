@@ -3,8 +3,6 @@ package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,7 +28,6 @@ public class UserJpaEntity {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "role", nullable = false)
     private UserRole role;
 

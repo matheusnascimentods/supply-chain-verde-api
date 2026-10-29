@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
@@ -45,11 +46,10 @@ class StageOrderIT {
     @BeforeEach
     void setUp() {
         userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
-        batchId = jdbcTemplate.queryForObject("""
+        batchId = insert(jdbcTemplate, """
                 INSERT INTO batch (product_id, supplier_id, quantity, produced_at)
                 VALUES ((SELECT MIN(id) FROM product), (SELECT MIN(id) FROM supplier), 10, CURRENT_DATE)
-                RETURNING id
-                """, Long.class);
+                """);
     }
 
     @Test
@@ -78,7 +78,7 @@ class StageOrderIT {
     @Test
     void constraintViolationFromConcurrentRequestIsBadRequest() {
         var violation = new DataIntegrityViolationException("insert", new RuntimeException(
-                "ERROR: duplicate key value violates unique constraint \"uq_chain_batch_stage\""));
+                "Duplicate entry '1-PRODUCTION' for key 'chain.uq_chain_batch_stage'"));
 
         var response = new GlobalExceptionHandler().handleDataIntegrityViolation(violation);
 
@@ -99,17 +99,15 @@ class StageOrderIT {
     }
 
     private long insertStage(String stageType) {
-        return jdbcTemplate.queryForObject("""
+        return insert(jdbcTemplate, """
                 INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at)
-                VALUES (?, ?, ?::stage_type, NOW()) RETURNING id
-                """, Long.class, batchId, userId, stageType);
+                VALUES (?, ?, ?, NOW())
+                """, batchId, userId, stageType);
     }
 
-    // Erro aborta a transação do Postgres; o savepoint deixa o teste continuar na mesma transação.
+    // No MySQL o erro desfaz só a instrução; a transação do teste continua.
     private void assertViolates(String constraint, Runnable statement) {
-        jdbcTemplate.execute("SAVEPOINT before_violation");
         assertThatThrownBy(statement::run).hasMessageContaining(constraint);
-        jdbcTemplate.execute("ROLLBACK TO SAVEPOINT before_violation");
     }
 
     private UsernamePasswordAuthenticationToken asManager() {

@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.SupplierJpaMapper;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.FullTextSearch;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.SupplierJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -45,7 +46,7 @@ public class SupplierRepositoryImpl implements SupplierRepository {
     @Transactional(readOnly = true)
     public List<Supplier> findBySearch(String search) {
         String cnpjSearch = search.replaceAll("\\D", "");
-        return jpaRepository.findBySearch(search, cnpjSearch).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findBySearch(FullTextSearch.booleanQuery(search), cnpjSearch).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -71,6 +72,7 @@ public class SupplierRepositoryImpl implements SupplierRepository {
                 category == null ? null : category.name(),
                 unit == null ? null : unit.name(),
                 search,
+                FullTextSearch.booleanQuery(search),
                 search.replaceAll("\\D", ""),
                 limit,
                 offset);
@@ -78,12 +80,12 @@ public class SupplierRepositoryImpl implements SupplierRepository {
 
     @Override
     public long countBySearch(String search, boolean withoutUser) {
-        return jpaRepository.countBySearch(search, search.replaceAll("\\D", ""), withoutUser);
+        return jpaRepository.countBySearch(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""), withoutUser);
     }
 
     @Override
     public List<Long> findIdsRankedByScore(String search, boolean withoutUser, int limit, int offset) {
-        return jpaRepository.findIdsRankedByScore(search, search.replaceAll("\\D", ""), withoutUser, limit, offset);
+        return jpaRepository.findIdsRankedByScore(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""), withoutUser, limit, offset);
     }
 
     @Override

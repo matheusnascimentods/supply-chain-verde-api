@@ -22,13 +22,13 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
     @Query(value = """
             SELECT p.id, p.name, p.category, p.unit, p.description
             FROM product p
-            WHERE to_tsvector('portuguese'::regconfig, coalesce(p.name, '') || ' ' || coalesce(p.description, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:categoryCode <> '' AND lower(p.category::text) = lower(:categoryCode))
+            WHERE MATCH(p.name, p.description) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR (:categoryCode <> '' AND p.category = :categoryCode)
             ORDER BY p.id ASC
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<ProductJpaEntity> findBySearch(
-            @Param("search") String search,
+            @Param("booleanSearch") String booleanSearch,
             @Param("categoryCode") String categoryCode,
             @Param("limit") int limit,
             @Param("offset") int offset
@@ -37,11 +37,11 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
     @Query(value = """
             SELECT COUNT(*)
             FROM product p
-            WHERE to_tsvector('portuguese'::regconfig, coalesce(p.name, '') || ' ' || coalesce(p.description, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:categoryCode <> '' AND lower(p.category::text) = lower(:categoryCode))
+            WHERE MATCH(p.name, p.description) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR (:categoryCode <> '' AND p.category = :categoryCode)
             """, nativeQuery = true)
     long countBySearch(
-            @Param("search") String search,
+            @Param("booleanSearch") String booleanSearch,
             @Param("categoryCode") String categoryCode
     );
 }

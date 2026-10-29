@@ -4,8 +4,6 @@ import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "product")
@@ -24,12 +22,10 @@ public class ProductJpaEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "category", nullable = false)
     private ProductCategory category;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "unit", nullable = false)
     private ProductUnit unit;
 

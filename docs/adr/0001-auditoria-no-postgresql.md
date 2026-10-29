@@ -14,7 +14,9 @@ A tabela substituta começará vazia. Os registros legados não serão copiados 
 
 ## Status
 
-**Decidida; implementação concluída, implantação pendente.** A migration V29, as triggers, a propagação transacional do ator e o adaptador somente leitura foram implementados e validados em PostgreSQL via Testcontainers. A aplicação em ambientes implantados depende da execução da migration; até lá, esta ADR não afirma que triggers ou `app.user_id` estejam ativos nesses ambientes.
+**Substituída parcialmente pela [ADR 0002](0002-migracao-para-mysql.md)**, que leva a auditoria por trigger para o MySQL e muda o escopo do ator (sessão + limpeza no fim da transação), a role owner (DEFINER bloqueado) e a busca textual. O texto abaixo descreve a implementação PostgreSQL original.
+
+Decidida; implementação concluída, implantação pendente. A migration V29, as triggers, a propagação transacional do ator e o adaptador somente leitura foram implementados e validados em PostgreSQL via Testcontainers. A aplicação em ambientes implantados depende da execução da migration; até lá, esta ADR não afirma que triggers ou `app.user_id` estejam ativos nesses ambientes.
 
 ## Group
 

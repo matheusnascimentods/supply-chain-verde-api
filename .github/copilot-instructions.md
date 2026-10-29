@@ -31,7 +31,7 @@ domain <- application <- infrastructure
 - DTOs e Value Objects são `record`.
 - Entidades de domínio são classes; entidades JPA são classes mutáveis com construtor sem argumentos e Lombok.
 - Mappers são interfaces MapStruct com `@Mapper(componentModel = "spring")`; nunca escreva manualmente a implementação gerada.
-- Enums do domínio e do schema PostgreSQL não devem ser substituídos por `String`.
+- Enums do domínio e do schema MySQL não devem ser substituídos por `String`.
 - IDs e FKs usam o padrão `entityId`; datas e timestamps usam `xAt`.
 - Casos de uso não gravam `AuditLog` manualmente; a auditoria é responsabilidade do `AuditLogInterceptor`.
 - Senhas nunca são persistidas em texto puro; use a abstração `PasswordHasher` e BCrypt na infraestrutura.

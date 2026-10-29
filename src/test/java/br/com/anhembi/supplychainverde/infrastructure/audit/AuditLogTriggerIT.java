@@ -15,7 +15,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.time.LocalDate;
@@ -25,12 +28,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestPropertySource(properties = "spring.datasource.hikari.maximum-pool-size=1")
 class AuditLogTriggerIT {
     @Autowired
     private AuditActorContextAspect actorContextAspect;
@@ -40,6 +46,9 @@ class AuditLogTriggerIT {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -62,17 +71,16 @@ class AuditLogTriggerIT {
         ));
         actorContextAspect.setAuthenticatedActorForTransaction();
 
-        Long addressId = jdbcTemplate.queryForObject("""
+        Long addressId = insert(jdbcTemplate, """
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
                 VALUES ('Rua Um', '10', 'Centro', '01000-000', 'Santos', 'SP')
-                RETURNING id
-                """, Long.class);
+                """);
         jdbcTemplate.update("UPDATE address SET city = city WHERE id = ?", addressId);
         jdbcTemplate.update("UPDATE address SET city = ? WHERE id = ?", "Campinas", addressId);
         jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
 
         List<AuditEvent> events = jdbcTemplate.query("""
-                SELECT action::TEXT, user_id, affected_entity_id, before_data::TEXT, after_data::TEXT
+                SELECT action, user_id, affected_entity_id, before_data, after_data
                 FROM audit_log
                 WHERE affected_table = 'address' AND affected_entity_id = ?
                 ORDER BY id
@@ -108,15 +116,14 @@ class AuditLogTriggerIT {
         assertThat(events.get(2).afterData()).isNull();
 
         Long supplierId = jdbcTemplate.queryForObject("SELECT id FROM supplier ORDER BY id LIMIT 1", Long.class);
-        Long certificationId = jdbcTemplate.queryForObject("""
+        Long certificationId = insert(jdbcTemplate, """
                 INSERT INTO certification (supplier_id, certification, issuing_body, issued_at, expires_at, status)
-                VALUES (?, 'Teste de auditoria', 'Laboratório', CURRENT_DATE, CURRENT_DATE + 30, 'ACTIVE')
-                RETURNING id
-                """, Long.class, supplierId);
+                VALUES (?, 'Teste de auditoria', 'Laboratório', CURRENT_DATE, CURRENT_DATE + INTERVAL 30 DAY, 'ACTIVE')
+                """, supplierId);
         jdbcTemplate.update("UPDATE certification SET status = 'SUSPENDED' WHERE id = ?", certificationId);
 
         List<AuditEvent> certificationEvents = jdbcTemplate.query("""
-                SELECT action::TEXT, user_id, affected_entity_id, before_data::TEXT, after_data::TEXT
+                SELECT action, user_id, affected_entity_id, before_data, after_data
                 FROM audit_log
                 WHERE affected_table = 'certification' AND affected_entity_id = ?
                 ORDER BY id
@@ -152,12 +159,11 @@ class AuditLogTriggerIT {
 
     @Test
     void touchesUpdatedAtOnlyWhenTheRowChanges() {
-        Long addressId = jdbcTemplate.queryForObject("""
+        Long addressId = insert(jdbcTemplate, """
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state, created_at, updated_at)
                 VALUES ('Rua Dois', '20', 'Centro', '01000-000', 'Santos', 'SP', '2020-01-01', '2020-01-01')
-                RETURNING id
-                """, Long.class);
-        String updatedAt = "SELECT updated_at::TEXT FROM address WHERE id = ?";
+                """);
+        String updatedAt = "SELECT updated_at FROM address WHERE id = ?";
         String original = jdbcTemplate.queryForObject(updatedAt, String.class, addressId);
 
         jdbcTemplate.update("UPDATE address SET city = city WHERE id = ?", addressId);
@@ -165,7 +171,45 @@ class AuditLogTriggerIT {
 
         jdbcTemplate.update("UPDATE address SET city = 'Campinas' WHERE id = ?", addressId);
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT updated_at = now() FROM address WHERE id = ?", Boolean.class, addressId)).isTrue();
+                "SELECT updated_at > '2020-01-01' FROM address WHERE id = ?", Boolean.class, addressId)).isTrue();
+    }
+
+    @Test
+    void appUserCannotWriteAuditLogDirectly() {
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "INSERT INTO audit_log (action, affected_table, affected_entity_id) VALUES ('INSERT', 'address', 1)"))
+                .rootCause().hasMessageContaining("INSERT command denied");
+        assertThatThrownBy(() -> jdbcTemplate.update("DELETE FROM audit_log"))
+                .rootCause().hasMessageContaining("DELETE command denied");
+    }
+
+    // @app_user_id é da sessão: com pool de uma conexão, a escrita seguinte sem aspect não pode herdar o ator.
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void doesNotLeakActorToTheNextWriteOnTheSameConnection() {
+        Long actorId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new CustomUserPrincipal(actorId, "actor@example.com", "ADMIN", null), null, List.of()));
+        Long addressId = transactionTemplate.execute(status -> {
+            actorContextAspect.setAuthenticatedActorForTransaction();
+            return insert(jdbcTemplate, """
+                    INSERT INTO address (street, number, neighborhood, zip_code, city, state)
+                    VALUES ('Rua Três', '30', 'Centro', '01000-000', 'Santos', 'SP')
+                    """);
+        });
+        SecurityContextHolder.clearContext();
+
+        try {
+            transactionTemplate.executeWithoutResult(status ->
+                    jdbcTemplate.update("UPDATE address SET city = 'Campinas' WHERE id = ?", addressId));
+
+            List<Long> actors = jdbcTemplate.queryForList("""
+                    SELECT user_id FROM audit_log WHERE affected_table = 'address' AND affected_entity_id = ? ORDER BY id
+                    """, Long.class, addressId);
+            assertThat(actors).containsExactly(actorId, null);
+        } finally {
+            jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
+        }
     }
 
     private record AuditEvent(

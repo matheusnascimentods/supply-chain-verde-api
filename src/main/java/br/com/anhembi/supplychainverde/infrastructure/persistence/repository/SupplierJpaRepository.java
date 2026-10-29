@@ -27,31 +27,29 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
     @Query(value = """
             SELECT s.*
             FROM supplier s
-            WHERE to_tsvector('portuguese'::regconfig, coalesce(s.name, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%')
+            WHERE MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%'))
             """, nativeQuery = true)
     List<SupplierJpaEntity> findBySearch(
-            @Param("search") String search,
+            @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch
     );
 
     boolean existsByCnpj(String cnpj);
 
     @Query(value = """
-            SELECT s.id AS "supplierId",
-                   ROUND(SUM(v.total_co2_kg) / NULLIF(SUM(v.total_quantity), 0), 4) AS "co2KgPerUnit"
+            SELECT s.id AS supplierId,
+                   ROUND(SUM(v.total_co2_kg) / NULLIF(SUM(v.total_quantity), 0), 4) AS co2KgPerUnit
             FROM supplier s
             LEFT JOIN vw_supplier_product_emission v
                    ON v.supplier_id = s.id
-                  AND (v.product_id = CAST(:productId AS BIGINT)
-                       OR (CAST(:productId AS BIGINT) IS NULL
-                           AND v.category = CAST(:category AS product_category)
-                           AND v.unit = CAST(:unit AS product_unit)))
+                  AND (v.product_id = :productId
+                       OR (:productId IS NULL AND v.category = :category AND v.unit = :unit))
             WHERE :search = ''
-               OR to_tsvector('portuguese'::regconfig, coalesce(s.name, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%')
+               OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%'))
             GROUP BY s.id
-            ORDER BY "co2KgPerUnit" ASC NULLS LAST, s.id
+            ORDER BY co2KgPerUnit IS NULL, co2KgPerUnit, s.id
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<SupplierEmissionRank> findRankedByEmission(
@@ -59,7 +57,8 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
             @Param("category") String category,
             @Param("unit") String unit,
             @Param("search") String search,
-            @Param("cnpjSearch") String cnpjSearch  ,
+            @Param("booleanSearch") String booleanSearch,
+            @Param("cnpjSearch") String cnpjSearch,
             @Param("limit") int limit,
             @Param("offset") int offset
     );
@@ -68,11 +67,12 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
             SELECT COUNT(*)
             FROM supplier s
             WHERE (:search = ''
-               OR to_tsvector('portuguese'::regconfig, coalesce(s.name, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%'))
+               OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
               AND (:withoutUser = false OR s.user_id IS NULL)
             """, nativeQuery = true)
-    long countBySearch(@Param("search") String search, @Param("cnpjSearch") String cnpjSearch,
+    long countBySearch(@Param("search") String search, @Param("booleanSearch") String booleanSearch,
+            @Param("cnpjSearch") String cnpjSearch,
             @Param("withoutUser") boolean withoutUser);
 
     @Query(value = """
@@ -80,14 +80,15 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
             FROM supplier s
             JOIN vw_supplier_sustainability v ON v.supplier_id = s.id
             WHERE (:search = ''
-               OR to_tsvector('portuguese'::regconfig, coalesce(s.name, '')) @@ websearch_to_tsquery('portuguese', :search)
-               OR (:cnpjSearch <> '' AND regexp_replace(s.cnpj::text, '[^0-9]', '', 'g') LIKE '%' || :cnpjSearch || '%'))
+               OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
               AND (:withoutUser = false OR s.user_id IS NULL)
             ORDER BY v.sustainability_score DESC, s.id
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<Long> findIdsRankedByScore(
             @Param("search") String search,
+            @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
             @Param("withoutUser") boolean withoutUser,
             @Param("limit") int limit,
@@ -95,10 +96,10 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
     );
 
     @Query(value = """
-            SELECT supplier_id AS "supplierId",
-                   sustainability_score AS "sustainabilityScore",
-                   CAST(active_certifications AS INTEGER) AS "activeCertificationCount",
-                   total_co2_kg AS "totalCo2Kg"
+            SELECT supplier_id AS supplierId,
+                   sustainability_score AS sustainabilityScore,
+                   active_certifications AS activeCertificationCount,
+                   total_co2_kg AS totalCo2Kg
             FROM vw_supplier_sustainability
             WHERE supplier_id IN (:supplierIds)
             """, nativeQuery = true)

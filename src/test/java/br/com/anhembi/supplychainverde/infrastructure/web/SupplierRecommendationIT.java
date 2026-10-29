@@ -10,8 +10,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,8 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @WithMockUser
 class SupplierRecommendationIT {
-    // Todos os fornecedores do teste têm este termo no nome; a busca isola-os do seed das migrations.
+    // Todos os fornecedores do teste têm este termo no nome e esta raiz de CNPJ. O FULLTEXT do InnoDB só vê
+    // linhas commitadas, então os testes transacionais isolam pelo CNPJ; o de busca por nome faz commit.
     private static final String SEARCH = "Zpkrecomenda";
+    private static final String CNPJ_ROOT = "98765432";
 
     @Autowired
     private MockMvc mockMvc;
@@ -33,16 +38,18 @@ class SupplierRecommendationIT {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     private long addressId;
     private long userId;
 
     @BeforeEach
     void setUp() {
-        addressId = jdbcTemplate.queryForObject("""
+        addressId = insert(jdbcTemplate, """
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
                 VALUES ('Rua Teste', '1', 'Centro', '01000000', 'São Paulo', 'SP')
-                RETURNING id
-                """, Long.class);
+                """);
         userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
     }
 
@@ -58,7 +65,7 @@ class SupplierRecommendationIT {
         mockMvc.perform(get("/api/v1/suppliers")
                         .param("ranked", "true")
                         .param("productId", String.valueOf(product))
-                        .param("search", SEARCH))
+                        .param("search", CNPJ_ROOT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(3)))
                 .andExpect(jsonPath("$.items[0].supplierId").value(clean))
@@ -87,7 +94,7 @@ class SupplierRecommendationIT {
                         .param("ranked", "true")
                         .param("category", "FORESTRY")
                         .param("unit", "KG")
-                        .param("search", SEARCH))
+                        .param("search", CNPJ_ROOT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].supplierId").value(steady))
                 .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(0.5))
@@ -101,10 +108,29 @@ class SupplierRecommendationIT {
     void keepsPlainRankingWithoutCo2PerUnit() throws Exception {
         supplier("Eta", "98765432000198");
 
-        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", SEARCH))
+        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", CNPJ_ROOT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(nullValue()));
+    }
+
+    // Cada palavra é obrigatória e casa por prefixo, sem diferenciar maiúsculas.
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void searchesNameByEveryTermAsPrefix() throws Exception {
+        long supplierId = transactionTemplate.execute(status -> supplier("Cooperativa Sustentável", "98765432000198"));
+        try {
+            mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", "zpkrecom sustent"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items", hasSize(1)))
+                    .andExpect(jsonPath("$.items[0].supplierId").value(supplierId));
+            mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", SEARCH + " inexistente"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items", hasSize(0)));
+        } finally {
+            jdbcTemplate.update("DELETE FROM supplier WHERE id = ?", supplierId);
+            jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
+        }
     }
 
     @Test
@@ -127,26 +153,24 @@ class SupplierRecommendationIT {
     }
 
     private long product(String category, String unit) {
-        return jdbcTemplate.queryForObject(
-                "INSERT INTO product (name, category, unit) VALUES ('Produto teste', ?::product_category, ?::product_unit) RETURNING id",
-                Long.class, category, unit);
+        return insert(jdbcTemplate,
+                "INSERT INTO product (name, category, unit) VALUES ('Produto teste', ?, ?)", category, unit);
     }
 
     private long supplier(String name, String cnpj) {
-        return jdbcTemplate.queryForObject(
-                "INSERT INTO supplier (name, cnpj, address_id) VALUES (?, ?, ?) RETURNING id",
-                Long.class, SEARCH + " " + name, cnpj, addressId);
+        return insert(jdbcTemplate,
+                "INSERT INTO supplier (name, cnpj, address_id) VALUES (?, ?, ?)", SEARCH + " " + name, cnpj, addressId);
     }
 
     private void batch(long supplierId, long productId, String quantity, String co2Kg) {
-        long batchId = jdbcTemplate.queryForObject(
-                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, ?::numeric, CURRENT_DATE) RETURNING id",
-                Long.class, productId, supplierId, quantity);
-        long chainId = jdbcTemplate.queryForObject(
-                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW()) RETURNING id",
-                Long.class, batchId, userId);
+        long batchId = insert(jdbcTemplate,
+                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, ?, CURRENT_DATE)",
+                productId, supplierId, quantity);
+        long chainId = insert(jdbcTemplate,
+                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW())",
+                batchId, userId);
         jdbcTemplate.update(
-                "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?::numeric, 'IPCC')",
+                "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'IPCC')",
                 chainId, co2Kg);
     }
 }
