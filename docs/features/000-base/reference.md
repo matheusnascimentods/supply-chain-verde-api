@@ -47,7 +47,7 @@ Base path: `/api/v1`.
 | Recurso | Rotas principais | Acesso |
 |---|---|---|
 | Auth | `POST /auth/login` | Público |
-| Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`), `GET /users/me`, `PATCH /users/{userId}/role` | Listagem: `ADMIN`; `/me`: autenticado; demais conforme RBAC |
+| Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`), `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`; resposta igual ao `GET /users/me`), `PATCH /users/{userId}/role` | Listagem: `ADMIN`; `/me` (GET e PATCH): autenticado; demais conforme RBAC |
 | Suppliers | `POST`, `PUT`, `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`; busca por nome/CNPJ). Cada item da lista e do ranking contém dados cadastrais, métricas de sustentabilidade, `reportCount` e a lista `certifications` (id, nome, emissor, datas de emissão/validade e status) | Conforme RBAC |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE` (paginada; filtro de status opcional, padrão 20, máximo 100), `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status` | Consulta: `AUDITOR`, `MANAGER`, `ADMIN` |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}` (resposta paginada com `items`, `limit`, `offset`, `hasNext`, `totalPages`; busca por nome, descrição ou categoria) | Conforme RBAC |

@@ -3,6 +3,7 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.supplier.UpdateOwnSupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.usecase.user.OwnAccountChanges;
 import br.com.anhembi.supplychainverde.domain.entity.Supplier;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
@@ -30,7 +31,7 @@ class UpdateOwnSupplierUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
     private final PasswordHasher hasher = mock(PasswordHasher.class);
     private final UpdateOwnSupplierUseCase useCase =
-            new UpdateOwnSupplierUseCase(suppliers, addresses, users, hasher, mock(GetSupplierUseCase.class), DtoMappers.ADDRESS);
+            new UpdateOwnSupplierUseCase(suppliers, addresses, users, new OwnAccountChanges(hasher), mock(GetSupplierUseCase.class), DtoMappers.ADDRESS);
     private final Supplier supplier = Supplier.builder().supplierId(7L).name("Antiga").phone("1100000000").userId(3L).build();
     private final User user = User.builder().userId(3L).name("Ana").password("hash-atual").build();
 
