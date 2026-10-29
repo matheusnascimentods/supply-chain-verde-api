@@ -29,6 +29,7 @@ public class UserController {
     private final RegisterUserUseCase register;
     private final UpdateUserRoleUseCase updateRole;
     private final ListUsersUseCase list;
+    private final UpdateOwnUserUseCase updateOwn;
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
 
@@ -63,6 +64,18 @@ public class UserController {
                 .map(user -> new UserResponseDTO(user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(),
                         principal.supplierId(), supplierName(principal.supplierId())))
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + principal.userId()));
+    }
+
+    @PatchMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Atualizar o próprio usuário",
+            description = "Qualquer perfil autenticado. Atualiza o usuário do token. Todos os campos são opcionais e só os enviados são alterados: userName e newPassword, que exige currentPassword. Senha atual ausente ou incorreta, ou userName/newPassword vazios, retornam 400 sem alterar nada. Email e perfil não são editáveis e são ignorados se enviados. A resposta tem o mesmo formato de GET /users/me."
+    )
+    public UserResponseDTO updateMe(@RequestBody UpdateOwnUserRequestDTO request,
+                                    @AuthenticationPrincipal CustomUserPrincipal principal) {
+        updateOwn.execute(principal.userId(), request);
+        return me(principal);
     }
 
     @PatchMapping("/{userId}/role")
