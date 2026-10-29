@@ -1,5 +1,5 @@
 -- Consultas de relatório sobre as views e procedures (A3, entregável #4).
--- Só leitura, exceto os CALL do fim. Rodar com: psql -d supply_chain_verde -f docs/sql/consultas-relatorio.sql
+-- Só leitura, exceto os CALL do fim. Rodar com: mysql -u root -p supply_chain_verde < docs/sql/consultas-relatorio.sql
 
 -- Top 5 fornecedores com menor CO₂ por kg de produtos agrícolas
 SELECT s.name, v.co2_kg_per_unit
@@ -41,12 +41,15 @@ JOIN supplier s ON s.id = r.supplier_id
 ORDER BY r.created_at DESC
 LIMIT 10;
 
--- Agendamento e histórico do pg_cron
-SELECT jobname, schedule, command FROM cron.job;
-SELECT status, return_message, start_time FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
+-- Agendamento do event scheduler
+SELECT event_name, interval_value, interval_field, starts, last_executed, status
+FROM information_schema.events
+WHERE event_schema = 'supply_chain_verde';
 
 -- Procedures (escrevem dados; rodar dentro de uma transação para demonstrar e desfazer)
-BEGIN;
-CALL sp_generate_sustainability_report(1, DATE '2025-01-01', DATE '2026-12-31', NULL);
-CALL sp_expire_certifications();
+START TRANSACTION;
+CALL sp_generate_sustainability_report(1, DATE '2025-01-01', DATE '2026-12-31', @report_id);
+SELECT @report_id;
+CALL sp_expire_certifications(@expired_count);
+SELECT @expired_count;
 ROLLBACK;

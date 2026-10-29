@@ -2,7 +2,7 @@
 
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.4_LTS-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 ![Flyway](https://img.shields.io/badge/Flyway-Migrations-CC0200?style=for-the-badge&logo=flyway&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
@@ -20,13 +20,13 @@ sequenceDiagram
     participant API as API (Controller)
     participant UC as Application (Use Case)
     participant Domain as Domain Services
-    participant DB as PostgreSQL
+    participant DB as MySQL
 
     User->>API: POST /api/v1/batches/{batchId}/stages (Registrar Etapa)
     API->>UC: RegisterChainStageUseCase.execute(dto)
     UC->>Domain: CarbonFootprintCalculator.calculate(distancia, modal, combustivel)
     Domain-->>UC: Emissão Calculada (CO₂ kg + Fator Vigente)
-    API->>DB: set_config('app.user_id', userId, true) na transação
+    API->>DB: SET @app_user_id = userId (limpo ao fim da transação)
     UC->>DB: Persistir Chain, Transport e CarbonEmission
     DB-->>DB: Triggers gravam eventos e snapshots atomicamente
     API-->>User: 201 Created (Dados da Etapa e Pegada de Carbono)
@@ -55,13 +55,13 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 - **Cálculo de Emissão Confiável**: Emissões calculadas por modais e combustíveis com fixação da metodologia e fator de emissão vigente para auditoria contábil retroativa imutável.
 - **Validação de Certificações**: Monitoramento proativo de certificações ativas, vencidas ou suspensas de fornecedores.
 - **Ranking Dinâmico de Sustentabilidade**: Cálculo de score sob demanda com base em certificações ativas e histórico de emissões, evitando dados derivados desatualizados no banco.
-- **Auditoria Automática**: Triggers PostgreSQL registram alterações nas tabelas de negócio; a API fornece o ator autenticado no contexto local da transação e apenas consulta os eventos.
+- **Auditoria Automática**: Triggers MySQL registram alterações nas tabelas de negócio; a API fornece o ator autenticado antes de cada escrita e apenas consulta os eventos.
 
 ---
 
 ## 🎯 Diferenciais
 - **Clean Architecture Pura**: Camada de domínio agnóstica a frameworks e bibliotecas externas.
-- **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSONB, excluindo colunas internas de busca textual; consulte [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e as garantias transacionais.
+- **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSON; consulte a [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e a [ADR 0002](docs/adr/0002-migracao-para-mysql.md) para como ele é garantido no MySQL.
 - **Imutabilidade Histórica de Emissões**: Mudanças em tabelas de referência de emissão não afetam registros históricos passados, garantindo conformidade com normas ESG.
 - **Rastreabilidade Pública via QR Code**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
 - **Configuração Sem Arquivos `.env`**: Configuração centralizada em `application.properties` utilizando placeholders flexíveis (`${VAR:default}`), pronta para rodar localmente ou em contêineres sem necessidade de arquivos `.env`.
@@ -74,12 +74,12 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 |---|---|
 | **Linguagem** | Java 25 (LTS) |
 | **Framework** | Spring Boot 4.0.8 (WebMVC, Data JPA, Security, Validation, Actuator) |
-| **Banco de Dados** | PostgreSQL 17 |
+| **Banco de Dados** | MySQL 8.4 LTS |
 | **Database Migrations** | Flyway (SQL versionado puro) |
 | **Mapeamento Objeto-Objeto** | MapStruct 1.6.3 |
 | **Segurança & Tokens** | Spring Security + JJWT 0.12.6 (HMAC-SHA256) |
 | **Boilerplate Reduction** | Project Lombok |
-| **Testes** | JUnit 5, Mockito, Testcontainers (PostgreSQL) |
+| **Testes** | JUnit 5, Mockito, Testcontainers (MySQL) |
 | **Containerização** | Docker & Docker Compose |
 
 ---
@@ -105,8 +105,8 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Fase 5 — Web Layer concluída**: controllers REST, tratamento global de exceções, CORS e documentação OpenAPI/Swagger.
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
 - **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
-- **Auditoria — implementação atual**: captura por triggers PostgreSQL na migration V29; aplicação nos ambientes depende do rollout coordenado descrito na [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md).
-- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada pelo `pg_cron` (V36–V38). Ordem obrigatória das etapas garantida por constraints (V39). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
+- **Auditoria — implementação atual**: captura por triggers MySQL na migration V5, com DEFINER próprio e grants por tabela ([ADR 0002](docs/adr/0002-migracao-para-mysql.md)).
+- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada por um `EVENT` do MySQL (V3–V4). Ordem obrigatória das etapas garantida por constraints (V1). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
@@ -123,11 +123,11 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 
 ## 🗄️ Banco de Dados
 
-PostgreSQL 17 com a extensão `pg_cron`, versionado por migrations Flyway em [`src/main/resources/db/migration`](src/main/resources/db/migration). Grande parte da regra de dados vive no próprio banco: constraints, triggers de auditoria, views de relatório e procedures.
+MySQL 8.4 LTS, versionado por migrations Flyway em [`src/main/resources/db/migration`](src/main/resources/db/migration). Grande parte da regra de dados vive no próprio banco: constraints, triggers de auditoria, views de relatório, procedures e o event de expiração. As migrations recomeçam em V1: o histórico PostgreSQL (V1–V39) fica no git ([feature 008](docs/features/008-migracao-mysql/spec.md)).
 
 ### Modelo de dados
 
-Todas as tabelas têm `created_at` e `updated_at` (`TIMESTAMPTZ`, mantidos por trigger), omitidos abaixo.
+Todas as tabelas têm `created_at` e `updated_at` (`DATETIME(6)` no horário de São Paulo; `updated_at` com `ON UPDATE CURRENT_TIMESTAMP(6)`), omitidos abaixo.
 
 ```mermaid
 erDiagram
@@ -233,14 +233,14 @@ erDiagram
         audit_action action
         varchar affected_table
         bigint affected_entity_id
-        jsonb before_data
-        jsonb after_data
+        json before_data
+        json after_data
     }
 ```
 
 Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
-Os tipos `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são `ENUM`s do PostgreSQL.
+Os tipos `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
 
 ### Views
 
@@ -257,20 +257,16 @@ Os tipos `user_role`, `certification_status`, `product_category`, `product_unit`
 | Objeto | Tipo | O que faz | Quem dispara |
 |---|---|---|---|
 | `sp_generate_sustainability_report` | Procedure | Grava o relatório como retrato do período: CO₂ total, nº de lotes e nº de produtos | `POST /api/v1/suppliers/{id}/reports` |
-| `sp_expire_certifications` | Procedure | Marca como `EXPIRED` as certificações `ACTIVE` vencidas | `pg_cron`, todo dia às 03:00 UTC (00:00 em São Paulo) |
-| `capture_audit_log()` | Função de trigger | Grava `INSERT`/`UPDATE`/`DELETE` de todas as tabelas de negócio no `audit_log` | Triggers `audit_*` |
-| `set_updated_at()` | Função de trigger | Atualiza `updated_at` a cada alteração | Triggers por tabela |
+| `sp_expire_certifications` | Procedure | Marca como `EXPIRED` as certificações `ACTIVE` vencidas | Event `ev_expire_certifications`, todo dia às 00:00 de São Paulo |
+| `audit_write` | Procedure | Parte comum da auditoria: valida o ator e grava em `audit_log` | Triggers `audit_<tabela>_{insert,update,delete}` |
 
-### pg_cron
+### Event scheduler
 
-O agendamento roda dentro do banco, sem depender da API estar no ar. A extensão não vem na imagem oficial do Postgres: [`docker/postgres/Dockerfile`](docker/postgres/Dockerfile) instala o pacote `postgresql-17-cron` e inicia o servidor com `shared_preload_libraries=pg_cron` e `cron.database_name=supply_chain_verde`. A migration V37 cria a extensão e o job.
+O agendamento roda dentro do banco, sem depender da API estar no ar. O `event_scheduler` já vem ligado no MySQL 8.4 e o servidor roda em `America/Sao_Paulo`, então o event dispara à meia-noite local. A migration V4 cria o event.
 
 ```sql
--- Jobs agendados
-SELECT jobname, schedule, command FROM cron.job;
-
--- Histórico de execuções
-SELECT status, return_message, start_time FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
+SELECT event_name, interval_value, interval_field, starts, last_executed, status
+FROM information_schema.events WHERE event_schema = 'supply_chain_verde';
 ```
 
 Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql).
@@ -281,10 +277,10 @@ Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.s
 
 ```text
 supply-chain-verde-api/
-├── docker/postgres/Dockerfile   # PostgreSQL 17 + pg_cron (usado pelo compose e pelo Testcontainers)
+├── docker/mysql/init/          # Cria supply_app e supply_audit (usado pelo compose e pelo Testcontainers)
 ├── docker-compose.yml
 ├── docs/
-│   ├── adr/                     # Decisões de arquitetura (ex.: auditoria no PostgreSQL)
+│   ├── adr/                     # Decisões de arquitetura (ex.: auditoria no banco)
 │   ├── features/                # Specs SDD por feature (spec, plan, tasks)
 │   └── sql/                     # Consultas de relatório sobre views e procedures
 └── src/
@@ -360,14 +356,14 @@ git clone https://github.com/matheusnascimentods/supply-chain-verde-api.git
 cd supply-chain-verde-api
 ```
 
-### 2. Subir o Banco de Dados PostgreSQL
+### 2. Subir o Banco de Dados MySQL
 O projeto disponibiliza um `docker-compose.yml` pré-configurado:
 ```bash
 docker compose up -d
 ```
-Isso iniciará o PostgreSQL na porta `5432` com o banco `supply_chain_verde`. A imagem é construída a partir de [`docker/postgres/Dockerfile`](docker/postgres/Dockerfile) (PostgreSQL 17 + `pg_cron`), que a migration V37 exige; os testes com Testcontainers usam a mesma imagem.
+Isso iniciará o MySQL 8.4 na porta `3306` com o banco `supply_chain_verde`, em `America/Sao_Paulo` e collation `utf8mb4_0900_as_cs`. Na criação do volume, [`docker/mysql/init`](docker/mysql/init) cria os usuários `supply_app` (datasource da API) e `supply_audit` (DEFINER das triggers, sem login). O Flyway roda como `root`. Os testes com Testcontainers usam a mesma imagem, flags e init.
 
-Quem já tinha o volume criado com a imagem `postgres:17-alpine` deve recriá-lo (`docker compose down -v`), porque a ordenação de texto da alpine (musl) difere da Debian (glibc) e os índices de texto ficariam inconsistentes. Num banco que não pode ser recriado, rode `REINDEX DATABASE supply_chain_verde;` logo após a troca.
+O MySQL faz commit implícito a cada DDL: uma migration que falhe no meio deixa o schema pela metade. Em desenvolvimento, recrie o volume com `docker compose down -v`. Quem vinha do PostgreSQL também precisa recriar o banco do zero: não há cópia de dados.
 
 ### 3. Executar a Aplicação
 ```bash
@@ -438,7 +434,7 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/suppliers` | Cadastro de novo fornecedor | `ADMIN`, `MANAGER` |
 | `GET` | `/api/v1/suppliers` | Listagem de fornecedores cadastrados | Autenticado |
-| `GET` | `/api/v1/suppliers/ranking?limit=20&offset=0&search={termo}` | Ranking paginado; busca por nome (full-text em português) ou trecho do CNPJ normalizado | Autenticado |
+| `GET` | `/api/v1/suppliers/ranking?limit=20&offset=0&search={termo}` | Ranking paginado; busca por nome (FULLTEXT: todas as palavras, por prefixo) ou trecho do CNPJ normalizado | Autenticado |
 | `GET` | `/api/v1/suppliers/{supplierId}` | Detalhes do fornecedor | Autenticado |
 | `PUT` | `/api/v1/suppliers/{supplierId}` | Atualização de dados cadastrais | `ADMIN`, `MANAGER` |
 
@@ -447,7 +443,7 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/products` | Cadastro de produto | `ADMIN`, `MANAGER` |
 | `PUT` | `/api/v1/products/{productId}` | Atualização de produto | `ADMIN`, `MANAGER` |
-| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}` | Listagem paginada; busca full-text por nome/descrição ou por código/rótulo de categoria | Autenticado |
+| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}` | Listagem paginada; busca FULLTEXT por nome/descrição (todas as palavras, por prefixo) ou por código/rótulo de categoria | Autenticado |
 
 ### 📜 Certificações (`/api/v1/certifications`)
 | Método | Rota | Descrição | Acesso |
@@ -463,9 +459,9 @@ O resumo é global para todos os perfis autenticados. `activeBatches` exclui lot
 
 O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSERT`, `UPDATE`, `DELETE` ou `STATUS_CHANGE`. `userEmail` faz busca parcial sem diferenciar caixa. `limit` aceita de 1 a 100 (padrão 20) e `offset` começa em 0.
 
-Cada item retornado inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData`/`afterData` são snapshots JSONB com apenas valores alterados e associações como IDs; podem ser `null` quando a operação não tem aquele lado (INSERT/DELETE). Segredos não podem ser incluídos nos snapshots.
+Cada item retornado inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData`/`afterData` são snapshots JSON com apenas valores alterados e associações como IDs; podem ser `null` quando a operação não tem aquele lado (INSERT/DELETE). Segredos não podem ser incluídos nos snapshots.
 
-A captura é responsabilidade do PostgreSQL, não de um interceptor Java. Triggers escrevem eventos na mesma transação que altera a linha. Antes da primeira escrita, a API propaga o `userId` autenticado com `set_config('app.user_id', :userId, true)` na mesma conexão/transação; as triggers leem `current_setting('app.user_id', true)`. Isso é contexto transacional, não cache de sessão. A role da API consulta logs, mas não os insere diretamente. A migration V29 substitui o histórico e inicia a nova tabela vazia; nenhum evento anterior será inferido ou copiado. O executor Flyway precisa criar a role de owner das triggers e o principal runtime precisa corresponder à role que recebe SELECT. Veja [`docs/adr/0001-auditoria-no-postgresql.md`](docs/adr/0001-auditoria-no-postgresql.md).
+A captura é responsabilidade do banco, não de um interceptor Java. Triggers escrevem eventos na mesma transação que altera a linha. Antes de cada escrita auditada, a API executa `SET @app_user_id = :userId` na conexão da transação e limpa a variável no fim dela, para o ator não vazar para a próxima requisição que reaproveite a conexão do pool. As triggers rodam como `supply_audit` e são as únicas que inserem em `audit_log`; o usuário da API só lê. Veja a [ADR 0002](docs/adr/0002-migracao-para-mysql.md).
 
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |
@@ -509,10 +505,11 @@ O projeto dispensa arquivos `.env` versionados. As configurações são centrali
 | Variável de Ambiente | Descrição | Valor Default (Local) |
 | :--- | :--- | :--- |
 | `SERVER_PORT` | Porta de execução da API | `8080` |
-| `SPRING_DATASOURCE_URL` | URL JDBC do PostgreSQL | `jdbc:postgresql://localhost:5432/supply_chain_verde` |
-| `SPRING_DATASOURCE_USERNAME` | Usuário do banco de dados | `postgres` |
+| `SPRING_DATASOURCE_URL` | URL JDBC do MySQL | `jdbc:mysql://localhost:3306/supply_chain_verde?connectionTimeZone=SERVER` |
+| `SPRING_DATASOURCE_USERNAME` | Usuário da API no banco; também recebe os grants da V6 | `supply_app` |
 | `SPRING_DATASOURCE_PASSWORD` | Senha do banco de dados | Configurar localmente; nunca usar default em ambientes compartilhados |
 | `FLYWAY_ENABLED` | Execução automática de migrations Flyway | `true` |
+| `FLYWAY_USER` / `FLYWAY_PASSWORD` | Admin que aplica as migrations (cria triggers com outro DEFINER e dá grants) | `root` / `root` |
 | `JWT_SECRET` | Chave HMAC de 256 bits para assinatura do token | Configurar localmente; obrigatório e forte em ambientes compartilhados |
 | `JWT_EXPIRATION_MS` | Tempo de expiração do token em milissegundos | `3600000` (1 hora) |
 | `CORS_ALLOWED_ORIGINS` | Origem permitida para o frontend cliente | `http://localhost:4200` |
@@ -526,7 +523,7 @@ Em desenvolvimento local, defina `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` no 
 - **Autenticação Stateless**: Tokens JWT assinados com HMAC-SHA256, transportando `userId`, `email` e `role`.
 - **Controle de Acesso Baseado em Perfis (RBAC)**: Validação estrita por papéis (`ADMIN`, `AUDITOR`, `SUPPLIER`, `MANAGER`).
 - **Criptografia Segura de Senhas**: Hashes gerados via `BCryptPasswordEncoder` através da abstração `PasswordHasher`.
-- **Proteção de Integridade & Auditoria**: Triggers PostgreSQL registram usuário, ação, tabela/entidade e snapshots. A aplicação define `app.user_id` na transação e não escreve diretamente em `audit_log`.
+- **Proteção de Integridade & Auditoria**: Triggers MySQL registram usuário, ação, tabela/entidade e snapshots. A aplicação define `@app_user_id` antes de cada escrita, limpa ao fim da transação, e só tem `SELECT` em `audit_log`.
 - **Clean Architecture & DDD**: Desacoplamento completo entre modelo relacional de banco e entidades de negócio.
 
 ---
