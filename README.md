@@ -108,16 +108,36 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Auditoria — implementação atual**: captura por triggers MySQL na migration V5, com DEFINER próprio e grants por tabela ([ADR 0002](docs/adr/0002-migracao-para-mysql.md)).
 - **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada por um `EVENT` do MySQL (V3–V4). Ordem obrigatória das etapas garantida por constraints (V1). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
+- **Multiempresa (feature 010)**: mercados e fornecedores se cadastram sozinhos com um plano, cada companhia só vê os próprios dados e o mercado pede lotes ao fornecedor (V7–V9). Especificação em [`docs/features/010-empresas-planos`](docs/features/010-empresas-planos/spec.md); integridade por tipo de companhia na [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
 ### Principais Entidades de Domínio
-- **`Supplier`**: Fornecedores cadastrados com CNPJ validado e sede em `Address`.
-- **`Certification`**: Certificações ambientais vinculadas a fornecedores com ciclo de validade.
-- **`Product` & `Batch`**: Produtos e seus lotes físicos identificáveis.
+- **`Company`**: Companhia `MARKET` (varejista) ou `SUPPLIER` (fornecedor), com CNPJ validado e único, email, telefone e sede em `Address`.
+- **`Plan`**: Catálogo de planos (`BASIC` com 3 usuários, `PRO` com 10, `PRO_MAX` com 15). Cada companhia tem uma assinatura ativa por vez.
+- **`User`**: Usuário de uma companhia, com perfil compatível com o tipo dela; só o `PLATFORM_ADMIN` não tem companhia.
+- **`Certification`**: Certificações ambientais de um fornecedor, gerenciadas por ele, com ciclo de validade.
+- **`Product` & `Batch`**: Produto de um fornecedor e o lote que um mercado pede a ele, com status `PENDING`, `ACTIVE` ou `REJECTED`.
 - **`Chain`**: Etapas da cadeia (produção, armazenagem, transporte, distribuição, varejo) com `User` responsável obrigatório.
 - **`Transport` & `CarbonEmission`**: Dados de frete (modal, combustível, distância) e cálculo de CO₂ emitido.
-- **`Report`**: Relatórios consolidados de sustentabilidade para órgãos reguladores e auditorias.
+- **`Report`**: Relatórios de sustentabilidade de um fornecedor, gerados por um mercado com os lotes dele.
 - **`AuditLog`**: Registros de auditoria gerados automaticamente para compliance.
+
+### 👥 Perfis e multiempresa
+
+Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora do escopo dela retorna 403.
+
+| Perfil | Companhia | O que faz |
+| :--- | :--- | :--- |
+| `PLATFORM_ADMIN` | Nenhuma | Visão global, sem filtro por companhia; herda as permissões de `ADMIN`. Só nasce por migration ou seed |
+| `ADMIN` | `MARKET` ou `SUPPLIER` | Gerencia os usuários e os dados da própria companhia; numa companhia fornecedora, também pode tudo o que o `SUPPLIER` pode |
+| `MANAGER` | `MARKET` | Pede lotes, registra etapas e gera relatórios |
+| `AUDITOR` | `MARKET` | Consulta lotes, relatórios, certificações e auditoria da companhia |
+| `SUPPLIER` | `SUPPLIER` | Cadastra os próprios produtos e certificações, recusa lotes ou inicia a produção |
+
+- **Cadastro**: `POST /api/v1/companies` é público e cria companhia, endereço, assinatura e o `ADMIN` numa transação; a resposta já traz o token.
+- **Limites**: o número de usuários nunca passa do plano ativo, e toda companhia mantém pelo menos um `ADMIN` (409 nos dois casos).
+- **Catálogo**: o mercado vê todos os fornecedores, produtos e certificações para encontrar fornecedores novos. Cada fornecedor traz `workedWith`, que indica se ele tem ou teve lote com o mercado logado.
+- **Ciclo do lote**: o mercado pede o lote (`PENDING`) com um produto do fornecedor. O fornecedor recusa com motivo (`REJECTED`, final) ou registra a etapa `PRODUCTION`, que ativa o lote (`ACTIVE`) e preenche `producedAt`.
 
 ---
 
@@ -131,12 +151,16 @@ Todas as tabelas têm `created_at` e `updated_at` (`DATETIME(6)` no horário de 
 
 ```mermaid
 erDiagram
-    address ||--o{ supplier : "sede de"
-    users ||--o| supplier : "acessa como"
-    supplier ||--o{ certification : possui
-    supplier ||--o{ batch : produz
+    address ||--o{ company : "sede de"
+    plan ||--o{ company_plan : "assinado em"
+    company ||--o{ company_plan : assina
+    company |o--o{ users : emprega
+    company ||--o{ product : "fornecedor de"
+    company ||--o{ certification : "fornecedor possui"
+    company ||--o{ batch : "mercado pede"
+    company ||--o{ batch : "fornecedor produz"
     product ||--o{ batch : "é produzido em"
-    supplier ||--o{ report : recebe
+    company ||--o{ report : "mercado gera / fornecedor recebe"
     batch ||--o{ chain : "passa por"
     users ||--o{ chain : "é responsável por"
     address |o--o{ chain : "origem / destino"
@@ -144,12 +168,36 @@ erDiagram
     chain ||--o| carbon_emission : emite
     users |o--o{ audit_log : executa
 
+    plan {
+        bigint id PK
+        plan_code code UK
+        varchar name
+        int max_users
+    }
+    company {
+        bigint id PK
+        varchar name
+        char cnpj UK
+        varchar email
+        company_type type
+        bigint address_id FK
+        varchar phone
+    }
+    company_plan {
+        bigint id PK
+        bigint company_id FK
+        bigint plan_id FK
+        datetime started_at
+        datetime ended_at
+        bigint active_company_id UK "gerada; NULL quando encerrada"
+    }
     users {
         bigint id PK
         varchar name
         varchar email UK
         varchar password "hash BCrypt"
         user_role role
+        bigint company_id FK "NULL só no PLATFORM_ADMIN"
     }
     address {
         bigint id PK
@@ -160,14 +208,6 @@ erDiagram
         varchar zip_code
         varchar city
         varchar state
-    }
-    supplier {
-        bigint id PK
-        varchar name
-        char cnpj UK
-        bigint address_id FK
-        bigint user_id FK,UK
-        varchar phone
     }
     certification {
         bigint id PK
@@ -180,6 +220,7 @@ erDiagram
     }
     product {
         bigint id PK
+        bigint supplier_id FK
         varchar name
         product_category category
         product_unit unit
@@ -189,8 +230,11 @@ erDiagram
         bigint id PK
         bigint product_id FK
         bigint supplier_id FK
+        bigint market_id FK
+        batch_status status
+        varchar rejection_reason
         numeric quantity
-        date produced_at
+        date produced_at "NULL até a PRODUCTION"
     }
     chain {
         bigint id PK
@@ -221,6 +265,7 @@ erDiagram
     report {
         bigint id PK
         bigint supplier_id FK
+        bigint market_id FK
         date period_start_at
         date period_end_at
         numeric total_co2_kg
@@ -238,9 +283,11 @@ erDiagram
     }
 ```
 
+Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `UNIQUE` em `company_plan.active_company_id` deixa uma única assinatura ativa por companhia. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
+
 Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
-Os tipos `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
+Os tipos `company_type`, `plan_code`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
 
 ### Views
 
@@ -385,6 +432,12 @@ As migrations de seed criam usuários para desenvolvimento e demonstração. A s
 rolocompressor06
 ```
 
+Depois da V8, o seed fica assim:
+
+- **`PLATFORM_ADMIN`**: `m.neuer@bayern.com`, sem companhia.
+- **Mercado de demonstração** (Mercado Verde Demonstração, plano `PRO_MAX`): os demais usuários `ADMIN`, `MANAGER` e `AUDITOR` do seed, como `h.kane@bayern.com` (`ADMIN`) e `j.tah@bayern.com` (`MANAGER`). Todos os lotes e relatórios do seed são dele.
+- **Fornecedores** (plano `BASIC`): cada antigo usuário `SUPPLIER` virou o `ADMIN` do próprio fornecedor, como `d.upamecano@bayern.com` (fornecedor 3).
+
 Essa credencial é exclusiva para o ambiente local/demonstrativo e deve ser substituída antes de qualquer uso em ambiente compartilhado ou de produção.
 
 O seed ampliado de demonstração é carregado pelas migrations padrão em `src/main/resources/db/migration`.
@@ -417,45 +470,63 @@ docker compose down -v
 
 ## 🔌 API Reference (Principais Recursos)
 
+Todas as rotas abaixo respeitam o escopo da companhia do usuário (veja [Perfis e multiempresa](#-perfis-e-multiempresa)). A referência completa, com as rotas removidas na feature 010, fica em [`docs/features/000-base/reference.md`](docs/features/000-base/reference.md).
+
 ### 📊 Dashboard (`/api/v1/dashboard`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/dashboard/summary?limit=10` | Indicadores globais e lotes recentes (`limit` padrão 10, máximo 100) | Qualquer usuário autenticado |
+| `GET` | `/api/v1/dashboard/summary?limit=10` | Indicadores e lotes recentes da companhia (`limit` padrão 10, máximo 100) | Qualquer usuário autenticado |
+| `GET` | `/api/v1/dashboard/emissions?from=2026-01&to=2026-06` | CO₂ mês a mês da companhia, com zero nos meses sem emissão (máximo 24 meses) | Qualquer usuário autenticado |
 
-O resumo é global para todos os perfis autenticados. `activeBatches` exclui lotes sem etapas e lotes cuja etapa mais recente seja `RETAIL`; a etapa mais recente é determinada por `startedAt`, com `chainId` como desempate. A lista `recentBatches` é ordenada por data de produção decrescente e inclui o status da etapa mais recente; lotes sem etapas não podem ser listados, mas lotes em `RETAIL` podem aparecer como recentes. `expiringCertifications` considera vencimentos de hoje até os próximos 30 dias, inclusive. `suppliers` conta todos os fornecedores cadastrados. `monthlyEmissionKgCo2e` soma `co2Kg` calculado no mês calendário atual conforme `calculatedAt`.
+`activeBatches` exclui lotes sem etapas e lotes cuja etapa mais recente seja `RETAIL`; a etapa mais recente é determinada por `startedAt`, com `chainId` como desempate. A lista `recentBatches` é ordenada por data de produção decrescente e inclui o status da etapa mais recente. `expiringCertifications` considera vencimentos de hoje até os próximos 30 dias, inclusive. Para o mercado, `suppliers` conta os fornecedores com quem ele tem ou teve lote e `pendingBatches` vem nulo; para a companhia fornecedora, `pendingBatches` conta os lotes `PENDING` dela e `suppliers` vem nulo. `monthlyEmissionKgCo2e` soma o `co2Kg` calculado no mês calendário atual.
 
 ### 🔐 Autenticação (`/api/v1/auth`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/login` | Autenticação e emissão do token JWT | Público |
+| `POST` | `/api/v1/auth/login` | Autenticação e emissão do token JWT; a resposta traz `role`, `companyId`, `companyType`, `companyName` e `supplierId` | Público |
 
-### 🏢 Fornecedores (`/api/v1/suppliers`)
+### 🏢 Companhias & Planos (`/api/v1/companies`, `/api/v1/plans`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/suppliers` | Cadastro de novo fornecedor | `ADMIN`, `MANAGER` |
-| `GET` | `/api/v1/suppliers` | Listagem de fornecedores cadastrados | Autenticado |
-| `GET` | `/api/v1/suppliers/ranking?limit=20&offset=0&search={termo}` | Ranking paginado; busca por nome (FULLTEXT: todas as palavras, por prefixo) ou trecho do CNPJ normalizado | Autenticado |
-| `GET` | `/api/v1/suppliers/{supplierId}` | Detalhes do fornecedor | Autenticado |
-| `PUT` | `/api/v1/suppliers/{supplierId}` | Atualização de dados cadastrais | `ADMIN`, `MANAGER` |
+| `GET` | `/api/v1/plans` | Catálogo de planos com `code`, `name` e `maxUsers` | **Público** |
+| `POST` | `/api/v1/companies` | Cadastro de mercado ou fornecedor com plano e administrador; resposta igual à do login. CNPJ ou email repetido → 409; plano inexistente → 400 | **Público** |
+| `GET` | `/api/v1/companies/me` | Dados da companhia, endereço e plano ativo | Usuário com companhia |
+| `PATCH` | `/api/v1/companies/me` | Altera razão social, email, telefone e endereço (CNPJ e tipo não mudam) | `ADMIN` |
+
+### 👤 Usuários (`/api/v1/users`)
+| Método | Rota | Descrição | Acesso |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/users` | Cria usuário na companhia de quem cria, com perfil permitido para o tipo dela; limite do plano → 409 | `ADMIN` |
+| `GET` | `/api/v1/users?email={trecho}&limit=20&offset=0` | Usuários da própria companhia; o `PLATFORM_ADMIN` vê todos | Autenticado |
+| `GET`/`PATCH` | `/api/v1/users/me` | Dados do usuário logado, com a companhia; o `PATCH` altera nome e senha | Autenticado |
+| `PATCH` | `/api/v1/users/{userId}/role` | Troca de perfil na própria companhia; deixar a companhia sem `ADMIN` → 409 | `ADMIN` |
+
+### 🏭 Fornecedores (`/api/v1/suppliers`)
+| Método | Rota | Descrição | Acesso |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/suppliers?workedWith=true` | Catálogo de fornecedores com `workedWith`; o filtro restringe aos que têm ou tiveram lote com o mercado | Mercado |
+| `GET` | `/api/v1/suppliers?ranked=true&limit=20&offset=0&search={termo}` | Ranking paginado por sustentabilidade; busca por nome (FULLTEXT: todas as palavras, por prefixo) ou trecho do CNPJ | Mercado |
+| `GET` | `/api/v1/suppliers?ranked=true&category=AGRICULTURE&unit=KG` | Recomendação pelo menor CO₂ por unidade na categoria e unidade | Mercado |
+| `GET` | `/api/v1/suppliers?supplierId={id}` | Detalhe do fornecedor | Mercado; a companhia fornecedora só o próprio |
 
 ### 🛒 Produtos (`/api/v1/products`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/products` | Cadastro de produto | `ADMIN`, `MANAGER` |
-| `PUT` | `/api/v1/products/{productId}` | Atualização de produto | `ADMIN`, `MANAGER` |
-| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}` | Listagem paginada; busca FULLTEXT por nome/descrição (todas as palavras, por prefixo) ou por código/rótulo de categoria | Autenticado |
+| `POST` | `/api/v1/products` | Cadastro de produto no fornecedor do usuário | `SUPPLIER`, `ADMIN` de fornecedor |
+| `PUT` | `/api/v1/products/{productId}` | Atualização do próprio produto | `SUPPLIER`, `ADMIN` de fornecedor |
+| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}&supplierId={id}` | Listagem paginada; busca FULLTEXT por nome/descrição ou por categoria. O mercado vê o catálogo e filtra por fornecedor; o fornecedor vê só os próprios | Autenticado |
 
 ### 📜 Certificações (`/api/v1/certifications`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/suppliers/{supplierId}/certifications` | Registro de certificação ambiental | `SUPPLIER`, `ADMIN` |
-| `PATCH` | `/api/v1/certifications/{certificationId}/status` | Atualização do status da certificação | `AUDITOR`, `ADMIN` |
-| `GET` | `/api/v1/certifications?page=0&size=20&status=ACTIVE` | Listagem paginada; `status` opcional aceita `ACTIVE`, `EXPIRED`, `SUSPENDED` ou `UNDER_REVIEW`; sem filtro retorna todos os status ordenados por emissão mais recente (`page` zero-based; `size` padrão 20, máximo 100) | `AUDITOR`, `MANAGER`, `ADMIN` |
+| `POST` | `/api/v1/suppliers/{supplierId}/certifications` | Registro de certificação ambiental do próprio fornecedor | `SUPPLIER`, `ADMIN` de fornecedor |
+| `PATCH` | `/api/v1/certifications/{certificationId}/status` | Atualização do status de uma certificação própria | `SUPPLIER`, `ADMIN` de fornecedor |
+| `GET` | `/api/v1/certifications?page=0&size=20&status=ACTIVE` | Listagem paginada; `status` opcional (`ACTIVE`, `EXPIRED`, `SUSPENDED`, `UNDER_REVIEW`). O fornecedor vê só as próprias | `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER` |
 
 ### 🧾 Auditoria (`/api/v1/audit-logs`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` | Lista logs do período inclusivo, com filtros opcionais e paginação | `ADMIN`, `AUDITOR` |
+| `GET` | `/api/v1/audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` | Logs do período inclusivo feitos pelos usuários da própria companhia, com filtros opcionais e paginação | `ADMIN`, `AUDITOR` |
 
 O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSERT`, `UPDATE`, `DELETE` ou `STATUS_CHANGE`. `userEmail` faz busca parcial sem diferenciar caixa. `limit` aceita de 1 a 100 (padrão 20) e `offset` começa em 0.
 
@@ -466,35 +537,32 @@ A captura é responsabilidade do banco, não de um interceptor Java. Triggers es
 ### 📦 Lotes & Rastreabilidade (`/api/v1/batches`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/batches` | Criação de novo lote de produto | `SUPPLIER`, `ADMIN` |
-| `GET` | `/api/v1/batches?page=0&size=20&supplierId=4` | Listagem paginada (`page` zero-based; `size` padrão 20, máximo 100); cada item inclui etapa atual e timeline com endereços, transporte e emissão; `supplierId` filtra a lista para perfis administrativos | `ADMIN`, `MANAGER`, `AUDITOR`, `SUPPLIER` |
+| `POST` | `/api/v1/batches` | Pedido de lote com `productId`, `supplierId` e `quantity`; o produto precisa ser do fornecedor (400). Nasce `PENDING` | `MANAGER`, `ADMIN` de mercado |
+| `PATCH` | `/api/v1/batches/{batchId}/reject` | Recusa com `reason` obrigatório; fora de `PENDING` → 409 | Fornecedor do lote |
+| `GET` | `/api/v1/batches?page=0&size=20&supplierId=4&status=PENDING` | Lotes do mercado ou do fornecedor, paginados (`page` zero-based; `size` padrão 20, máximo 100), com etapa atual e timeline | `ADMIN`, `MANAGER`, `AUDITOR`, `SUPPLIER` |
 | `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (QR Code) | **Público** |
 
-Como o modelo atual ainda não possui associação explícita entre usuário e fornecedor, para `SUPPLIER` o backend adota a convenção de que `userId` do token é igual a `supplierId`. O servidor ignora `supplierId` da query para esse perfil e consulta apenas os lotes desse identificador.
-
-Cada item da página preserva `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `quantity` e `producedAt`, e também inclui `currentStage` (`StageType` da etapa mais recente ou `null`) e `stages` (array cronológico, vazio quando não há etapas). Cada etapa segue o contrato de `ChainResponseDTO`, com `originAddress`, `destinationAddress`, `transport` e `emission` anuláveis. A ordenação cronológica usa `startedAt` crescente e `chainId` crescente; para determinar `currentStage`, a etapa mais recente é a última nessa ordenação. O enriquecimento busca os dados relacionados em lote após a paginação, sem uma consulta por lote.
-
-Exemplo de item sem etapas: `{"batchId": 100, "productId": 9, "productName": "Arroz Integral", "supplierId": 5, "supplierName": "Cooperativa do Vale", "quantity": 250.0, "producedAt": "2026-09-18", "currentStage": null, "stages": []}`. A resposta de exemplo com etapas, transporte e emissão está detalhada na Task 25 em `docs/features/000-base/tasks.md`.
+Cada item da página traz `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `marketId`, `marketName`, `status`, `rejectionReason`, `quantity` e `producedAt` (nulo enquanto `PENDING`), além de `currentStage` (`StageType` da etapa mais recente ou `null`) e `stages` (array cronológico, vazio quando não há etapas). Cada etapa segue o contrato de `ChainResponseDTO`, com `originAddress`, `destinationAddress`, `transport` e `emission` anuláveis. O enriquecimento busca os dados relacionados em lote após a paginação, sem uma consulta por lote.
 
 ### 🔗 Etapas da Cadeia (`/api/v1/batches/{batchId}/stages`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/batches/{batchId}/stages` | Registro da próxima etapa do lote (ordem obrigatória; fora de ordem → 400) | `SUPPLIER`, `MANAGER`, `ADMIN` |
+| `POST` | `/api/v1/batches/{batchId}/stages` | Próxima etapa do lote (ordem obrigatória; fora de ordem → 400). Em `PENDING`, só o fornecedor registra `PRODUCTION`, que ativa o lote; em `REJECTED` → 409. O usuário do header `X-Responsible-User-Id` precisa ser do mercado ou do fornecedor do lote | `SUPPLIER`, `MANAGER`, `ADMIN` do lote |
 | `GET` | `/api/v1/batches/{batchId}/stages` | Etapas percorridas pelo lote em ordem | Autenticado |
-| `POST` | `/api/v1/stages/{chainId}/transport` | Registro do transporte da etapa | `SUPPLIER`, `MANAGER`, `ADMIN` |
+| `POST` | `/api/v1/stages/{chainId}/transport` | Registro do transporte da etapa | `SUPPLIER`, `MANAGER`, `ADMIN` do lote |
 
 ### 🌿 Emissões de Carbono
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/stages/{chainId}/emission` | Cálculo e persistência de emissão de CO₂ | `MANAGER`, `ADMIN` |
+| `POST` | `/api/v1/stages/{chainId}/emission` | Cálculo e persistência de emissão de CO₂ | `MANAGER`, `ADMIN` do lote |
 | `GET` | `/api/v1/batches/{batchId}/carbon-footprint` | Pegada de carbono consolidada do lote | **Público** |
 
 ### 📊 Relatórios ESG (`/api/v1/reports`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/suppliers/{supplierId}/reports` | Geração de relatório consolidado | `AUDITOR`, `MANAGER`, `ADMIN` |
-| `GET` | `/api/v1/reports/{reportId}` | Consulta de relatório | `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER` |
-| `GET` | `/api/v1/suppliers/{supplierId}/reports` | Lista relatórios do fornecedor | Conforme proprietário/perfil |
+| `POST` | `/api/v1/suppliers/{supplierId}/reports` | Geração de relatório com os lotes do mercado logado com o fornecedor | `AUDITOR`, `MANAGER`, `ADMIN` de mercado |
+| `GET` | `/api/v1/reports?limit=20&offset=0&supplierId={id}` | Relatórios do mercado ou sobre o fornecedor, paginados | `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER` |
+| `GET` | `/api/v1/reports?reportId={id}` | Detalhe para o PDF; relatório de outra companhia → 403 | `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER` |
 
 ---
 
@@ -520,8 +588,9 @@ Em desenvolvimento local, defina `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` no 
 
 ## 🔒 Segurança & Boas Práticas
 
-- **Autenticação Stateless**: Tokens JWT assinados com HMAC-SHA256, transportando `userId`, `email` e `role`.
-- **Controle de Acesso Baseado em Perfis (RBAC)**: Validação estrita por papéis (`ADMIN`, `AUDITOR`, `SUPPLIER`, `MANAGER`).
+- **Autenticação Stateless**: Tokens JWT assinados com HMAC-SHA256, transportando `userId`, `email`, `role`, `companyId`, `companyType` e `supplierId`. Um token sem `companyId` só autentica para o `PLATFORM_ADMIN`.
+- **Controle de Acesso Baseado em Perfis (RBAC)**: Papéis `PLATFORM_ADMIN`, `ADMIN`, `MANAGER`, `AUDITOR` e `SUPPLIER`, com `ROLE_PLATFORM_ADMIN > ROLE_ADMIN` na `RoleHierarchy`.
+- **Isolamento por companhia**: Listagens filtradas pela companhia do token e escritas fora do escopo recusadas com 403. O tipo da companhia em cada vínculo é garantido por FK composta no banco.
 - **Criptografia Segura de Senhas**: Hashes gerados via `BCryptPasswordEncoder` através da abstração `PasswordHasher`.
 - **Proteção de Integridade & Auditoria**: Triggers MySQL registram usuário, ação, tabela/entidade e snapshots. A aplicação define `@app_user_id` antes de cada escrita, limpa ao fim da transação, e só tem `SELECT` em `audit_log`.
 - **Clean Architecture & DDD**: Desacoplamento completo entre modelo relacional de banco e entidades de negócio.
