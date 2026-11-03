@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class Batch {
     private Long batchId;
     private Product product;
-    private Supplier supplier;
+    private Company supplier;
     private BigDecimal quantity;
     private LocalDate producedAt;
 }

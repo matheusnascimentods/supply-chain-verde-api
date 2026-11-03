@@ -5,10 +5,10 @@ import br.com.anhembi.supplychainverde.application.dto.batch.BatchResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
 import br.com.anhembi.supplychainverde.domain.entity.Product;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.application.mapper.BatchDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import java.util.List;
 public class RegisterBatchUseCase {
     private final BatchRepository batchRepository;
     private final ProductRepository productRepository;
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
     private final BatchDtoMapper mapper;
 
     @Transactional
@@ -29,7 +29,7 @@ public class RegisterBatchUseCase {
         if (request == null) throw new ValidationException("Requisição de lote é obrigatória.");
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new IllegalArgumentException("Produto não encontrado: " + request.productId()));
-        Supplier supplier = supplierRepository.findById(request.supplierId())
+        Company supplier = supplierRepository.findSupplierById(request.supplierId())
                 .orElseThrow(() -> new IllegalArgumentException("Fornecedor não encontrado: " + request.supplierId()));
 
         Batch batch = Batch.builder()

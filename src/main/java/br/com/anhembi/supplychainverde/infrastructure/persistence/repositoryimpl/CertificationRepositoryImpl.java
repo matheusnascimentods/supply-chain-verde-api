@@ -37,23 +37,23 @@ public class CertificationRepositoryImpl implements CertificationRepository {
 
     @Override
     public List<Certification> findBySupplierId(Long supplierId) {
-        return jpaRepository.findBySupplierSupplierId(supplierId).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findBySupplierCompanyId(supplierId).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public List<Certification> findBySupplierIds(Collection<Long> supplierIds) {
         return supplierIds.isEmpty() ? List.of()
-                : jpaRepository.findBySupplierSupplierIdIn(supplierIds).stream().map(mapper::toDomain).toList();
+                : jpaRepository.findBySupplierCompanyIdIn(supplierIds).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public List<Certification> findBySupplierIdAndStatus(Long supplierId, CertificationStatus status) {
-        return jpaRepository.findBySupplierSupplierIdAndStatus(supplierId, status).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findBySupplierCompanyIdAndStatus(supplierId, status).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public List<Certification> findBySupplierIdOverlapping(Long supplierId, LocalDate start, LocalDate end) {
-        return jpaRepository.findBySupplierSupplierIdAndIssuedAtLessThanEqualAndExpiresAtGreaterThanEqualOrderByIssuedAt(
+        return jpaRepository.findBySupplierCompanyIdAndIssuedAtLessThanEqualAndExpiresAtGreaterThanEqualOrderByIssuedAt(
                 supplierId, end, start).stream().map(mapper::toDomain).toList();
     }
 

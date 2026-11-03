@@ -4,7 +4,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Report;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.ReportJpaEntity;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring", uses = SupplierJpaMapper.class)
+@Mapper(componentModel = "spring", uses = CompanyJpaMapper.class)
 public interface ReportJpaMapper {
     Report toDomain(ReportJpaEntity entity);
     ReportJpaEntity toJpaEntity(Report domain);

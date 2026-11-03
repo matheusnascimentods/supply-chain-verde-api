@@ -24,7 +24,7 @@ public class BatchJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "supplier_id", nullable = false)
-    private SupplierJpaEntity supplier;
+    private CompanyJpaEntity supplier;
 
     @Column(name = "quantity", nullable = false)
     private BigDecimal quantity;

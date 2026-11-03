@@ -11,7 +11,6 @@ import br.com.anhembi.supplychainverde.application.dto.certification.UpdateCerti
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.product.ProductRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.report.ReportRequestDTO;
-import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.transport.TransportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
@@ -36,8 +35,6 @@ import br.com.anhembi.supplychainverde.application.usecase.report.ListReportsByS
 import br.com.anhembi.supplychainverde.application.usecase.supplier.GetSupplierUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.supplier.ListSuppliersUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.supplier.RankSuppliersBySustainabilityUseCase;
-import br.com.anhembi.supplychainverde.application.usecase.supplier.RegisterSupplierUseCase;
-import br.com.anhembi.supplychainverde.application.usecase.supplier.UpdateSupplierUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.transport.RegisterTransportUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.AuthenticateUserUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.RegisterUserUseCase;
@@ -63,23 +60,15 @@ import static org.mockito.Mockito.*;
 class ApplicationUseCasesTest {
 
     @Test
-    void shouldRegisterAndQuerySupplier() {
-        SupplierRepository suppliers = mock(SupplierRepository.class);
-        AddressRepository addresses = mock(AddressRepository.class);
+    void shouldQuerySupplier() {
+        CompanyRepository suppliers = mock(CompanyRepository.class);
         Address address = Address.builder().addressId(1L).city("São Paulo").state("SP").build();
-        Supplier saved = Supplier.builder().supplierId(2L).name("Verde").cnpj(new br.com.anhembi.supplychainverde.domain.valueobject.Cnpj("11.222.333/0001-81")).address(address).build();
-        when(addresses.save(any())).thenReturn(address);
-        when(suppliers.save(any())).thenReturn(saved);
-        when(suppliers.findById(2L)).thenReturn(Optional.of(saved));
-        when(suppliers.findAll()).thenReturn(List.of(saved));
+        Company saved = Company.builder().companyId(2L).name("Verde").cnpj(new br.com.anhembi.supplychainverde.domain.valueobject.Cnpj("11.222.333/0001-81")).address(address).build();
+        when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(saved));
+        when(suppliers.findAllSuppliers()).thenReturn(List.of(saved));
 
-        SupplierRequestDTO request = new SupplierRequestDTO("Verde", "11.222.333/0001-81",
-                new AddressRequestDTO("Rua A", "1", "Centro", null, "01000-000", "São Paulo", "SP"), "11999999999", null);
-
-        assertThat(new RegisterSupplierUseCase(suppliers, addresses, mock(RegisterUserUseCase.class), DtoMappers.SUPPLIER).execute(request).supplierId()).isEqualTo(2L);
-        assertThat(new GetSupplierUseCase(suppliers, DtoMappers.SUPPLIER).execute(2L).name()).isEqualTo("Verde");
+        assertThat(new GetSupplierUseCase(suppliers, DtoMappers.SUPPLIER).execute(2L).supplierId()).isEqualTo(2L);
         assertThat(new ListSuppliersUseCase(suppliers, DtoMappers.SUPPLIER).execute()).hasSize(1);
-        verify(suppliers).save(any(Supplier.class));
     }
 
     @Test
@@ -100,13 +89,13 @@ class ApplicationUseCasesTest {
     void shouldRegisterBatchAndListTraceability() {
         BatchRepository batches = mock(BatchRepository.class);
         ProductRepository products = mock(ProductRepository.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
+        CompanyRepository suppliers = mock(CompanyRepository.class);
         ChainRepository chains = mock(ChainRepository.class);
         Product product = Product.builder().productId(1L).name("Café").build();
-        Supplier supplier = Supplier.builder().supplierId(2L).name("Verde").build();
+        Company supplier = Company.builder().companyId(2L).name("Verde").build();
         Batch batch = Batch.builder().batchId(4L).product(product).supplier(supplier).quantity(new BigDecimal("10")).build();
         when(products.findById(1L)).thenReturn(Optional.of(product));
-        when(suppliers.findById(2L)).thenReturn(Optional.of(supplier));
+        when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(supplier));
         when(batches.save(any())).thenReturn(batch);
         when(batches.findBySupplierId(2L, 0, 20)).thenReturn(List.of(batch));
         when(batches.countBySupplierId(2L)).thenReturn(1L);
@@ -124,10 +113,10 @@ class ApplicationUseCasesTest {
     @Test
     void shouldRegisterAndUpdateCertification() {
         CertificationRepository certifications = mock(CertificationRepository.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
-        Supplier supplier = Supplier.builder().supplierId(2L).build();
+        CompanyRepository suppliers = mock(CompanyRepository.class);
+        Company supplier = Company.builder().companyId(2L).build();
         Certification certification = Certification.builder().certificationId(5L).supplier(supplier).status(CertificationStatus.ACTIVE).build();
-        when(suppliers.findById(2L)).thenReturn(Optional.of(supplier));
+        when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(supplier));
         when(certifications.save(any())).thenReturn(certification);
         when(certifications.findById(5L)).thenReturn(Optional.of(certification));
 
@@ -168,22 +157,22 @@ class ApplicationUseCasesTest {
         BatchRepository batches = mock(BatchRepository.class);
         UserRepository users = mock(UserRepository.class);
         AddressRepository addresses = mock(AddressRepository.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
+        CompanyRepository suppliers = mock(CompanyRepository.class);
         CertificationRepository certifications = mock(CertificationRepository.class);
         ReportRepository reports = mock(ReportRepository.class);
 
         Batch batch = Batch.builder().batchId(9L).build();
         User user = User.builder().userId(11L).name("Operator").build();
         Chain stage = Chain.builder().chainId(13L).batch(batch).responsibleUser(user).stageType(StageType.PRODUCTION).build();
-        Supplier supplier = Supplier.builder().supplierId(2L).name("Verde").build();
+        Company supplier = Company.builder().companyId(2L).name("Verde").build();
 
         when(batches.findById(9L)).thenReturn(Optional.of(batch));
         when(users.findById(11L)).thenReturn(Optional.of(user));
         when(chains.save(any())).thenReturn(stage);
         when(chains.findByBatchId(9L)).thenReturn(List.of(stage));
-        when(suppliers.findAll()).thenReturn(List.of(supplier));
+        when(suppliers.findAllSuppliers()).thenReturn(List.of(supplier));
         when(suppliers.findScoresByIds(any())).thenReturn(List.of(
-                new SupplierRepository.SupplierScore(2L, new BigDecimal("100.00"), 0L, BigDecimal.ZERO)));
+                new CompanyRepository.SupplierScore(2L, new BigDecimal("100.00"), 0L, BigDecimal.ZERO)));
         when(reports.countBySupplierIds(any())).thenReturn(java.util.Map.of());
 
         ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.STORAGE, LocalDateTime.now(), null);
@@ -198,10 +187,10 @@ class ApplicationUseCasesTest {
     @Test
     void shouldGenerateAndQueryReports() {
         ReportRepository reports = mock(ReportRepository.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
-        Supplier supplier = Supplier.builder().supplierId(2L).build();
+        CompanyRepository suppliers = mock(CompanyRepository.class);
+        Company supplier = Company.builder().companyId(2L).build();
         Report report = Report.builder().reportId(10L).supplier(supplier).periodStartAt(LocalDate.now().minusDays(30)).periodEndAt(LocalDate.now()).totalCo2Kg(BigDecimal.ZERO).batchCount(1).trackedProductCount(1).generatedAt(LocalDateTime.now()).build();
-        when(suppliers.findById(2L)).thenReturn(Optional.of(supplier));
+        when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(supplier));
         when(reports.generate(2L, report.getPeriodStartAt(), report.getPeriodEndAt())).thenReturn(10L);
         when(reports.findById(10L)).thenReturn(Optional.of(report));
         when(reports.findBySupplierId(2L)).thenReturn(List.of(report));
@@ -217,7 +206,7 @@ class ApplicationUseCasesTest {
     void shouldRegisterAuthenticateAndUpdateUser() {
         UserRepository users = mock(UserRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
+        CompanyRepository suppliers = mock(CompanyRepository.class);
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
         User user = User.builder().userId(11L).name("Admin").email("admin@example.com").password("hash").role(UserRole.ADMIN).build();
         when(hasher.hash("secret")).thenReturn("hash");
@@ -238,31 +227,33 @@ class ApplicationUseCasesTest {
     @Test
     void shouldIncludeLinkedSupplierIdInSupplierToken() {
         UserRepository users = mock(UserRepository.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
+        CompanyRepository suppliers = mock(CompanyRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
-        User user = User.builder().userId(3L).email("supplier@example.com").password("hash").role(UserRole.SUPPLIER).build();
+        User user = User.builder().userId(3L).email("supplier@example.com").password("hash").role(UserRole.SUPPLIER)
+                .companyId(7L).build();
         when(users.findByEmail("supplier@example.com")).thenReturn(Optional.of(user));
         when(hasher.matches("secret", "hash")).thenReturn(true);
-        when(suppliers.findByUserId(3L)).thenReturn(Optional.of(Supplier.builder().supplierId(7L).userId(3L).build()));
+        when(suppliers.findById(7L)).thenReturn(Optional.of(Company.builder().companyId(7L).type(CompanyType.SUPPLIER).build()));
         when(jwt.generateToken(user, 7L)).thenReturn("token");
 
         LoginResponseDTO response = new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
                 .execute(new LoginRequestDTO("supplier@example.com", "secret"));
         assertThat(response.token()).isEqualTo("token");
         assertThat(response.supplierId()).isEqualTo(7L);
+        assertThat(response.companyId()).isEqualTo(7L);
+        assertThat(response.companyType()).isEqualTo(CompanyType.SUPPLIER);
     }
 
     @Test
     void shouldRejectLoginOfSupplierUserWithoutLinkedSupplier() {
         UserRepository users = mock(UserRepository.class);
-        SupplierRepository suppliers = mock(SupplierRepository.class);
+        CompanyRepository suppliers = mock(CompanyRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
         User user = User.builder().userId(3L).email("supplier@example.com").password("hash").role(UserRole.SUPPLIER).build();
         when(users.findByEmail("supplier@example.com")).thenReturn(Optional.of(user));
         when(hasher.matches("secret", "hash")).thenReturn(true);
-        when(suppliers.findByUserId(3L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
                 .execute(new LoginRequestDTO("supplier@example.com", "secret")))

@@ -5,10 +5,10 @@ import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UserResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import org.junit.jupiter.api.Test;
@@ -26,13 +26,13 @@ import static org.mockito.Mockito.when;
 
 class RegisterUserUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
-    private final SupplierRepository suppliers = mock(SupplierRepository.class);
+    private final CompanyRepository suppliers = mock(CompanyRepository.class);
     private final PasswordHasher hasher = mock(PasswordHasher.class);
     private final RegisterUserUseCase useCase = new RegisterUserUseCase(users, suppliers, hasher, DtoMappers.USER);
 
     @Test
     void shouldLinkSupplierUserToSupplierWithoutUser() {
-        when(suppliers.findById(7L)).thenReturn(Optional.of(Supplier.builder().supplierId(7L).name("Fazenda Verde").build()));
+        when(suppliers.findSupplierById(7L)).thenReturn(Optional.of(Company.builder().companyId(7L).name("Fazenda Verde").build()));
         when(users.save(any())).thenReturn(User.builder().userId(3L).role(UserRole.SUPPLIER).build());
 
         UserResponseDTO response = useCase.execute(request(UserRole.SUPPLIER, 7L));
@@ -66,7 +66,7 @@ class RegisterUserUseCaseTest {
 
     @Test
     void shouldRejectSupplierThatAlreadyHasUser() {
-        when(suppliers.findById(7L)).thenReturn(Optional.of(Supplier.builder().supplierId(7L).userId(9L).build()));
+        when(suppliers.findSupplierById(7L)).thenReturn(Optional.of(Company.builder().companyId(7L).userId(9L).build()));
 
         assertThatThrownBy(() -> useCase.execute(request(UserRole.SUPPLIER, 7L)))
                 .isInstanceOf(ConflictException.class);

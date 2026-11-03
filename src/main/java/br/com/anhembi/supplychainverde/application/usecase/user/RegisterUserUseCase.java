@@ -4,11 +4,11 @@ import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UserResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
-import br.com.anhembi.supplychainverde.domain.exception.SupplierNotFoundException;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.application.exception.CompanyNotFoundException;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import br.com.anhembi.supplychainverde.application.mapper.UserDtoMapper;
@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class RegisterUserUseCase {
     private final UserRepository userRepository;
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
     private final PasswordHasher passwordHasher;
     private final UserDtoMapper mapper;
 
@@ -44,10 +44,10 @@ public class RegisterUserUseCase {
             throw new ConflictException("Email já cadastrado: " + request.email());
         }
 
-        Supplier supplier = null;
+        Company supplier = null;
         if (supplierUser) {
-            supplier = supplierRepository.findById(request.supplierId())
-                    .orElseThrow(() -> new SupplierNotFoundException(request.supplierId()));
+            supplier = supplierRepository.findSupplierById(request.supplierId())
+                    .orElseThrow(() -> new CompanyNotFoundException(request.supplierId()));
             if (supplier.getUserId() != null) {
                 throw new ConflictException("Fornecedor já possui usuário: " + request.supplierId());
             }
@@ -58,7 +58,7 @@ public class RegisterUserUseCase {
                 .email(request.email())
                 .password(passwordHasher.hash(request.password()))
                 .role(request.role())
-                .companyId(supplier == null ? null : supplier.getSupplierId())
+                .companyId(supplier == null ? null : supplier.getCompanyId())
                 .createdAt(LocalDateTime.now())
                 .build());
         if (supplier != null) {

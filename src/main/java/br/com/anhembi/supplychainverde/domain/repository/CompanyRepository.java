@@ -1,6 +1,6 @@
 package br.com.anhembi.supplychainverde.domain.repository;
 
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
@@ -12,22 +12,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface SupplierRepository {
-    Supplier save(Supplier supplier);
+public interface CompanyRepository {
+    Company save(Company company);
 
-    Optional<Supplier> findById(Long supplierId);
+    Optional<Company> findById(Long companyId);
 
-    Optional<Supplier> findByCnpj(Cnpj cnpj);
+    /** Só companhias SUPPLIER: o id de um mercado não serve onde a regra pede fornecedor (RN-02). */
+    Optional<Company> findSupplierById(Long supplierId);
 
-    List<Supplier> findAll();
+    List<Company> findAllSuppliers();
 
-    List<Supplier> findBySearch(String search);
+    /** Abre a assinatura ativa da companhia (RN-03). */
+    void subscribe(Long companyId, Long planId);
+
+    List<Company> findBySearch(String search);
 
     boolean existsByCnpj(Cnpj cnpj);
 
-    void deleteById(Long supplierId);
-
-    List<Supplier> findAllById(Collection<Long> supplierIds);
+    List<Company> findAllById(Collection<Long> supplierIds);
 
     List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search, int limit, int offset);
 
@@ -38,9 +40,9 @@ public interface SupplierRepository {
 
     record SupplierEmissionRank(Long supplierId, BigDecimal co2KgPerUnit) {};
 
-    Optional<Supplier> findByUserId(Long userId);
+    Optional<Company> findByUserId(Long userId);
 
     boolean existsByUserId(Long userId);
 
-    List<Supplier> findByUserIdIn(Collection<Long> userIds);
+    List<Company> findByUserIdIn(Collection<Long> userIds);
 }

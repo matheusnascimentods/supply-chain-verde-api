@@ -7,7 +7,7 @@ import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.BatchJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.BatchJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.BatchJpaRepository;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.SupplierJpaRepository;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.CompanyJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,7 +20,7 @@ import java.util.Optional;
 public class BatchRepositoryImpl implements BatchRepository {
     private final BatchJpaRepository jpaRepository;
     private final BatchJpaMapper mapper;
-    private final SupplierJpaRepository supplierJpaRepository;
+    private final CompanyJpaRepository supplierJpaRepository;
 
     @Override
     public Batch save(Batch batch) {
@@ -51,18 +51,18 @@ public class BatchRepositoryImpl implements BatchRepository {
 
     @Override
     public List<Batch> findBySupplierId(Long supplierId) {
-        return jpaRepository.findBySupplierSupplierId(supplierId).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findBySupplierCompanyId(supplierId).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public List<Batch> findBySupplierId(Long supplierId, int page, int size) {
-        return jpaRepository.findBySupplierSupplierId(supplierId, pageRequest(page, size))
+        return jpaRepository.findBySupplierCompanyId(supplierId, pageRequest(page, size))
                 .stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public long countBySupplierId(Long supplierId) {
-        return jpaRepository.countBySupplierSupplierId(supplierId);
+        return jpaRepository.countBySupplierCompanyId(supplierId);
     }
 
     @Override

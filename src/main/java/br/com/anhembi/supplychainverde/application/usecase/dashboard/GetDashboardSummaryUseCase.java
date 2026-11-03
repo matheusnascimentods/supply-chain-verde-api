@@ -5,7 +5,7 @@ import br.com.anhembi.supplychainverde.application.dto.dashboard.RecentBatchSumm
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import java.time.LocalDate;
 public class GetDashboardSummaryUseCase {
     private final BatchRepository batchRepository;
     private final CertificationRepository certificationRepository;
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
     private final CarbonEmissionRepository carbonEmissionRepository;
 
     public DashboardSummaryResponseDTO execute(Integer requestedLimit) {

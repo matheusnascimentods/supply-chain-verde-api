@@ -4,11 +4,11 @@ import br.com.anhembi.supplychainverde.application.dto.certification.Certificati
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.enums.CertificationStatus;
-import br.com.anhembi.supplychainverde.domain.exception.SupplierNotFoundException;
+import br.com.anhembi.supplychainverde.application.exception.CompanyNotFoundException;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class RegisterCertificationUseCase {
     private final CertificationRepository certificationRepository;
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
     private final CertificationDtoMapper mapper;
 
     @Transactional
@@ -29,8 +29,8 @@ public class RegisterCertificationUseCase {
         if (request.expiresAt() != null && request.expiresAt().isBefore(LocalDate.now())) {
             throw new ValidationException("Não é possível cadastrar uma certificação já vencida.");
         }
-        Supplier supplier = supplierRepository.findById(supplierId)
-                .orElseThrow(() -> new SupplierNotFoundException(supplierId));
+        Company supplier = supplierRepository.findSupplierById(supplierId)
+                .orElseThrow(() -> new CompanyNotFoundException(supplierId));
 
         Certification certification = mapper.toDomain(request);
         certification.setSupplier(supplier);

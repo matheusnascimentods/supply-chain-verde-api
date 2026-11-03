@@ -4,7 +4,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Certification;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.CertificationJpaEntity;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring", uses = SupplierJpaMapper.class)
+@Mapper(componentModel = "spring", uses = CompanyJpaMapper.class)
 public interface CertificationJpaMapper {
     Certification toDomain(CertificationJpaEntity entity);
     CertificationJpaEntity toJpaEntity(Certification domain);

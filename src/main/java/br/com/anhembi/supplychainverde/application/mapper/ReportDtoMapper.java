@@ -6,6 +6,6 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ReportDtoMapper {
-    @Mapping(target = "supplierId", source = "supplier.supplierId")
+    @Mapping(target = "supplierId", source = "supplier.companyId")
     ReportResponseDTO toResponse(Report report);
 }

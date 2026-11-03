@@ -12,16 +12,16 @@ import java.util.List;
 
 public interface CertificationJpaRepository extends JpaRepository<CertificationJpaEntity, Long> {
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
-    List<CertificationJpaEntity> findBySupplierSupplierId(Long supplierId);
+    List<CertificationJpaEntity> findBySupplierCompanyId(Long supplierId);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
-    List<CertificationJpaEntity> findBySupplierSupplierIdIn(Collection<Long> supplierIds);
+    List<CertificationJpaEntity> findBySupplierCompanyIdIn(Collection<Long> supplierIds);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
-    List<CertificationJpaEntity> findBySupplierSupplierIdAndStatus(Long supplierId, CertificationStatus status);
+    List<CertificationJpaEntity> findBySupplierCompanyIdAndStatus(Long supplierId, CertificationStatus status);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})
-    List<CertificationJpaEntity> findBySupplierSupplierIdAndIssuedAtLessThanEqualAndExpiresAtGreaterThanEqualOrderByIssuedAt(
+    List<CertificationJpaEntity> findBySupplierCompanyIdAndIssuedAtLessThanEqualAndExpiresAtGreaterThanEqualOrderByIssuedAt(
             Long supplierId, LocalDate end, LocalDate start);
 
     @EntityGraph(attributePaths = {"supplier", "supplier.address"})

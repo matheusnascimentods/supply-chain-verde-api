@@ -1,19 +1,16 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.mapper;
 
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.SupplierJpaEntity;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.CompanyJpaEntity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring", uses = AddressJpaMapper.class)
-public interface SupplierJpaMapper {
-    Supplier toDomain(SupplierJpaEntity entity);
-    @Mapping(target = "email", ignore = true)
-    @Mapping(target = "type", ignore = true)
-    SupplierJpaEntity toJpaEntity(Supplier domain);
+public interface CompanyJpaMapper {
+    Company toDomain(CompanyJpaEntity entity);
+    CompanyJpaEntity toJpaEntity(Company domain);
 
     default Cnpj map(String cnpj) {
         return cnpj == null ? null : new Cnpj(cnpj);

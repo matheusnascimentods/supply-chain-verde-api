@@ -6,7 +6,7 @@ import br.com.anhembi.supplychainverde.application.usecase.user.RegisterUserUseC
 import br.com.anhembi.supplychainverde.application.usecase.user.UpdateUserRoleUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.UpdateOwnUserUseCase;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ class UserControllerTest {
     private final RegisterUserUseCase registerUser = mock(RegisterUserUseCase.class);
     private final ListUsersUseCase listUsers = mock(ListUsersUseCase.class);
     private final UserController controller = new UserController(registerUser, mock(UpdateUserRoleUseCase.class), listUsers, mock(UpdateOwnUserUseCase.class),
-            mock(UserRepository.class), mock(SupplierRepository.class));
+            mock(UserRepository.class), mock(CompanyRepository.class));
     private final CustomUserPrincipal manager = new CustomUserPrincipal(4L, "m@example.com", "MANAGER", null);
     private final CustomUserPrincipal admin = new CustomUserPrincipal(1L, "a@example.com", "ADMIN", null);
 

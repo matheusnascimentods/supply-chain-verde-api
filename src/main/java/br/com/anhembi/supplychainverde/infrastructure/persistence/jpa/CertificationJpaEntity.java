@@ -20,7 +20,7 @@ public class CertificationJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "supplier_id", nullable = false)
-    private SupplierJpaEntity supplier;
+    private CompanyJpaEntity supplier;
 
     @Column(name = "certification", nullable = false)
     private String certification;

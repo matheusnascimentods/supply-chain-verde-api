@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Report {
     private Long reportId;
-    private Supplier supplier;
+    private Company supplier;
     private LocalDate periodStartAt;
     private LocalDate periodEndAt;
     private BigDecimal totalCo2Kg;

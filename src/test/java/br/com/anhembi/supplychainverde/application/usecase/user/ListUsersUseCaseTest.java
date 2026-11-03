@@ -2,10 +2,10 @@ package br.com.anhembi.supplychainverde.application.usecase.user;
 
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.user.UserResponseDTO;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 
 class ListUsersUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
-    private final SupplierRepository suppliers = mock(SupplierRepository.class);
+    private final CompanyRepository suppliers = mock(CompanyRepository.class);
     private final ListUsersUseCase useCase = new ListUsersUseCase(users, suppliers, DtoMappers.USER);
 
     @Test
@@ -28,7 +28,7 @@ class ListUsersUseCaseTest {
                 User.builder().userId(3L).role(UserRole.SUPPLIER).build()));
         when(users.countPage(null, null)).thenReturn(2L);
         when(suppliers.findByUserIdIn(any())).thenReturn(List.of(
-                Supplier.builder().supplierId(7L).name("Fazenda Verde").userId(3L).build()));
+                Company.builder().companyId(7L).name("Fazenda Verde").userId(3L).build()));
 
         List<UserResponseDTO> items = useCase.execute(null, null, 20, 0).items();
 

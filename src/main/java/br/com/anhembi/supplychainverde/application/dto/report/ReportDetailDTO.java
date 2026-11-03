@@ -22,11 +22,11 @@ public record ReportDetailDTO(
         long totalBatchCount,
         Integer trackedProductCount,
         LocalDateTime generatedAt,
-        Supplier supplier,
+        Company supplier,
         Emissions emissions,
         List<SupplierCertificationDTO> certifications
 ) {
-    public record Supplier(String phone, AddressResponseDTO address) {}
+    public record Company(String phone, AddressResponseDTO address) {}
 
     public record Emissions(List<ByStage> byStage, List<ByBatch> byBatch, List<ByMethod> byMethod) {}
 

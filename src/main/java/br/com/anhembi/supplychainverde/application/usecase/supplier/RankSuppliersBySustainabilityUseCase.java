@@ -6,13 +6,13 @@ import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResp
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.application.mapper.SupplierDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.Certification;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierScore;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierScore;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,7 +37,7 @@ public class RankSuppliersBySustainabilityUseCase {
                     .thenComparing(SupplierRankingDTO::sustainabilityScore, Comparator.reverseOrder())
                     .thenComparing(SupplierRankingDTO::supplierId);
 
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
     private final CertificationRepository certificationRepository;
     private final ReportRepository reportRepository;
     private final ProductRepository productRepository;
@@ -49,7 +49,7 @@ public class RankSuppliersBySustainabilityUseCase {
     }
 
     public List<SupplierRankingDTO> executeAll(boolean withoutUser) {
-        List<Supplier> suppliers = supplierRepository.findAll();
+        List<Company> suppliers = supplierRepository.findAllSuppliers();
         if (withoutUser) {
             suppliers = suppliers.stream().filter(supplier -> supplier.getUserId() == null).toList();
         }
@@ -82,26 +82,26 @@ public class RankSuppliersBySustainabilityUseCase {
         return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, false));
     }
 
-    private List<SupplierRankingDTO> toRankingDTOs(List<Supplier> suppliers, Map<Long, BigDecimal> co2) {
-        Set<Long> ids = suppliers.stream().map(Supplier::getSupplierId).collect(Collectors.toSet());
+    private List<SupplierRankingDTO> toRankingDTOs(List<Company> suppliers, Map<Long, BigDecimal> co2) {
+        Set<Long> ids = suppliers.stream().map(Company::getCompanyId).collect(Collectors.toSet());
         Map<Long, Long> reportCounts = reportRepository.countBySupplierIds(ids);
         Map<Long, SupplierScore> scores = supplierRepository.findScoresByIds(ids).stream()
                 .collect(Collectors.toMap(SupplierScore::supplierId, Function.identity()));
         Map<Long, List<Certification>> certifications = certificationRepository.findBySupplierIds(ids).stream()
-                .collect(Collectors.groupingBy(certification -> certification.getSupplier().getSupplierId()));
+                .collect(Collectors.groupingBy(certification -> certification.getSupplier().getCompanyId()));
 
         List<SupplierRankingDTO> rankings = new ArrayList<>();
-        for (Supplier supplier : suppliers) {
-            SupplierScore score = scores.get(supplier.getSupplierId());
+        for (Company supplier : suppliers) {
+            SupplierScore score = scores.get(supplier.getCompanyId());
             rankings.add(mapper.toRanking(
                     supplier,
                     score.sustainabilityScore(),
                     Math.toIntExact(score.activeCertificationCount()),
                     score.totalCo2Kg(),
-                    reportCounts.getOrDefault(supplier.getSupplierId(), 0L),
-                    certifications.getOrDefault(supplier.getSupplierId(), List.of()).stream()
+                    reportCounts.getOrDefault(supplier.getCompanyId(), 0L),
+                    certifications.getOrDefault(supplier.getCompanyId(), List.of()).stream()
                             .map(certificationMapper::toSupplierCertification).toList(),
-                    co2.get(supplier.getSupplierId())
+                    co2.get(supplier.getCompanyId())
             ));
         }
         return rankings;

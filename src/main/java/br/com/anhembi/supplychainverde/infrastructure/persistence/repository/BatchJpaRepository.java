@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> {
-    List<BatchJpaEntity> findBySupplierSupplierId(Long supplierId);
+    List<BatchJpaEntity> findBySupplierCompanyId(Long supplierId);
     List<BatchJpaEntity> findByProductProductId(Long productId);
 
     @Override
@@ -17,9 +17,9 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
     Page<BatchJpaEntity> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = {"product", "supplier", "supplier.address"})
-    Page<BatchJpaEntity> findBySupplierSupplierId(Long supplierId, Pageable pageable);
+    Page<BatchJpaEntity> findBySupplierCompanyId(Long supplierId, Pageable pageable);
 
-    long countBySupplierSupplierId(Long supplierId);
+    long countBySupplierCompanyId(Long supplierId);
 
     @Query(value = """
             select count(*)
