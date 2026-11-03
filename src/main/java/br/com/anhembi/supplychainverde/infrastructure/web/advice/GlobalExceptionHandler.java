@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.application.exception.ApplicationExceptio
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
+import br.com.anhembi.supplychainverde.domain.exception.BatchStatusConflictException;
 import br.com.anhembi.supplychainverde.domain.exception.DomainException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(error(status, exception.getMessage()));
     }
 
-    @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<Map<String, Object>> handleConflict(ConflictException exception) {
+    @ExceptionHandler({ConflictException.class, BatchStatusConflictException.class})
+    public ResponseEntity<Map<String, Object>> handleConflict(RuntimeException exception) {
         HttpStatus status = HttpStatus.CONFLICT;
         return ResponseEntity.status(status).body(error(status, exception.getMessage()));
     }

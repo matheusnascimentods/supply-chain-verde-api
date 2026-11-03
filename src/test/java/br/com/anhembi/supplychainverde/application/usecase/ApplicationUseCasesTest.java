@@ -55,6 +55,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 class ApplicationUseCasesTest {
@@ -74,14 +75,14 @@ class ApplicationUseCasesTest {
     @Test
     void shouldRegisterAndUpdateProduct() {
         ProductRepository products = mock(ProductRepository.class);
-        Product product = Product.builder().productId(3L).name("Café").category(ProductCategory.AGRICULTURE).unit(ProductUnit.KG).build();
+        Product product = Product.builder().productId(3L).supplierId(2L).name("Café").category(ProductCategory.AGRICULTURE).unit(ProductUnit.KG).build();
         when(products.save(any())).thenReturn(product);
         when(products.findById(3L)).thenReturn(Optional.of(product));
         when(products.findAll()).thenReturn(List.of(product));
 
         ProductRequestDTO request = new ProductRequestDTO("Café", ProductCategory.AGRICULTURE, ProductUnit.KG, "Orgânico");
-        assertThat(new RegisterProductUseCase(products, DtoMappers.PRODUCT).execute(request).productId()).isEqualTo(3L);
-        assertThat(new UpdateProductUseCase(products, DtoMappers.PRODUCT).execute(3L, request).name()).isEqualTo("Café");
+        assertThat(new RegisterProductUseCase(products, DtoMappers.PRODUCT).execute(request, 2L).productId()).isEqualTo(3L);
+        assertThat(new UpdateProductUseCase(products, DtoMappers.PRODUCT).execute(3L, request, 2L).name()).isEqualTo("Café");
         assertThat(new ListProductsUseCase(products, DtoMappers.PRODUCT).execute()).hasSize(1);
     }
 
@@ -91,22 +92,25 @@ class ApplicationUseCasesTest {
         ProductRepository products = mock(ProductRepository.class);
         CompanyRepository suppliers = mock(CompanyRepository.class);
         ChainRepository chains = mock(ChainRepository.class);
-        Product product = Product.builder().productId(1L).name("Café").build();
+        Product product = Product.builder().productId(1L).supplierId(2L).name("Café").build();
         Company supplier = Company.builder().companyId(2L).name("Verde").build();
         Batch batch = Batch.builder().batchId(4L).product(product).supplier(supplier).quantity(new BigDecimal("10")).build();
         when(products.findById(1L)).thenReturn(Optional.of(product));
         when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(supplier));
+        when(suppliers.findById(40L)).thenReturn(Optional.of(Company.builder().companyId(40L).name("Mercado").build()));
         when(batches.save(any())).thenReturn(batch);
-        when(batches.findPage(null, 2L, 0, 20)).thenReturn(List.of(batch));
-        when(batches.countPage(null, 2L)).thenReturn(1L);
+        when(batches.findPage(null, 2L, null, 0, 20)).thenReturn(List.of(batch));
+        when(batches.countPage(null, 2L, null)).thenReturn(1L);
         when(batches.findById(4L)).thenReturn(Optional.of(batch));
         when(chains.findByBatchId(4L)).thenReturn(List.of());
         BatchStagesReader stagesReader = mock(BatchStagesReader.class);
         when(stagesReader.findByBatchIds(List.of(4L))).thenReturn(java.util.Map.of());
 
         assertThat(new RegisterBatchUseCase(batches, products, suppliers, DtoMappers.BATCH)
-                .execute(new BatchRequestDTO(1L, 2L, new BigDecimal("10"), LocalDate.now())).batchId()).isEqualTo(4L);
-        assertThat(new ListBatchesUseCase(batches, DtoMappers.BATCH, stagesReader).execute(0, 20, null, 2L).content()).hasSize(1);
+                .execute(new BatchRequestDTO(1L, 2L, new BigDecimal("10")), 40L).batchId()).isEqualTo(4L);
+        verify(batches).save(argThat(saved -> saved.getStatus() == BatchStatus.PENDING && saved.getMarketId() == 40L
+                && saved.getProducedAt() == null));
+        assertThat(new ListBatchesUseCase(batches, DtoMappers.BATCH, stagesReader).execute(0, 20, null, 2L, null).content()).hasSize(1);
         assertThat(new GetBatchTraceabilityUseCase(batches, stagesReader, DtoMappers.BATCH).execute(4L).batchId()).isEqualTo(4L);
     }
 
@@ -124,7 +128,7 @@ class ApplicationUseCasesTest {
         assertThat(new RegisterCertificationUseCase(certifications, suppliers, DtoMappers.CERTIFICATION).execute(2L, request).status())
                 .isEqualTo(CertificationStatus.ACTIVE);
         assertThat(new UpdateCertificationStatusUseCase(certifications, DtoMappers.CERTIFICATION)
-                .execute(5L, new UpdateCertificationStatusRequestDTO(CertificationStatus.SUSPENDED)).status())
+                .execute(5L, new UpdateCertificationStatusRequestDTO(CertificationStatus.SUSPENDED), 2L, false).status())
                 .isEqualTo(CertificationStatus.SUSPENDED);
     }
 
@@ -133,7 +137,7 @@ class ApplicationUseCasesTest {
         TransportRepository transports = mock(TransportRepository.class);
         ChainRepository chains = mock(ChainRepository.class);
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
-        Chain chain = Chain.builder().chainId(6L).build();
+        Chain chain = Chain.builder().chainId(6L).batch(Batch.builder().batchId(9L).marketId(40L).build()).build();
         Transport transport = Transport.builder().transportId(7L).chain(chain).distance(new BigDecimal("100")).transportMode(TransportMode.ROAD).fuelType(FuelType.DIESEL).build();
         CarbonEmission emission = CarbonEmission.builder().emissionId(8L).chain(chain).emissionFactor(new br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor(new BigDecimal("0.15"))).co2Kg(new BigDecimal("15.00")).calculationMethod(CalculationMethod.IPCC).build();
         when(chains.findById(6L)).thenReturn(Optional.of(chain));
@@ -143,9 +147,9 @@ class ApplicationUseCasesTest {
         when(emissions.findByBatchId(9L)).thenReturn(List.of(emission));
 
         TransportRequestDTO transportRequest = new TransportRequestDTO(6L, TransportMode.ROAD, new BigDecimal("100"), FuelType.DIESEL, new BigDecimal("20"));
-        assertThat(new RegisterTransportUseCase(transports, chains, DtoMappers.TRANSPORT).execute(transportRequest).transportId()).isEqualTo(7L);
+        assertThat(new RegisterTransportUseCase(transports, chains, DtoMappers.TRANSPORT).execute(transportRequest, 40L, null).transportId()).isEqualTo(7L);
         assertThat(new CalculateCarbonEmissionUseCase(emissions, chains, transports, DtoMappers.CARBON_EMISSION)
-                .execute(6L, new CarbonEmissionRequestDTO(6L, CalculationMethod.IPCC)).co2Kg())
+                .execute(6L, new CarbonEmissionRequestDTO(6L, CalculationMethod.IPCC), 40L, null).co2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
         assertThat(new GetBatchCarbonFootprintUseCase(emissions, DtoMappers.CARBON_EMISSION).execute(9L).totalCo2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
@@ -161,8 +165,9 @@ class ApplicationUseCasesTest {
         CertificationRepository certifications = mock(CertificationRepository.class);
         ReportRepository reports = mock(ReportRepository.class);
 
-        Batch batch = Batch.builder().batchId(9L).build();
-        User user = User.builder().userId(11L).name("Operator").build();
+        Batch batch = Batch.builder().batchId(9L).marketId(40L).status(BatchStatus.ACTIVE)
+                .supplier(Company.builder().companyId(2L).build()).build();
+        User user = User.builder().userId(11L).name("Operator").companyId(40L).build();
         Chain stage = Chain.builder().chainId(13L).batch(batch).responsibleUser(user).stageType(StageType.PRODUCTION).build();
         Company supplier = Company.builder().companyId(2L).name("Verde").build();
 
@@ -177,10 +182,10 @@ class ApplicationUseCasesTest {
 
         ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.STORAGE, LocalDateTime.now(), null);
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, DtoMappers.CHAIN)
-                .execute(9L, 11L, request).chainId()).isEqualTo(13L);
+                .execute(9L, 11L, request, null, null).chainId()).isEqualTo(13L);
         assertThat(new ListChainStagesByBatchUseCase(chains, DtoMappers.CHAIN).execute(9L)).hasSize(1);
         assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, reports,
-                mock(ProductRepository.class), DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION)
+                DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION)
                 .executeAll(false, null)).singleElement().satisfies(ranking -> assertThat(ranking.supplierId()).isEqualTo(2L));
     }
 

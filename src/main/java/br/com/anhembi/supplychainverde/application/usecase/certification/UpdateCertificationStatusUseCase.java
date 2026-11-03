@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.certification;
 
+import org.springframework.security.access.AccessDeniedException;
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.certification.UpdateCertificationStatusRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
@@ -20,12 +21,17 @@ public class UpdateCertificationStatusUseCase {
     private final CertificationDtoMapper mapper;
 
     @Transactional
-    public CertificationResponseDTO execute(Long certificationId, UpdateCertificationStatusRequestDTO request) {
+    /** RN-22: só o fornecedor dono muda o status; ownSupplierId nulo só passa para o PLATFORM_ADMIN. */
+    public CertificationResponseDTO execute(Long certificationId, UpdateCertificationStatusRequestDTO request,
+                                            Long ownSupplierId, boolean platformAdmin) {
         if (request == null || request.status() == null) {
             throw new ValidationException("Status da certificação é obrigatório.");
         }
         Certification certification = certificationRepository.findById(certificationId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificação não encontrada: " + certificationId));
+        if (!platformAdmin && (ownSupplierId == null || !ownSupplierId.equals(certification.getSupplier().getCompanyId()))) {
+            throw new AccessDeniedException("Só o fornecedor dono altera a certificação.");
+        }
         if (request.status() == CertificationStatus.ACTIVE && certification.getExpiresAt().isBefore(LocalDate.now())) {
             throw new ValidationException("Certificação vencida não pode voltar a ficar ativa.");
         }

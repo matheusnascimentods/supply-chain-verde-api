@@ -2,7 +2,6 @@ package br.com.anhembi.supplychainverde.infrastructure.web;
 
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -62,30 +61,6 @@ class SupplierRecommendationIT {
     }
 
     @Test
-    @Disabled("Task 4: o produto agora é de um fornecedor só (RN-17), e a recomendação por productId sai (RN-21)")
-    void ordersSuppliersOfProductByCo2PerUnitWithoutHistoryLast() throws Exception {
-        long clean = supplier("Alfa", "98765432000198");
-        long product = product(clean, "AGRICULTURE", "KG");
-        long dirty = supplier("Beta", "98765432000279");
-        long withoutHistory = supplier("Gama", "98765432000350");
-        batch(clean, product, "100", "40");
-        batch(dirty, product, "100", "60");
-
-        mockMvc.perform(get("/api/v1/suppliers").with(asMarket())
-                        .param("ranked", "true")
-                        .param("productId", String.valueOf(product))
-                        .param("search", CNPJ_ROOT))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items", hasSize(3)))
-                .andExpect(jsonPath("$.items[0].supplierId").value(clean))
-                .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(0.4))
-                .andExpect(jsonPath("$.items[1].supplierId").value(dirty))
-                .andExpect(jsonPath("$.items[1].co2KgPerUnit").value(0.6))
-                .andExpect(jsonPath("$.items[2].supplierId").value(withoutHistory))
-                .andExpect(jsonPath("$.items[2].co2KgPerUnit").value(nullValue()));
-    }
-
-    @Test
     void comparesCategoryByWeightedAverageAndIgnoresOtherUnits() throws Exception {
         long mixed = supplier("Delta", "98765432000430");
         long steady = supplier("Epsilon", "98765432000511");
@@ -141,21 +116,12 @@ class SupplierRecommendationIT {
 
     @Test
     void rejectsInvalidParameterCombinations() throws Exception {
-        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("productId", "1")
-                        .param("category", "AGRICULTURE").param("unit", "KG"))
-                .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("category", "AGRICULTURE"))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("category", "AGRICULTURE").param("unit", "KG"))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("category", "XYZ").param("unit", "KG"))
                 .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void returnsNotFoundForUnknownProduct() throws Exception {
-        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("productId", "999999999"))
-                .andExpect(status().isNotFound());
     }
 
     // O catálogo é para mercado: companhia fornecedora recebe 403 (RN-13a).

@@ -11,6 +11,8 @@ import lombok.*;
 @AllArgsConstructor
 public class Product {
     private Long productId;
+    /** RN-16: o produto é de um fornecedor só, o único que o cadastra e edita. */
+    private Long supplierId;
     private String name;
     private ProductCategory category;
     private ProductUnit unit;

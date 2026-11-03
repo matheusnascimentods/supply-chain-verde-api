@@ -32,7 +32,6 @@ public class ProductJpaEntity {
     @Column(name = "description")
     private String description;
 
-    // ponytail: produto novo vai para o fornecedor padrão até a Task 4 deixar o fornecedor cadastrar os seus.
     @Column(name = "supplier_id", nullable = false, updatable = false)
     private Long supplierId;
 }

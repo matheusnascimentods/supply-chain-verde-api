@@ -1,5 +1,10 @@
 package br.com.anhembi.supplychainverde.application.usecase.chain;
 
+import java.time.LocalDate;
+import org.springframework.security.access.AccessDeniedException;
+import br.com.anhembi.supplychainverde.domain.exception.BatchStatusConflictException;
+import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
@@ -34,13 +39,49 @@ class RegisterChainStageUseCaseTest {
     private final RegisterChainStageUseCase useCase = new RegisterChainStageUseCase(
             chains, batches, users, mock(AddressRepository.class), DtoMappers.CHAIN);
 
-    private final Batch batch = Batch.builder().batchId(1L).build();
+    private final Batch batch = Batch.builder().batchId(1L).marketId(40L).status(BatchStatus.ACTIVE)
+            .supplier(Company.builder().companyId(7L).build()).build();
 
     @BeforeEach
     void setUp() {
         when(batches.findById(1L)).thenReturn(Optional.of(batch));
-        when(users.findById(2L)).thenReturn(Optional.of(User.builder().userId(2L).build()));
+        when(users.findById(2L)).thenReturn(Optional.of(User.builder().userId(2L).companyId(40L).build()));
+        when(users.findById(3L)).thenReturn(Optional.of(User.builder().userId(3L).companyId(99L).build()));
         when(chains.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void productionBySupplierActivatesAPendingBatch() {
+        batch.setStatus(BatchStatus.PENDING);
+        given();
+
+        useCase.execute(1L, 2L, new ChainRequestDTO(1L, null, null, StageType.PRODUCTION,
+                LocalDateTime.of(2026, 3, 4, 10, 0), null), null, 7L);
+
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.ACTIVE);
+        assertThat(batch.getProducedAt()).isEqualTo(LocalDate.of(2026, 3, 4));
+        verify(batches).save(batch);
+    }
+
+    @Test
+    void pendingBatchRejectsTheMarketAndRejectedBatchIsFinal() {
+        batch.setStatus(BatchStatus.PENDING);
+        given();
+        assertThatThrownBy(() -> register(StageType.PRODUCTION)).isInstanceOf(AccessDeniedException.class);
+
+        batch.setStatus(BatchStatus.REJECTED);
+        assertThatThrownBy(() -> register(StageType.PRODUCTION)).isInstanceOf(BatchStatusConflictException.class);
+        verify(chains, never()).save(any());
+    }
+
+    @Test
+    void rejectsBatchOfAnotherCompanyAndResponsibleOutsideTheBatch() {
+        given();
+        assertThatThrownBy(() -> useCase.execute(1L, 2L, request(StageType.PRODUCTION), 99L, null))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> useCase.execute(1L, 3L, request(StageType.PRODUCTION), 40L, null))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(chains, never()).save(any());
     }
 
     @Test
@@ -76,6 +117,10 @@ class RegisterChainStageUseCaseTest {
     }
 
     private ChainResponseDTO register(StageType type) {
-        return useCase.execute(1L, 2L, new ChainRequestDTO(1L, null, null, type, LocalDateTime.now(), null));
+        return useCase.execute(1L, 2L, request(type), 40L, null);
+    }
+
+    private ChainRequestDTO request(StageType type) {
+        return new ChainRequestDTO(1L, null, null, type, LocalDateTime.now(), null);
     }
 }

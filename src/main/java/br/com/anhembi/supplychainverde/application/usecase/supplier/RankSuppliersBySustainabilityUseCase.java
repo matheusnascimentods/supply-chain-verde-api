@@ -1,6 +1,5 @@
 package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
-import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
@@ -10,7 +9,6 @@ import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
-import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierScore;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
@@ -40,7 +38,6 @@ public class RankSuppliersBySustainabilityUseCase {
     private final CompanyRepository supplierRepository;
     private final CertificationRepository certificationRepository;
     private final ReportRepository reportRepository;
-    private final ProductRepository productRepository;
     private final SupplierDtoMapper mapper;
     private final CertificationDtoMapper certificationMapper;
 
@@ -66,15 +63,13 @@ public class RankSuppliersBySustainabilityUseCase {
         return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, workedWithOnly, marketId));
     }
 
-    public OffsetPageResponseDTO<SupplierRankingDTO> executeRecommended(Long productId, ProductCategory category,
+    /** RN-21: a recomendação compara só por category + unit; o produto agora é de um fornecedor só. */
+    public OffsetPageResponseDTO<SupplierRankingDTO> executeRecommended(ProductCategory category,
             ProductUnit unit, int limit, int offset, String search, boolean workedWithOnly, Long marketId) {
-        if (productId != null && productRepository.findById(productId).isEmpty()) {
-            throw new ResourceNotFoundException("Produto não encontrado: " + productId);
-        }
         String term = search == null ? "" : search.trim();
         // HashMap: fornecedores sem histórico têm co2 null, que Collectors.toMap não aceita
         Map<Long, BigDecimal> co2 = new HashMap<>();
-        supplierRepository.findRankedByEmission(category, unit, productId, term, workedWithOnly, marketId, limit, offset)
+        supplierRepository.findRankedByEmission(category, unit, term, workedWithOnly, marketId, limit, offset)
                 .forEach(rank -> co2.put(rank.supplierId(), rank.co2KgPerUnit()));
         List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(co2.keySet()), co2, marketId);
         items.sort(RECOMMENDED_ORDER);

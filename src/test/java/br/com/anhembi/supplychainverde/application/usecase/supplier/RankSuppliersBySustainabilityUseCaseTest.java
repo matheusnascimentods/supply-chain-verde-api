@@ -2,13 +2,10 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
-import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
-import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
-import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierEmissionRank;
@@ -34,14 +31,13 @@ class RankSuppliersBySustainabilityUseCaseTest {
     private final CompanyRepository suppliers = mock(CompanyRepository.class);
     private final CertificationRepository certifications = mock(CertificationRepository.class);
     private final ReportRepository reports = mock(ReportRepository.class);
-    private final ProductRepository products = mock(ProductRepository.class);
     private final RankSuppliersBySustainabilityUseCase useCase =
-            new RankSuppliersBySustainabilityUseCase(suppliers, certifications, reports, products,
+            new RankSuppliersBySustainabilityUseCase(suppliers, certifications, reports,
                     DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION);
 
     @Test
     void ordersRecommendedPageByCo2PerUnitWithSuppliersWithoutHistoryLast() {
-        when(suppliers.findRankedByEmission(ProductCategory.AGRICULTURE, ProductUnit.KG, null, "", false, 40L, 20, 0))
+        when(suppliers.findRankedByEmission(ProductCategory.AGRICULTURE, ProductUnit.KG, "", false, 40L, 20, 0))
                 .thenReturn(List.of(
                         new SupplierEmissionRank(3L, new BigDecimal("0.4000")),
                         new SupplierEmissionRank(8L, new BigDecimal("0.6000")),
@@ -51,7 +47,7 @@ class RankSuppliersBySustainabilityUseCaseTest {
         stubScores();
         when(reports.countBySupplierIds(any(), any())).thenReturn(Map.of());
 
-        var response = useCase.executeRecommended(null, ProductCategory.AGRICULTURE, ProductUnit.KG, 20, 0, null, false, 40L);
+        var response = useCase.executeRecommended(ProductCategory.AGRICULTURE, ProductUnit.KG, 20, 0, null, false, 40L);
 
         assertThat(response.items()).extracting(SupplierRankingDTO::supplierId).containsExactly(3L, 8L, 5L);
         assertThat(response.items()).extracting(SupplierRankingDTO::co2KgPerUnit)
@@ -61,24 +57,14 @@ class RankSuppliersBySustainabilityUseCaseTest {
 
     @Test
     void trimsSearchBeforeQueryingAndCounting() {
-        when(products.findById(12L)).thenReturn(Optional.of(Product.builder().productId(12L).build()));
-        when(suppliers.findRankedByEmission(null, null, 12L, "verde", false, null, 10, 0)).thenReturn(List.of());
+        when(suppliers.findRankedByEmission(ProductCategory.OTHER, ProductUnit.KG, "verde", false, null, 10, 0)).thenReturn(List.of());
         when(suppliers.findAllById(any())).thenReturn(List.of());
         when(reports.countBySupplierIds(any(), any())).thenReturn(Map.of());
 
-        useCase.executeRecommended(12L, null, null, 10, 0, "  verde ", false, null);
+        useCase.executeRecommended(ProductCategory.OTHER, ProductUnit.KG, 10, 0, "  verde ", false, null);
 
-        verify(suppliers).findRankedByEmission(null, null, 12L, "verde", false, null, 10, 0);
+        verify(suppliers).findRankedByEmission(ProductCategory.OTHER, ProductUnit.KG, "verde", false, null, 10, 0);
         verify(suppliers).countBySearch("verde", false, null);
-    }
-
-    @Test
-    void rejectsUnknownProduct() {
-        when(products.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> useCase.executeRecommended(99L, null, null, 20, 0, null, false, null))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(suppliers);
     }
 
     @Test

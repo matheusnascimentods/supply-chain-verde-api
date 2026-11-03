@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.dashboard;
 
+import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.application.dto.dashboard.DashboardSummaryResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.dashboard.RecentBatchSummaryDTO;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
@@ -30,7 +31,7 @@ public class GetDashboardSummaryUseCase {
                 batchRepository.countActiveBatches(marketId, supplierId),
                 certificationRepository.countByExpiresAtBetween(today, today.plusDays(30), supplierId),
                 supplierId != null ? null : supplierRepository.countBySearch("", marketId != null, marketId),
-                supplierId == null ? null : batchRepository.countBySupplierIdAndStatus(supplierId, "PENDING"),
+                supplierId == null ? null : batchRepository.countBySupplierIdAndStatus(supplierId, BatchStatus.PENDING),
                 carbonEmissionRepository.sumEmissionsCalculatedBetween(monthStart, monthEnd, marketId, supplierId),
                 batchRepository.findRecentBatches(marketId, supplierId, limit).stream()
                         .map(batch -> new RecentBatchSummaryDTO(

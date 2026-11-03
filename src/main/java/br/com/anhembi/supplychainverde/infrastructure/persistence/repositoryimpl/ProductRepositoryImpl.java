@@ -4,9 +4,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.ProductJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.FullTextSearch;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.ProductJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.ProductJpaRepository;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.CompanyJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -17,13 +15,10 @@ import java.util.Optional;
 public class ProductRepositoryImpl implements ProductRepository {
     private final ProductJpaRepository jpaRepository;
     private final ProductJpaMapper mapper;
-    private final CompanyJpaRepository supplierJpaRepository;
 
     @Override
     public Product save(Product product) {
-        ProductJpaEntity entity = mapper.toJpaEntity(product);
-        entity.setSupplierId(supplierJpaRepository.findDefaultSupplierId());
-        return mapper.toDomain(jpaRepository.save(entity));
+        return mapper.toDomain(jpaRepository.save(mapper.toJpaEntity(product)));
     }
 
     @Override

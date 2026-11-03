@@ -70,10 +70,9 @@ public class CompanyRepositoryImpl implements CompanyRepository {
     }
 
     @Override
-    public List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search,
+    public List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, String search,
             boolean workedWithOnly, Long marketId, int limit, int offset) {
         return jpaRepository.findRankedByEmission(
-                productId,
                 category == null ? null : category.name(),
                 unit == null ? null : unit.name(),
                 search,

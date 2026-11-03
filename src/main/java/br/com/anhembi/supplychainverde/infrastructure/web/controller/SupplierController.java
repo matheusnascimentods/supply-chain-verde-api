@@ -26,7 +26,7 @@ public class SupplierController {
     @GetMapping
     @Operation(
             summary = "Consultar fornecedores",
-            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações. Com ranked=true, productId ou o par category+unit ativa a recomendação: os fornecedores vêm ordenados pelo menor CO₂ médio por unidade daquele produto (ou categoria+unidade), com desempate por sustainabilityScore; quem não tem histórico vem no fim com co2KgPerUnit null. productId não combina com category/unit, e category exige unit. Esses parâmetros exigem ranked=true. O catálogo é global para o mercado (RN-13): cada item traz workedWith, que diz se o fornecedor tem ou teve lote com o mercado logado, e workedWith=true restringe a lista a eles (não combina com supplierId). reportCount conta só os relatórios do mercado logado. Para o PLATFORM_ADMIN, workedWith vem sempre false. Companhia fornecedora recebe 403, exceto no próprio detalhe (supplierId = a própria)."
+            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações. Com ranked=true, o par category+unit ativa a recomendação (RN-21): os fornecedores vêm ordenados pelo menor CO₂ médio por unidade naquela categoria e unidade, com desempate por sustainabilityScore; quem não tem histórico vem no fim com co2KgPerUnit null. category exige unit, e os dois exigem ranked=true. O catálogo é global para o mercado (RN-13): cada item traz workedWith, que diz se o fornecedor tem ou teve lote com o mercado logado, e workedWith=true restringe a lista a eles (não combina com supplierId). reportCount conta só os relatórios do mercado logado. Para o PLATFORM_ADMIN, workedWith vem sempre false. Companhia fornecedora recebe 403, exceto no próprio detalhe (supplierId = a própria)."
     )
     public Object getSuppliers(
             @RequestParam(required = false) @Min(1) Long supplierId,
@@ -34,7 +34,6 @@ public class SupplierController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) @Min(1) Long productId,
             @RequestParam(required = false) ProductCategory category,
             @RequestParam(required = false) ProductUnit unit,
             @RequestParam(defaultValue = "false") boolean workedWith,
@@ -47,14 +46,11 @@ public class SupplierController {
         if (supplierId != null && ranked != null) {
             throw new IllegalArgumentException("supplierId e ranked são parâmetros mutuamente exclusivos.");
         }
-        if (productId != null && (category != null || unit != null)) {
-            throw new IllegalArgumentException("productId não pode ser combinado com category/unit.");
-        }
         if ((category == null) != (unit == null)) {
             throw new IllegalArgumentException("category e unit devem ser informados juntos.");
         }
-        if (!Boolean.TRUE.equals(ranked) && (productId != null || category != null)) {
-            throw new IllegalArgumentException("productId, category e unit exigem ranked=true.");
+        if (!Boolean.TRUE.equals(ranked) && category != null) {
+            throw new IllegalArgumentException("category e unit exigem ranked=true.");
         }
         if (workedWith && supplierId != null) {
             throw new IllegalArgumentException("workedWith não combina com supplierId.");
@@ -63,8 +59,8 @@ public class SupplierController {
             return get.execute(supplierId);
         }
         if (Boolean.TRUE.equals(ranked)) {
-            return productId != null || category != null
-                    ? rank.executeRecommended(productId, category, unit, limit, offset, search, workedWith, principal.marketId())
+            return category != null
+                    ? rank.executeRecommended(category, unit, limit, offset, search, workedWith, principal.marketId())
                     : rank.execute(limit, offset, search, workedWith, principal.marketId());
         }
         return rank.executeAll(workedWith, principal.marketId());

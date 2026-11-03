@@ -1,5 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.*;
 import br.com.anhembi.supplychainverde.application.usecase.emission.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,8 +21,11 @@ public class CarbonEmissionController {
 
     @PostMapping("/stages/{chainId}/emission")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Calcular emissão", description = "Calcula e registra a emissão de carbono de uma etapa.")
-    public CarbonEmissionResponseDTO calculate(@PathVariable Long chainId, @RequestBody CarbonEmissionRequestDTO request) { return calculate.execute(chainId, request); }
+    @Operation(summary = "Calcular emissão", description = "Calcula e registra a emissão de carbono de uma etapa de um lote do mercado ou do fornecedor do usuário; outro lote retorna 403.")
+    public CarbonEmissionResponseDTO calculate(@PathVariable Long chainId, @RequestBody CarbonEmissionRequestDTO request,
+                                               @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return calculate.execute(chainId, request, principal.marketId(), principal.supplierId());
+    }
 
     @GetMapping("/batches/{batchId}/carbon-footprint")
     @Operation(summary = "Consultar pegada de carbono", description = "Consulta pública das emissões acumuladas de um lote.")

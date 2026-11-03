@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
+import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.BatchJpaEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,15 +23,17 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
 
     long countBySupplierCompanyId(Long supplierId);
 
-    long countBySupplierCompanyIdAndStatus(Long supplierId, String status);
+    long countBySupplierCompanyIdAndStatus(Long supplierId, BatchStatus status);
 
     @EntityGraph(attributePaths = {"product", "supplier", "supplier.address"})
     @Query("""
             select b from BatchJpaEntity b
             where (:marketId is null or b.marketId = :marketId)
               and (:supplierId is null or b.supplier.companyId = :supplierId)
+              and (:status is null or b.status = :status)
             """)
-    Page<BatchJpaEntity> findPage(@Param("marketId") Long marketId, @Param("supplierId") Long supplierId, Pageable pageable);
+    Page<BatchJpaEntity> findPage(@Param("marketId") Long marketId, @Param("supplierId") Long supplierId,
+            @Param("status") BatchStatus status, Pageable pageable);
 
     @Query(value = """
             select count(*)

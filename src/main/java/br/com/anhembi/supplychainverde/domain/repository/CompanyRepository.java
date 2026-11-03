@@ -35,7 +35,7 @@ public interface CompanyRepository {
 
     List<Company> findAllById(Collection<Long> supplierIds);
 
-    List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search,
+    List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, String search,
             boolean workedWithOnly, Long marketId, int limit, int offset);
 
     /** workedWithOnly restringe aos fornecedores que têm ou tiveram lote com marketId (RN-13). */

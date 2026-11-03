@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 a 3 concluídas).
+**Status:** em andamento (Tasks 1 a 4 concluídas).
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. As tasks do frontend (`supply-chain-verde-web/docs/features/009-empresas-planos/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -41,13 +41,13 @@ Só banco, com o mínimo de Java para a aplicação continuar subindo.
 
 ## Task 4 — `feat/batch-request`
 
-- [ ] `POST /batches` pelo mercado, sem `producedAt`, validando o produto contra o fornecedor
-- [ ] Produtos pelo fornecedor (`POST/PUT /products`, `GET /products?supplierId=`)
-- [ ] `PATCH /batches/{id}/reject`, filtro `status` e transição para `ACTIVE` na primeira etapa
-- [ ] Escopo em etapa, transporte, emissão e `X-Responsible-User-Id`
-- [ ] Certificação gerenciada pelo fornecedor; relatório com `market_id`
-- [ ] Recomendação só por `category` + `unit`
-- [ ] `BatchLifecycleIT`; ajustar `SupplierRecommendationIT`, `BatchListIT`, `ReportDetailIT` e `DashboardEmissionsIT`
+- [x] `POST /batches` pelo mercado, sem `producedAt`, validando o produto contra o fornecedor
+- [x] Produtos pelo fornecedor (`POST/PUT /products`, `GET /products?supplierId=`)
+- [x] `PATCH /batches/{id}/reject`, filtro `status` e transição para `ACTIVE` na primeira etapa
+- [x] Escopo em etapa, transporte, emissão e `X-Responsible-User-Id`
+- [x] Certificação gerenciada pelo fornecedor; relatório com `market_id`
+- [x] Recomendação só por `category` + `unit`
+- [x] `BatchLifecycleIT`; ajustar `SupplierRecommendationIT`, `BatchListIT`, `ReportDetailIT` e `DashboardEmissionsIT`
 
 **Pronto:** o mercado pede o lote, e o fornecedor executa ou recusa. Isso libera a Task 4 do frontend.
 

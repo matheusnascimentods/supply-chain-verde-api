@@ -27,21 +27,27 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Cadastrar produto", description = "Cadastra um produto rastreável.")
-    public ProductResponseDTO create(@RequestBody ProductRequestDTO request) { return register.execute(request); }
+    @Operation(summary = "Cadastrar produto", description = "Somente a companhia fornecedora (SUPPLIER ou ADMIN). O produto nasce no fornecedor do usuário (RN-16); outras companhias recebem 403.")
+    public ProductResponseDTO create(@RequestBody ProductRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return register.execute(request, principal.supplierId());
+    }
 
     @PutMapping("/{productId}")
-    @Operation(summary = "Atualizar produto", description = "Atualiza os dados de um produto.")
-    public ProductResponseDTO update(@PathVariable Long productId, @RequestBody ProductRequestDTO request) { return update.execute(productId, request); }
+    @Operation(summary = "Atualizar produto", description = "Somente o fornecedor dono do produto; os demais recebem 403.")
+    public ProductResponseDTO update(@PathVariable Long productId, @RequestBody ProductRequestDTO request,
+                                     @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return update.execute(productId, request, principal.supplierId());
+    }
 
     @GetMapping
-    @Operation(summary = "Listar produtos", description = "Busca e pagina produtos por nome, descrição ou categoria. A companhia fornecedora vê só os próprios; o mercado vê os de todos os fornecedores (catálogo).")
+    @Operation(summary = "Listar produtos", description = "Busca e pagina produtos por nome, descrição ou categoria. A companhia fornecedora vê só os próprios; o mercado vê os de todos os fornecedores (catálogo) e filtra por supplierId, usado no modal de lote.")
     public OffsetPageResponseDTO<ProductResponseDTO> list(
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Min(1) Long supplierId,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return list.execute(limit, offset, search, principal.supplierId());
+        return list.execute(limit, offset, search, principal.isSupplierCompany() ? principal.supplierId() : supplierId);
     }
 }

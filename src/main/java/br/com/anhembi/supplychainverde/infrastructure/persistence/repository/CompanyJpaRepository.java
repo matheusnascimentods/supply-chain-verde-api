@@ -44,8 +44,7 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             FROM company s
             LEFT JOIN vw_supplier_product_emission v
                    ON v.supplier_id = s.id
-                  AND (v.product_id = :productId
-                       OR (:productId IS NULL AND v.category = :category AND v.unit = :unit))
+                  AND v.category = :category AND v.unit = :unit
             WHERE s.type = 'SUPPLIER'
               AND (:search = ''
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
@@ -56,7 +55,6 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<SupplierEmissionRank> findRankedByEmission(
-            @Param("productId") Long productId,
             @Param("category") String category,
             @Param("unit") String unit,
             @Param("search") String search,
@@ -119,10 +117,4 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             nativeQuery = true)
     List<Long> findWorkedWithIds(@Param("marketId") Long marketId, @Param("supplierIds") Collection<Long> supplierIds);
 
-    // ponytail: mercado e fornecedor padrão das escritas que ainda não sabem a companhia; saem na Task 4.
-    @Query(value = "SELECT MIN(id) FROM company WHERE type = 'MARKET'", nativeQuery = true)
-    Long findDefaultMarketId();
-
-    @Query(value = "SELECT MIN(id) FROM company WHERE type = 'SUPPLIER'", nativeQuery = true)
-    Long findDefaultSupplierId();
 }

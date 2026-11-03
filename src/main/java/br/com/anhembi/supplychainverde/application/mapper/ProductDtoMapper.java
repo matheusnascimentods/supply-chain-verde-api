@@ -9,9 +9,11 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface ProductDtoMapper {
     @Mapping(target = "productId", ignore = true)
+    @Mapping(target = "supplierId", ignore = true)
     Product toDomain(ProductRequestDTO request);
 
     @Mapping(target = "productId", ignore = true)
+    @Mapping(target = "supplierId", ignore = true)
     void update(ProductRequestDTO request, @MappingTarget Product product);
 
     ProductResponseDTO toResponse(Product product);
