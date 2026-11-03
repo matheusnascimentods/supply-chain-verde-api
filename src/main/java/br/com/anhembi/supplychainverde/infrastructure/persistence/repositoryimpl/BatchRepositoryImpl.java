@@ -5,7 +5,9 @@ import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.BatchJpaMapper;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.BatchJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.BatchJpaRepository;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.SupplierJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -18,10 +20,13 @@ import java.util.Optional;
 public class BatchRepositoryImpl implements BatchRepository {
     private final BatchJpaRepository jpaRepository;
     private final BatchJpaMapper mapper;
+    private final SupplierJpaRepository supplierJpaRepository;
 
     @Override
     public Batch save(Batch batch) {
-        return mapper.toDomain(jpaRepository.save(mapper.toJpaEntity(batch)));
+        BatchJpaEntity entity = mapper.toJpaEntity(batch);
+        entity.setMarketId(supplierJpaRepository.findDefaultMarketId());
+        return mapper.toDomain(jpaRepository.save(entity));
     }
 
     @Override

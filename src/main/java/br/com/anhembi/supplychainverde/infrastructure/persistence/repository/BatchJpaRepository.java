@@ -37,7 +37,7 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
                    latest.stage_type as status
             from batch b
             join product p on p.id = b.product_id
-            join supplier s on s.id = b.supplier_id
+            join company s on s.id = b.supplier_id
             join vw_batch_current_stage latest on latest.batch_id = b.id
             order by b.produced_at desc, b.id desc
             """, nativeQuery = true)

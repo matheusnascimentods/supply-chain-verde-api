@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** não iniciada.
+**Status:** em andamento (Task 1 concluída).
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. As tasks do frontend (`supply-chain-verde-web/docs/features/009-empresas-planos/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -12,10 +12,10 @@ As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. As tasks do
 
 Só banco, com o mínimo de Java para a aplicação continuar subindo.
 
-- [ ] V7, V8 e V9 (plan §1)
-- [ ] Entidades e repositórios JPA de `Supplier` apontando para `company`, filtrando `type = 'SUPPLIER'`, sem renomear nada ainda
-- [ ] `src/test/resources/seed/report-seed.sql` no esquema novo
-- [ ] `MigrationToCompanyIT`, `CompanyConstraintsIT` e os casos novos de `AuditLogTriggerIT` (plan §5)
+- [x] V7, V8 e V9 (plan §1)
+- [x] Entidades e repositórios JPA de `Supplier` apontando para `company`, filtrando `type = 'SUPPLIER'`, sem renomear nada ainda
+- [x] `src/test/resources/seed/report-seed.sql` no esquema novo
+- [x] `MigrationToCompanyIT`, `CompanyConstraintsIT` e os casos novos de `AuditLogTriggerIT` (plan §5)
 
 **Pronto:** o banco migra do zero e a partir da V6; os ITs atuais continuam verdes, exceto os que dependem de `supplier.user_id`, que são marcados para a Task 3.
 

@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -55,10 +56,13 @@ class ViewsAndProceduresIT {
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
                 VALUES ('Rua Teste', '1', 'Centro', '01000000', 'São Paulo', 'SP')
                 """);
-        supplierId = insert(jdbcTemplate,
-                "INSERT INTO supplier (name, cnpj, address_id) VALUES ('Fornecedor IT', '98765432000198', ?)", addressId);
+        supplierId = insert(jdbcTemplate, """
+                INSERT INTO company (name, cnpj, address_id, email, type)
+                VALUES ('Fornecedor IT', '98765432000198', ?, 'fornecedor@it.test', 'SUPPLIER')
+                """, addressId);
         productId = insert(jdbcTemplate,
-                "INSERT INTO product (name, category, unit) VALUES ('Café IT', 'AGRICULTURE', 'KG')");
+                "INSERT INTO product (supplier_id, name, category, unit) VALUES (?, 'Café IT', 'AGRICULTURE', 'KG')",
+                supplierId);
     }
 
     // Dois lotes do mesmo produto: 2 lotes, 1 produto. O relatório grava o retrato e a auditoria tem o autor.
@@ -86,7 +90,7 @@ class ViewsAndProceduresIT {
                 Long.class, reportId)).isEqualTo(userId);
 
         // Fora do período: relatório zerado, não erro.
-        jdbcTemplate.update("CALL sp_generate_sustainability_report(?, ?, ?, @report_id)",
+        jdbcTemplate.update("CALL sp_generate_sustainability_report(?, " + DEMO_MARKET + ", ?, ?, @report_id)",
                 supplierId, LocalDate.of(1990, 1, 1), LocalDate.of(1990, 12, 31));
         Long empty = jdbcTemplate.queryForObject("SELECT @report_id", Long.class);
         assertThat(jdbcTemplate.queryForObject("SELECT total_co2_kg FROM report WHERE id = ?", BigDecimal.class, empty))
@@ -147,9 +151,10 @@ class ViewsAndProceduresIT {
     }
 
     private void batchWithEmission(String co2Kg) {
-        long batchId = insert(jdbcTemplate,
-                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, 100, CURRENT_DATE)",
-                productId, supplierId);
+        long batchId = insert(jdbcTemplate, """
+                INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
+                VALUES (?, ?, %s, 'ACTIVE', 100, CURRENT_DATE)
+                """.formatted(DEMO_MARKET), productId, supplierId);
         long chainId = insert(jdbcTemplate,
                 "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW())",
                 batchId, userId);

@@ -115,7 +115,7 @@ class AuditLogTriggerIT {
         assertThat(deleted.path("city").asText()).isEqualTo("Campinas");
         assertThat(events.get(2).afterData()).isNull();
 
-        Long supplierId = jdbcTemplate.queryForObject("SELECT id FROM supplier ORDER BY id LIMIT 1", Long.class);
+        Long supplierId = jdbcTemplate.queryForObject("SELECT id FROM company WHERE type = 'SUPPLIER' ORDER BY id LIMIT 1", Long.class);
         Long certificationId = insert(jdbcTemplate, """
                 INSERT INTO certification (supplier_id, certification, issuing_body, issued_at, expires_at, status)
                 VALUES (?, 'Teste de auditoria', 'Laboratório', CURRENT_DATE, CURRENT_DATE + INTERVAL 30 DAY, 'ACTIVE')
@@ -155,6 +155,49 @@ class AuditLogTriggerIT {
                 .andExpect(jsonPath("$.items[0].userId").value(actorId))
                 .andExpect(jsonPath("$.items[0].beforeData.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.items[0].afterData.status").value("SUSPENDED"));
+    }
+
+    // Feature 010: company e company_plan auditadas, sem as colunas geradas; status do lote vira STATUS_CHANGE.
+    @Test
+    void auditsCompanyPlanAndBatchStatusChange() throws Exception {
+        Long addressId = insert(jdbcTemplate, """
+                INSERT INTO address (street, number, neighborhood, zip_code, city, state)
+                VALUES ('Rua Quatro', '40', 'Centro', '01000-000', 'Santos', 'SP')
+                """);
+        Long marketId = insert(jdbcTemplate, """
+                INSERT INTO company (name, cnpj, address_id, email, type)
+                VALUES ('Mercado Auditado', '98765432000198', ?, 'auditado@it.test', 'MARKET')
+                """, addressId);
+        jdbcTemplate.update("UPDATE company SET phone = '(11) 3000-0001' WHERE id = ?", marketId);
+        Long subscriptionId = insert(jdbcTemplate,
+                "INSERT INTO company_plan (company_id, plan_id) SELECT ?, id FROM plan WHERE code = 'BASIC'", marketId);
+        Long batchId = insert(jdbcTemplate, """
+                INSERT INTO batch (product_id, supplier_id, market_id, status, quantity)
+                SELECT id, supplier_id, ?, 'PENDING', 5 FROM product ORDER BY id LIMIT 1
+                """, marketId);
+        jdbcTemplate.update("UPDATE batch SET status = 'REJECTED', rejection_reason = 'Sem capacidade' WHERE id = ?", batchId);
+
+        List<AuditEvent> company = events("company", marketId);
+        assertThat(company).extracting(AuditEvent::action).containsExactly("INSERT", "UPDATE");
+        JsonNode insertedCompany = objectMapper.readTree(company.getFirst().afterData());
+        assertThat(insertedCompany.path("type").asText()).isEqualTo("MARKET");
+        assertThat(insertedCompany.path("email").asText()).isEqualTo("auditado@it.test");
+        assertThat(objectMapper.readTree(company.get(1).afterData()).path("phone").asText()).isEqualTo("(11) 3000-0001");
+
+        List<AuditEvent> subscription = events("company_plan", subscriptionId);
+        assertThat(subscription).extracting(AuditEvent::action).containsExactly("INSERT");
+        JsonNode insertedSubscription = objectMapper.readTree(subscription.getFirst().afterData());
+        assertThat(insertedSubscription.path("company_id").asLong()).isEqualTo(marketId);
+        assertThat(insertedSubscription.has("active_company_id")).isFalse();
+
+        List<AuditEvent> batch = events("batch", batchId);
+        assertThat(batch).extracting(AuditEvent::action).containsExactly("INSERT", "STATUS_CHANGE");
+        assertThat(objectMapper.readTree(batch.getFirst().afterData()).path("market_id").asLong()).isEqualTo(marketId);
+        assertThat(objectMapper.readTree(batch.getFirst().afterData()).has("market_type")).isFalse();
+        JsonNode rejected = objectMapper.readTree(batch.get(1).afterData());
+        assertThat(rejected.path("status").asText()).isEqualTo("REJECTED");
+        assertThat(rejected.path("rejection_reason").asText()).isEqualTo("Sem capacidade");
+        assertThat(objectMapper.readTree(batch.get(1).beforeData()).path("status").asText()).isEqualTo("PENDING");
     }
 
     @Test
@@ -210,6 +253,21 @@ class AuditLogTriggerIT {
         } finally {
             jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
         }
+    }
+
+    private List<AuditEvent> events(String table, Long entityId) {
+        return jdbcTemplate.query("""
+                SELECT action, user_id, affected_entity_id, before_data, after_data
+                FROM audit_log
+                WHERE affected_table = ? AND affected_entity_id = ?
+                ORDER BY id
+                """, (result, rowNumber) -> new AuditEvent(
+                result.getString("action"),
+                result.getObject("user_id", Long.class),
+                result.getLong("affected_entity_id"),
+                result.getString("before_data"),
+                result.getString("after_data")
+        ), table, entityId);
     }
 
     private record AuditEvent(

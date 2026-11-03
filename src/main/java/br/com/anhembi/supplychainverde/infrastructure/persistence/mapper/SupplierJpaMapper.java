@@ -6,10 +6,13 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.SupplierJp
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring", uses = AddressJpaMapper.class)
 public interface SupplierJpaMapper {
     Supplier toDomain(SupplierJpaEntity entity);
+    @Mapping(target = "email", ignore = true)
+    @Mapping(target = "type", ignore = true)
     SupplierJpaEntity toJpaEntity(Supplier domain);
 
     default Cnpj map(String cnpj) {
