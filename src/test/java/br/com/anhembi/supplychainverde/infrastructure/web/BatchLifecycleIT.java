@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
-import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
+import static br.com.anhembi.supplychainverde.JdbcInserts.SEED_MARKET;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -56,7 +56,7 @@ class BatchLifecycleIT {
 
     @BeforeEach
     void setUp() {
-        marketId = jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class);
+        marketId = jdbcTemplate.queryForObject("SELECT " + SEED_MARKET, Long.class);
         marketUser = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE role = 'MANAGER' AND company_id = ?",
                 Long.class, marketId);
         supplierUser = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE company_id = ?", Long.class, SUPPLIER);
@@ -68,7 +68,7 @@ class BatchLifecycleIT {
         requestBatch(productId, SUPPLIER)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDING"))
-                .andExpect(jsonPath("$.marketName").value("Mercado Verde Demonstração"))
+                .andExpect(jsonPath("$.marketName").value("Mercado Bom Preço"))
                 .andExpect(jsonPath("$.marketId").value(marketId))
                 .andExpect(jsonPath("$.producedAt").value(nullValue()));
 

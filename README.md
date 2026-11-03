@@ -432,11 +432,19 @@ As migrations de seed criam usuários para desenvolvimento e demonstração. A s
 rolocompressor06
 ```
 
-Depois da V8, o seed fica assim:
+Depois da V10, o seed fica assim:
 
 - **`PLATFORM_ADMIN`**: `m.neuer@bayern.com`, sem companhia.
-- **Mercado de demonstração** (Mercado Verde Demonstração, plano `PRO_MAX`): os demais usuários `ADMIN`, `MANAGER` e `AUDITOR` do seed, como `h.kane@bayern.com` (`ADMIN`) e `j.tah@bayern.com` (`MANAGER`). Todos os lotes e relatórios do seed são dele.
-- **Fornecedores** (plano `BASIC`): cada antigo usuário `SUPPLIER` virou o `ADMIN` do próprio fornecedor, como `d.upamecano@bayern.com` (fornecedor 3).
+- **Mercados** (plano `PRO`, 8 usuários cada). Cada um tem os lotes e relatórios de um terço dos fornecedores do seed, divididos pelo resto de `supplier_id` por 3:
+
+| Mercado | Fornecedores (`supplier_id`) | `ADMIN` | Demais usuários |
+| :--- | :--- | :--- | :--- |
+| Mercado Bom Preço | múltiplos de 3 | `h.kane@bayern.com` | `j.tah`, `j.kimmich` (`MANAGER`), `j.stanisic`, `a.davies` (`AUDITOR`) e `v.vandijk@liverpool.example.com` (`MANAGER`), `d.rice` e `m.odegaard@arsenal.example.com` (`AUDITOR`) |
+| Supermercado Vale Verde | resto 1 | `warren.zaire-emery@psg.example.com` | `j.musiala`, `ousmane.dembele` (`MANAGER`), `m.olise`, `desire.doue` (`AUDITOR`) e `m.caicedo@chelsea.example.com` (`MANAGER`), `r.lavia` e `c.palmer@chelsea.example.com` (`AUDITOR`) |
+| Rede Feira Viva | resto 2 | `matvey.safonov@psg.example.com` | `fabian.ruiz`, `nuno.mendes` (`MANAGER`), `joao.neves`, `marquinhos` (`AUDITOR`) e `b.fernandes@manutd.example.com` (`MANAGER`), `m.cunha` e `b.mbeumo@manutd.example.com` (`AUDITOR`) |
+
+- **Fornecedores** (plano `BASIC`): todos os 41 têm um `ADMIN`. Os seis que já tinham usuário mantêm o antigo `SUPPLIER`, promovido na V8 (por exemplo, `d.upamecano@bayern.com` no fornecedor 3). Os outros 35 recebem, em ordem de id, um jogador da V10 (`alisson@liverpool.example.com` no fornecedor 1, `m.kerkez@liverpool.example.com` no 2, e assim por diante).
+- O Mercado Verde Demonstração, criado na V8, continua existindo, mas sem usuários, lotes nem relatórios.
 
 Essa credencial é exclusiva para o ambiente local/demonstrativo e deve ser substituída antes de qualquer uso em ambiente compartilhado ou de produção.
 
