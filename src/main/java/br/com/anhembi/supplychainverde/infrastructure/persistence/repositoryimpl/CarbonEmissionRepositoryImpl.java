@@ -59,36 +59,37 @@ public class CarbonEmissionRepositoryImpl implements CarbonEmissionRepository {
     }
 
     @Override
-    public BigDecimal sumEmissionsCalculatedBetween(LocalDate startsAt, LocalDate endsAt) {
-        return Optional.ofNullable(jpaRepository.sumCo2KgByCalculatedAtBetween(startsAt, endsAt)).orElse(BigDecimal.ZERO);
+    public BigDecimal sumEmissionsCalculatedBetween(LocalDate startsAt, LocalDate endsAt, Long marketId, Long supplierId) {
+        return Optional.ofNullable(jpaRepository.sumCo2KgByCalculatedAtBetween(startsAt, endsAt, marketId, supplierId))
+                .orElse(BigDecimal.ZERO);
     }
 
     @Override
-    public List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long supplierId) {
-        return jpaRepository.sumMonthly(from.atDay(1), to.atDay(1), supplierId)
+    public List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long marketId, Long supplierId) {
+        return jpaRepository.sumMonthly(from.atDay(1), to.atDay(1), supplierId, marketId)
                 .stream()
                 .map(row -> new MonthlyEmission(YearMonth.parse(row.getMonth()), row.getCo2Kg()))
                 .toList();
     }
 
     @Override
-    public List<StageEmission> sumByStage(Long supplierId, LocalDate start, LocalDate end) {
-        return jpaRepository.sumByStage(supplierId, start, end).stream()
+    public List<StageEmission> sumByStage(Long supplierId, Long marketId, LocalDate start, LocalDate end) {
+        return jpaRepository.sumByStage(supplierId, marketId, start, end).stream()
                 .map(row -> new StageEmission(StageType.valueOf(row.getStageType()), row.getCo2Kg()))
                 .toList();
     }
 
     @Override
-    public List<BatchEmission> sumByBatch(Long supplierId, LocalDate start, LocalDate end) {
-        return jpaRepository.sumByBatch(supplierId, start, end).stream()
+    public List<BatchEmission> sumByBatch(Long supplierId, Long marketId, LocalDate start, LocalDate end) {
+        return jpaRepository.sumByBatch(supplierId, marketId, start, end).stream()
                 .map(row -> new BatchEmission(row.getBatchId(), row.getProductName(), row.getQuantity(),
                         ProductUnit.valueOf(row.getUnit()), row.getCo2Kg()))
                 .toList();
     }
 
     @Override
-    public List<MethodEmission> sumByMethod(Long supplierId, LocalDate start, LocalDate end) {
-        return jpaRepository.sumByMethod(supplierId, start, end).stream()
+    public List<MethodEmission> sumByMethod(Long supplierId, Long marketId, LocalDate start, LocalDate end) {
+        return jpaRepository.sumByMethod(supplierId, marketId, start, end).stream()
                 .map(row -> new MethodEmission(CalculationMethod.valueOf(row.getCalculationMethod()),
                         row.getEmissionFactor(), row.getCo2Kg()))
                 .toList();

@@ -83,13 +83,28 @@ public class BatchRepositoryImpl implements BatchRepository {
     }
 
     @Override
-    public long countActiveBatches() {
-        return jpaRepository.countActiveBatches();
+    public long countActiveBatches(Long marketId, Long supplierId) {
+        return jpaRepository.countActiveBatches(marketId, supplierId);
     }
 
     @Override
-    public List<RecentBatch> findRecentBatches(int limit) {
-        return jpaRepository.findRecentWithLatestStage(PageRequest.of(0, limit)).stream()
+    public List<Batch> findPage(Long marketId, Long supplierId, int page, int size) {
+        return jpaRepository.findPage(marketId, supplierId, pageRequest(page, size)).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public long countPage(Long marketId, Long supplierId) {
+        return jpaRepository.findPage(marketId, supplierId, PageRequest.of(0, 1)).getTotalElements();
+    }
+
+    @Override
+    public long countBySupplierIdAndStatus(Long supplierId, String status) {
+        return jpaRepository.countBySupplierCompanyIdAndStatus(supplierId, status);
+    }
+
+    @Override
+    public List<RecentBatch> findRecentBatches(Long marketId, Long supplierId, int limit) {
+        return jpaRepository.findRecentWithLatestStage(marketId, supplierId, PageRequest.of(0, limit)).stream()
                 .map(batch -> new RecentBatch(
                         batch.getBatchId(),
                         batch.getProductName(),

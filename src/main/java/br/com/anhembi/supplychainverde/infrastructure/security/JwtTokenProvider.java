@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.security;
 
 import br.com.anhembi.supplychainverde.domain.entity.User;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -22,7 +23,9 @@ public class JwtTokenProvider {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(User user, Long supplierId) {
+    public String generateToken(User user, CompanyType companyType) {
+        // RF-04: supplierId continua no token, igual a companyId quando a companhia é fornecedora.
+        Long supplierId = companyType == CompanyType.SUPPLIER ? user.getCompanyId() : null;
         Date now = new Date();
         return Jwts.builder()
                 .subject(user.getEmail())
@@ -30,6 +33,8 @@ public class JwtTokenProvider {
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
                 .claim("supplierId", supplierId)
+                .claim("companyId", user.getCompanyId())
+                .claim("companyType", companyType == null ? null : companyType.name())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(secretKey, Jwts.SIG.HS256)
@@ -66,8 +71,13 @@ public class JwtTokenProvider {
         return parseClaims(token).get("role", String.class);
     }
 
-    public Long getSupplierIdFromToken(String token) {
-        Number supplierId = parseClaims(token).get("supplierId", Number.class);
-        return supplierId == null ? null : supplierId.longValue();
+    public Long getCompanyIdFromToken(String token) {
+        Number companyId = parseClaims(token).get("companyId", Number.class);
+        return companyId == null ? null : companyId.longValue();
+    }
+
+    public CompanyType getCompanyTypeFromToken(String token) {
+        String companyType = parseClaims(token).get("companyType", String.class);
+        return companyType == null ? null : CompanyType.valueOf(companyType);
     }
 }

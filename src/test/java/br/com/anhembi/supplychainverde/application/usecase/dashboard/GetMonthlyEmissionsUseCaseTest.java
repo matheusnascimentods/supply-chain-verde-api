@@ -25,11 +25,11 @@ class GetMonthlyEmissionsUseCaseTest {
     void shouldFillMonthsWithoutEmissionWithZero() {
         YearMonth january = YearMonth.of(2026, 1);
         YearMonth march = YearMonth.of(2026, 3);
-        when(emissions.sumMonthly(january, march, 7L)).thenReturn(List.of(
+        when(emissions.sumMonthly(january, march, null, 7L)).thenReturn(List.of(
                 new MonthlyEmission(january, new BigDecimal("1250.40")),
                 new MonthlyEmission(march, new BigDecimal("980.10"))));
 
-        assertThat(useCase.execute(january, march, 7L)).containsExactly(
+        assertThat(useCase.execute(january, march, null, 7L)).containsExactly(
                 new MonthlyEmissionDTO("2026-01", new BigDecimal("1250.40")),
                 new MonthlyEmissionDTO("2026-02", BigDecimal.ZERO),
                 new MonthlyEmissionDTO("2026-03", new BigDecimal("980.10")));
@@ -39,16 +39,16 @@ class GetMonthlyEmissionsUseCaseTest {
     void shouldReturnLastTwelveMonthsEndingInCurrentMonthWithoutParameters() {
         YearMonth now = YearMonth.now();
 
-        List<MonthlyEmissionDTO> series = useCase.execute(null, null, null);
+        List<MonthlyEmissionDTO> series = useCase.execute(null, null, null, null);
 
         assertThat(series).hasSize(12);
         assertThat(series.getLast().month()).isEqualTo(now.toString());
-        verify(emissions).sumMonthly(now.minusMonths(11), now, null);
+        verify(emissions).sumMonthly(now.minusMonths(11), now, null, null);
     }
 
     @Test
     void shouldEndTwelveMonthSeriesAtRequestedMonthWhenOnlyToIsSent() {
-        List<MonthlyEmissionDTO> series = useCase.execute(null, YearMonth.of(2026, 6), null);
+        List<MonthlyEmissionDTO> series = useCase.execute(null, YearMonth.of(2026, 6), null, null);
 
         assertThat(series).hasSize(12);
         assertThat(series.getFirst().month()).isEqualTo("2025-07");
@@ -57,19 +57,19 @@ class GetMonthlyEmissionsUseCaseTest {
 
     @Test
     void shouldAcceptTwentyFourMonths() {
-        assertThat(useCase.execute(YearMonth.of(2025, 1), YearMonth.of(2026, 12), null)).hasSize(24);
+        assertThat(useCase.execute(YearMonth.of(2025, 1), YearMonth.of(2026, 12), null, null)).hasSize(24);
     }
 
     @Test
     void shouldRejectMoreThanTwentyFourMonths() {
-        assertThatThrownBy(() -> useCase.execute(YearMonth.of(2025, 1), YearMonth.of(2027, 1), null))
+        assertThatThrownBy(() -> useCase.execute(YearMonth.of(2025, 1), YearMonth.of(2027, 1), null, null))
                 .isInstanceOf(ValidationException.class);
         verifyNoInteractions(emissions);
     }
 
     @Test
     void shouldRejectInvertedRange() {
-        assertThatThrownBy(() -> useCase.execute(YearMonth.of(2026, 6), YearMonth.of(2026, 1), null))
+        assertThatThrownBy(() -> useCase.execute(YearMonth.of(2026, 6), YearMonth.of(2026, 1), null, null))
                 .isInstanceOf(ValidationException.class);
         verifyNoInteractions(emissions);
     }

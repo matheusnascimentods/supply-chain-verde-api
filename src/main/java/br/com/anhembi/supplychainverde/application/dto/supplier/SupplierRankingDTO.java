@@ -13,7 +13,7 @@ public record SupplierRankingDTO(
         AddressResponseDTO address,
         String phone,
         LocalDate registeredAt,
-        Long userId,
+        boolean workedWith,
         BigDecimal sustainabilityScore,
         Integer activeCertificationCount,
         BigDecimal totalCo2Kg,

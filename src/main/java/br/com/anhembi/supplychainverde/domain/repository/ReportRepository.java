@@ -10,17 +10,19 @@ import java.util.Set;
 
 public interface ReportRepository {
     Report save(Report report);
-    Long generate(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt);
+    Long generate(Long supplierId, Long marketId, LocalDate periodStartAt, LocalDate periodEndAt);
 
     Optional<Report> findById(Long reportId);
 
     List<Report> findAll();
 
-    List<Report> findPage(Long supplierId, int limit, int offset);
+    /** supplierId e marketId nulos não filtram. */
+    List<Report> findPage(Long supplierId, Long marketId, int limit, int offset);
 
-    long countPage(Long supplierId);
+    long countPage(Long supplierId, Long marketId);
 
-    Map<Long, Long> countBySupplierIds(Set<Long> supplierIds);
+    /** marketId nulo conta os relatórios de todos os mercados. */
+    Map<Long, Long> countBySupplierIds(Set<Long> supplierIds, Long marketId);
 
     List<Report> findBySupplierId(Long supplierId);
 

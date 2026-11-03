@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationRequestDTO;
 import br.com.anhembi.supplychainverde.application.usecase.certification.ListCertificationsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.certification.RegisterCertificationUseCase;
@@ -18,7 +19,7 @@ class CertificationControllerTest {
     private final CertificationController controller = new CertificationController(
             registerCertification, mock(UpdateCertificationStatusUseCase.class), mock(ListCertificationsUseCase.class));
     private final CertificationRequestDTO request = new CertificationRequestDTO(null, "ISO 14001", "Órgão", null, null);
-    private final CustomUserPrincipal supplier = new CustomUserPrincipal(3L, "s@example.com", "SUPPLIER", 7L);
+    private final CustomUserPrincipal supplier = TestPrincipals.of(3L, "s@example.com", "SUPPLIER", 7L);
 
     @Test
     void shouldDenyCertificationForAnotherSupplier() {
@@ -36,7 +37,7 @@ class CertificationControllerTest {
 
     @Test
     void shouldRegisterCertificationForAnySupplierAsAdmin() {
-        CustomUserPrincipal admin = new CustomUserPrincipal(1L, "a@example.com", "ADMIN", null);
+        CustomUserPrincipal admin = TestPrincipals.of(1L, "a@example.com", "ADMIN", null);
 
         controller.create(99L, request, admin);
 

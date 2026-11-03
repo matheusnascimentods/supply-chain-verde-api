@@ -20,6 +20,4 @@ public class Company {
     private String email;
     private CompanyType type;
     private LocalDate registeredAt;
-    // Menor usuário da companhia, só leitura; sai na Task 3 junto com o vínculo 1:1 fornecedor-usuário.
-    private Long userId;
 }

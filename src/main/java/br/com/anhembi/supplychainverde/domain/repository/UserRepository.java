@@ -15,9 +15,13 @@ public interface UserRepository {
 
     List<User> findAll();
 
-    List<User> findPage(String email, UserRole role, int limit, int offset);
+    List<User> findPage(String email, Long companyId, int limit, int offset);
 
-    long countPage(String email, UserRole role);
+    long countPage(String email, Long companyId);
+
+    long countByCompanyId(Long companyId);
+
+    long countByCompanyIdAndRole(Long companyId, UserRole role);
 
     boolean existsByEmail(String email);
 

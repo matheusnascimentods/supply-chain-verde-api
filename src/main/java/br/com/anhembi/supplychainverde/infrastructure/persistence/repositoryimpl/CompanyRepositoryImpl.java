@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -69,7 +70,8 @@ public class CompanyRepositoryImpl implements CompanyRepository {
     }
 
     @Override
-    public List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search, int limit, int offset) {
+    public List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search,
+            boolean workedWithOnly, Long marketId, int limit, int offset) {
         return jpaRepository.findRankedByEmission(
                 productId,
                 category == null ? null : category.name(),
@@ -77,18 +79,33 @@ public class CompanyRepositoryImpl implements CompanyRepository {
                 search,
                 FullTextSearch.booleanQuery(search),
                 search.replaceAll("\\D", ""),
+                workedWithOnly,
+                marketId,
                 limit,
                 offset);
     }
 
     @Override
-    public long countBySearch(String search, boolean withoutUser) {
-        return jpaRepository.countBySearch(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""), withoutUser);
+    public long countBySearch(String search, boolean workedWithOnly, Long marketId) {
+        return jpaRepository.countBySearch(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""),
+                workedWithOnly, marketId);
     }
 
     @Override
-    public List<Long> findIdsRankedByScore(String search, boolean withoutUser, int limit, int offset) {
-        return jpaRepository.findIdsRankedByScore(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""), withoutUser, limit, offset);
+    public List<Long> findIdsRankedByScore(String search, boolean workedWithOnly, Long marketId, int limit, int offset) {
+        return jpaRepository.findIdsRankedByScore(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""),
+                workedWithOnly, marketId, limit, offset);
+    }
+
+    @Override
+    public Set<Long> findWorkedWithIds(Long marketId, Collection<Long> supplierIds) {
+        return marketId == null || supplierIds.isEmpty() ? Set.of()
+                : Set.copyOf(jpaRepository.findWorkedWithIds(marketId, supplierIds));
+    }
+
+    @Override
+    public void lockById(Long companyId) {
+        jdbcTemplate.queryForObject("SELECT id FROM company WHERE id = ? FOR UPDATE", Long.class, companyId);
     }
 
     @Override
@@ -96,18 +113,4 @@ public class CompanyRepositoryImpl implements CompanyRepository {
         return supplierIds.isEmpty() ? List.of() : jpaRepository.findScoresByIds(supplierIds);
     }
 
-    @Override
-    public Optional<Company> findByUserId(Long userId) {
-        return jpaRepository.findByUserId(userId).map(mapper::toDomain);
-    }
-
-    @Override
-    public boolean existsByUserId(Long userId) {
-        return jpaRepository.existsByUserId(userId);
-    }
-
-    @Override
-    public List<Company> findByUserIdIn(Collection<Long> userIds) {
-        return jpaRepository.findByUserIdIn(userIds).stream().map(mapper::toDomain).toList();
-    }
 }

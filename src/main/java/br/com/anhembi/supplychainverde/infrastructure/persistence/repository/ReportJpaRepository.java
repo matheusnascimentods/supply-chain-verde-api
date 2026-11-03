@@ -10,6 +10,7 @@ public interface ReportJpaRepository extends JpaRepository<ReportJpaEntity, Long
     List<ReportJpaEntity> findBySupplierCompanyId(Long supplierId);
 
     @Query("select report.supplier.companyId, count(report) from ReportJpaEntity report " +
-            "where report.supplier.companyId in :supplierIds group by report.supplier.companyId")
-    List<Object[]> countBySupplierIds(@Param("supplierIds") List<Long> supplierIds);
+            "where report.supplier.companyId in :supplierIds and (:marketId is null or report.marketId = :marketId) " +
+            "group by report.supplier.companyId")
+    List<Object[]> countBySupplierIds(@Param("supplierIds") List<Long> supplierIds, @Param("marketId") Long marketId);
 }

@@ -73,8 +73,18 @@ public class CertificationRepositoryImpl implements CertificationRepository {
     }
 
     @Override
-    public long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt) {
-        return jpaRepository.countByExpiresAtBetween(startsAt, endsAt);
+    public long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, Long supplierId) {
+        return jpaRepository.countByExpiresAtBetween(startsAt, endsAt, supplierId);
+    }
+
+    @Override
+    public List<Certification> findPage(CertificationStatus status, Long supplierId, int page, int size) {
+        return jpaRepository.findPage(status, supplierId, pageRequest(page, size)).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public long countPage(CertificationStatus status, Long supplierId) {
+        return jpaRepository.findPage(status, supplierId, PageRequest.of(0, 1)).getTotalElements();
     }
 
     @Override

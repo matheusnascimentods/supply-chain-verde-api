@@ -18,13 +18,10 @@ public class ListBatchesUseCase {
     private final BatchDtoMapper mapper;
     private final BatchStagesReader stagesReader;
 
-    public BatchPageResponseDTO execute(int page, int size, Long supplierId) {
-        var batches = supplierId == null
-                ? batchRepository.findAll(page, size)
-                : batchRepository.findBySupplierId(supplierId, page, size);
-        long totalElements = supplierId == null
-                ? batchRepository.countAll()
-                : batchRepository.countBySupplierId(supplierId);
+    /** RN-12: marketId e supplierId nulos (PLATFORM_ADMIN sem filtro) listam todos os lotes. */
+    public BatchPageResponseDTO execute(int page, int size, Long marketId, Long supplierId) {
+        var batches = batchRepository.findPage(marketId, supplierId, page, size);
+        long totalElements = batchRepository.countPage(marketId, supplierId);
         int totalPages = PageCount.totalPages(totalElements, size);
 
         Map<Long, List<ChainResponseDTO>> stagesByBatch = stagesReader.findByBatchIds(

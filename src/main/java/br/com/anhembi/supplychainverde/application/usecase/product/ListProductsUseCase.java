@@ -23,15 +23,15 @@ public class ListProductsUseCase {
         return productRepository.findAll().stream().map(mapper::toResponse).toList();
     }
 
-    public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search) {
+    public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search, Long supplierId) {
         String term = search == null ? "" : search.trim();
         String categoryCode = categoryCode(term);
         List<Product> products = term.isEmpty()
-                ? productRepository.findAll(limit, offset)
-                : productRepository.findBySearch(term, categoryCode, limit, offset);
+                ? productRepository.findAll(supplierId, limit, offset)
+                : productRepository.findBySearch(supplierId, term, categoryCode, limit, offset);
         long totalElements = term.isEmpty()
-                ? productRepository.countAll()
-                : productRepository.countBySearch(term, categoryCode);
+                ? productRepository.countAll(supplierId)
+                : productRepository.countBySearch(supplierId, term, categoryCode);
         List<ProductResponseDTO> items = products.stream()
                 .map(mapper::toResponse)
                 .toList();

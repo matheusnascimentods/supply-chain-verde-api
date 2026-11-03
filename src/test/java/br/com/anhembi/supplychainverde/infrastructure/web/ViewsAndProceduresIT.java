@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import com.jayway.jsonpath.JsonPath;
@@ -73,7 +74,7 @@ class ViewsAndProceduresIT {
         LocalDate today = LocalDate.now();
 
         String body = mockMvc.perform(post("/api/v1/suppliers/{id}/reports", supplierId)
-                        .with(authentication(as("MANAGER")))
+                        .with(authentication(asMarketManager()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"periodStartAt\":\"" + today.minusDays(1) + "\",\"periodEndAt\":\"" + today + "\"}"))
                 .andExpect(status().isCreated())
@@ -179,9 +180,16 @@ class ViewsAndProceduresIT {
                 "SELECT sustainability_score FROM vw_supplier_sustainability WHERE supplier_id = ?", BigDecimal.class, supplierId);
     }
 
+    // RN-23: só o mercado gera relatório; o dos seeds é o mercado de demonstração.
+    private UsernamePasswordAuthenticationToken asMarketManager() {
+        Long marketId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM company WHERE type = 'MARKET'", Long.class);
+        return new UsernamePasswordAuthenticationToken(TestPrincipals.market(userId, "MANAGER", marketId), null,
+                List.of(new SimpleGrantedAuthority("ROLE_MANAGER")));
+    }
+
     private UsernamePasswordAuthenticationToken as(String role) {
         return new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(userId, "actor@example.com", role, null),
+                TestPrincipals.of(userId, "actor@example.com", role, null),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }

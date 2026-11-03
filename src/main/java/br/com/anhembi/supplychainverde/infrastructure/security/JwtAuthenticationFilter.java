@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.security;
 
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,12 +34,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtTokenProvider.getUserIdFromToken(token);
                 String email = jwtTokenProvider.getEmailFromToken(token);
                 String role = jwtTokenProvider.getRoleFromToken(token);
-                Long supplierId = jwtTokenProvider.getSupplierIdFromToken(token);
-                // Tokens de SUPPLIER emitidos antes do vínculo não têm supplierId e ficariam sem filtro de dono.
-                boolean supplierWithoutLink = "SUPPLIER".equals(role) && supplierId == null;
+                Long companyId = jwtTokenProvider.getCompanyIdFromToken(token);
+                CompanyType companyType = jwtTokenProvider.getCompanyTypeFromToken(token);
+                // Sem companhia, as listagens não filtram nada: só vale para o PLATFORM_ADMIN. Tokens antigos, sem
+                // companyId, ficam sem autenticação em vez de enxergar tudo.
+                boolean scoped = "PLATFORM_ADMIN".equals(role) ? companyId == null : companyId != null && companyType != null;
 
-                if (userId != null && email != null && role != null && !supplierWithoutLink) {
-                    CustomUserPrincipal principal = new CustomUserPrincipal(userId, email, role, supplierId);
+                if (userId != null && email != null && role != null && scoped) {
+                    CustomUserPrincipal principal = new CustomUserPrincipal(userId, email, role, companyId, companyType);
                     List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                     Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(authentication);

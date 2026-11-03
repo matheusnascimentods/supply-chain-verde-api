@@ -32,10 +32,8 @@ public class ReportRepositoryImpl implements ReportRepository {
     }
 
     @Override
-    public Long generate(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt) {
+    public Long generate(Long supplierId, Long marketId, LocalDate periodStartAt, LocalDate periodEndAt) {
         // Mesma conexão nas duas chamadas: o aspect exige transação ativa para generate.
-        // ponytail: mercado padrão até a Task 3 passar o mercado logado (RN-23).
-        Long marketId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM company WHERE type = 'MARKET'", Long.class);
         jdbcTemplate.update("CALL sp_generate_sustainability_report(?, ?, ?, ?, @report_id)",
                 supplierId, marketId, periodStartAt, periodEndAt);
         return jdbcTemplate.queryForObject("SELECT @report_id", Long.class);
@@ -54,47 +52,45 @@ public class ReportRepositoryImpl implements ReportRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Report> findPage(Long supplierId, int limit, int offset) {
+    public List<Report> findPage(Long supplierId, Long marketId, int limit, int offset) {
         StringBuilder jpql = new StringBuilder("""
                 SELECT report
                 FROM ReportJpaEntity report
                 JOIN FETCH report.supplier supplier
                 JOIN FETCH supplier.address
                 """);
-        if (supplierId != null) {
-            jpql.append(" WHERE supplier.companyId = :supplierId");
-        }
+        jpql.append(" WHERE (:supplierId IS NULL OR supplier.companyId = :supplierId)")
+                .append(" AND (:marketId IS NULL OR report.marketId = :marketId)");
         jpql.append(" ORDER BY report.generatedAt DESC, report.reportId DESC");
 
         TypedQuery<ReportJpaEntity> query = entityManager.createQuery(jpql.toString(), ReportJpaEntity.class)
                 .setFirstResult(offset)
-                .setMaxResults(limit);
-        if (supplierId != null) {
-            query.setParameter("supplierId", supplierId);
-        }
+                .setMaxResults(limit)
+                .setParameter("supplierId", supplierId)
+                .setParameter("marketId", marketId);
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countPage(Long supplierId) {
-        String jpql = supplierId == null
-                ? "SELECT COUNT(report) FROM ReportJpaEntity report"
-                : "SELECT COUNT(report) FROM ReportJpaEntity report WHERE report.supplier.companyId = :supplierId";
-        var query = entityManager.createQuery(jpql, Long.class);
-        if (supplierId != null) {
-            query.setParameter("supplierId", supplierId);
-        }
-        return query.getSingleResult();
+    public long countPage(Long supplierId, Long marketId) {
+        return entityManager.createQuery("""
+                        SELECT COUNT(report) FROM ReportJpaEntity report
+                        WHERE (:supplierId IS NULL OR report.supplier.companyId = :supplierId)
+                          AND (:marketId IS NULL OR report.marketId = :marketId)
+                        """, Long.class)
+                .setParameter("supplierId", supplierId)
+                .setParameter("marketId", marketId)
+                .getSingleResult();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<Long, Long> countBySupplierIds(Set<Long> supplierIds) {
+    public Map<Long, Long> countBySupplierIds(Set<Long> supplierIds, Long marketId) {
         if (supplierIds.isEmpty()) {
             return Map.of();
         }
-        return jpaRepository.countBySupplierIds(List.copyOf(supplierIds)).stream()
+        return jpaRepository.countBySupplierIds(List.copyOf(supplierIds), marketId).stream()
                 .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
     }
 

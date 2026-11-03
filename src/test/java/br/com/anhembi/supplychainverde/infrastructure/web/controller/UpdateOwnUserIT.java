@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class UpdateOwnUserIT {
     void adminChangesOwnNameAndPasswordAndLogsInWithTheNewOne() throws Exception {
         Long userId = jdbcTemplate.queryForObject("SELECT id FROM users WHERE email = ?", Long.class, EMAIL);
         var admin = authentication(new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(userId, EMAIL, "ADMIN", null), null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+                TestPrincipals.of(userId, EMAIL, "ADMIN", null), null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
 
         mockMvc.perform(patch("/api/v1/users/me").with(admin)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +80,7 @@ class UpdateOwnUserIT {
 
         mockMvc.perform(patch("/api/v1/users/me")
                         .with(authentication(new UsernamePasswordAuthenticationToken(
-                                new CustomUserPrincipal(userId, EMAIL, "AUDITOR", null), null,
+                                TestPrincipals.of(userId, EMAIL, "AUDITOR", null), null,
                                 List.of(new SimpleGrantedAuthority("ROLE_AUDITOR")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"userName\": \"Não Grava\", \"currentPassword\": \"errada\", \"newPassword\": \"senha-nova-123\"}"))

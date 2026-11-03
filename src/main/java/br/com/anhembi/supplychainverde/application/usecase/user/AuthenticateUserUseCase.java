@@ -38,17 +38,17 @@ public class AuthenticateUserUseCase {
 
     /** Mesma resposta para o login e para o cadastro de companhia (POST /companies). */
     public LoginResponseDTO issueToken(User user) {
-        CompanyType companyType = user.getCompanyId() == null ? null : companyRepository.findById(user.getCompanyId())
-                .map(Company::getType)
+        Company company = user.getCompanyId() == null ? null : companyRepository.findById(user.getCompanyId())
                 .orElseThrow(() -> new UnauthorizedActionException("Usuário sem companhia vinculada."));
-        // RF-04: supplierId continua no token, igual a companyId quando a companhia é fornecedora.
-        Long supplierId = companyType == CompanyType.SUPPLIER ? user.getCompanyId() : null;
-        if (user.getRole() == UserRole.SUPPLIER && supplierId == null) {
-            throw new UnauthorizedActionException("Usuário fornecedor sem fornecedor vinculado.");
+        CompanyType companyType = company == null ? null : company.getType();
+        if (user.getRole() != UserRole.PLATFORM_ADMIN && !user.getRole().allowedFor(companyType)) {
+            throw new UnauthorizedActionException("Perfil incompatível com a companhia do usuário.");
         }
+        Long supplierId = companyType == CompanyType.SUPPLIER ? user.getCompanyId() : null;
 
-        String token = jwtTokenProvider.generateToken(user, supplierId);
+        String token = jwtTokenProvider.generateToken(user, companyType);
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
-        return new LoginResponseDTO(token, expiresAt, user.getRole(), supplierId, user.getCompanyId(), companyType);
+        return new LoginResponseDTO(token, expiresAt, user.getRole(), supplierId, user.getCompanyId(), companyType,
+                company == null ? null : company.getName());
     }
 }

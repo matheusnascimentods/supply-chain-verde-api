@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import org.junit.jupiter.api.Test;
@@ -99,7 +100,7 @@ class DashboardEmissionsIT {
 
     private UsernamePasswordAuthenticationToken as(String role, Long supplierId) {
         return new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(1L, "actor@example.com", role, supplierId),
+                TestPrincipals.of(1L, "actor@example.com", role, supplierId),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }

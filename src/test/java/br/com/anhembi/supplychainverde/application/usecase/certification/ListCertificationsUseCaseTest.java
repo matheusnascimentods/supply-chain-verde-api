@@ -19,13 +19,13 @@ class ListCertificationsUseCaseTest {
 
     @Test
     void listsAllStatusesWhenStatusIsNotProvided() {
-        when(repository.findAll(1, 10)).thenReturn(List.of());
-        when(repository.countAll()).thenReturn(0L);
+        when(repository.findPage(null, null, 1, 10)).thenReturn(List.of());
+        when(repository.countPage(null, null)).thenReturn(0L);
 
-        var response = useCase.execute(1, 10, null);
+        var response = useCase.execute(1, 10, null, null);
 
-        verify(repository).findAll(1, 10);
-        verify(repository).countAll();
+        verify(repository).findPage(null, null, 1, 10);
+        verify(repository).countPage(null, null);
         assertThat(response.content()).isEmpty();
         assertThat(response.page()).isEqualTo(1);
         assertThat(response.totalPages()).isZero();
@@ -33,13 +33,13 @@ class ListCertificationsUseCaseTest {
 
     @Test
     void filtersByRequestedStatus() {
-        when(repository.findByStatus(CertificationStatus.SUSPENDED, 0, 5)).thenReturn(List.of());
-        when(repository.countByStatus(CertificationStatus.SUSPENDED)).thenReturn(6L);
+        when(repository.findPage(CertificationStatus.SUSPENDED, 7L, 0, 5)).thenReturn(List.of());
+        when(repository.countPage(CertificationStatus.SUSPENDED, 7L)).thenReturn(6L);
 
-        var response = useCase.execute(0, 5, CertificationStatus.SUSPENDED);
+        var response = useCase.execute(0, 5, CertificationStatus.SUSPENDED, 7L);
 
-        verify(repository).findByStatus(CertificationStatus.SUSPENDED, 0, 5);
-        verify(repository).countByStatus(CertificationStatus.SUSPENDED);
+        verify(repository).findPage(CertificationStatus.SUSPENDED, 7L, 0, 5);
+        verify(repository).countPage(CertificationStatus.SUSPENDED, 7L);
         assertThat(response.totalElements()).isEqualTo(6L);
         assertThat(response.totalPages()).isEqualTo(2);
     }

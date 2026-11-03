@@ -12,8 +12,14 @@ import java.util.Optional;
 import java.util.Collection;
 
 public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissionJpaEntity, Long> {
-    @Query(value = "SELECT SUM(co2_kg) FROM vw_stage_emission WHERE calculated_at BETWEEN :startsAt AND :endsAt", nativeQuery = true)
-    BigDecimal sumCo2KgByCalculatedAtBetween(@Param("startsAt") LocalDate startsAt, @Param("endsAt") LocalDate endsAt);
+    @Query(value = """
+            SELECT SUM(co2_kg) FROM vw_stage_emission
+            WHERE calculated_at BETWEEN :startsAt AND :endsAt
+              AND (:marketId IS NULL OR market_id = :marketId)
+              AND (:supplierId IS NULL OR supplier_id = :supplierId)
+            """, nativeQuery = true)
+    BigDecimal sumCo2KgByCalculatedAtBetween(@Param("startsAt") LocalDate startsAt, @Param("endsAt") LocalDate endsAt,
+            @Param("marketId") Long marketId, @Param("supplierId") Long supplierId);
 
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product",
@@ -48,45 +54,50 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
         FROM vw_monthly_emission
         WHERE month BETWEEN :from AND :to
           AND (:supplierId IS NULL OR supplier_id = :supplierId)
+          AND (:marketId IS NULL OR market_id = :marketId)
         GROUP BY month
         ORDER BY month
         """, nativeQuery = true)
     List<MonthlyEmissionProjection> sumMonthly(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("supplierId") Long supplierId);
+            @Param("supplierId") Long supplierId,
+            @Param("marketId") Long marketId);
 
     @Query(value = """
         SELECT stage_type AS stageType, SUM(co2_kg) AS co2Kg
         FROM vw_stage_emission
-        WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
+        WHERE supplier_id = :supplierId AND market_id = :marketId AND calculated_at BETWEEN :start AND :end
         GROUP BY stage_type
         ORDER BY 2 DESC
         """, nativeQuery = true)
     List<StageEmissionProjection> sumByStage(
-            @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+            @Param("supplierId") Long supplierId, @Param("marketId") Long marketId,
+            @Param("start") LocalDate start, @Param("end") LocalDate end);
 
     @Query(value = """
         SELECT batch_id AS batchId, product_name AS productName, quantity AS quantity,
                unit AS unit, SUM(co2_kg) AS co2Kg
         FROM vw_stage_emission
-        WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
+        WHERE supplier_id = :supplierId AND market_id = :marketId AND calculated_at BETWEEN :start AND :end
         GROUP BY batch_id, product_name, quantity, unit
         ORDER BY batch_id
         """, nativeQuery = true)
     List<BatchEmissionProjection> sumByBatch(
-            @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+            @Param("supplierId") Long supplierId, @Param("marketId") Long marketId,
+            @Param("start") LocalDate start, @Param("end") LocalDate end);
 
     @Query(value = """
         SELECT calculation_method AS calculationMethod, emission_factor AS emissionFactor,
                SUM(co2_kg) AS co2Kg
         FROM vw_stage_emission
-        WHERE supplier_id = :supplierId AND calculated_at BETWEEN :start AND :end
+        WHERE supplier_id = :supplierId AND market_id = :marketId AND calculated_at BETWEEN :start AND :end
         GROUP BY calculation_method, emission_factor
         ORDER BY 1, 2
         """, nativeQuery = true)
     List<MethodEmissionProjection> sumByMethod(
-            @Param("supplierId") Long supplierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+            @Param("supplierId") Long supplierId, @Param("marketId") Long marketId,
+            @Param("start") LocalDate start, @Param("end") LocalDate end);
 
     interface StageEmissionProjection {
         String getStageType();

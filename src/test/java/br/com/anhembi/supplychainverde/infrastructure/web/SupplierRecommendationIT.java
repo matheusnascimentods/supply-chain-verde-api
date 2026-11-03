@@ -9,13 +9,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import java.util.List;
+
 import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -27,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@WithMockUser
 class SupplierRecommendationIT {
     // Todos os fornecedores do teste têm este termo no nome e esta raiz de CNPJ. O FULLTEXT do InnoDB só vê
     // linhas commitadas, então os testes transacionais isolam pelo CNPJ; o de busca por nome faz commit.
@@ -65,7 +71,7 @@ class SupplierRecommendationIT {
         batch(clean, product, "100", "40");
         batch(dirty, product, "100", "60");
 
-        mockMvc.perform(get("/api/v1/suppliers")
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket())
                         .param("ranked", "true")
                         .param("productId", String.valueOf(product))
                         .param("search", CNPJ_ROOT))
@@ -90,7 +96,7 @@ class SupplierRecommendationIT {
         batch(steady, product(steady, "FORESTRY", "KG"), "100", "50");
         batch(tonOnly, product(tonOnly, "FORESTRY", "TON"), "1", "0.0001");
 
-        mockMvc.perform(get("/api/v1/suppliers")
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket())
                         .param("ranked", "true")
                         .param("category", "FORESTRY")
                         .param("unit", "KG")
@@ -108,7 +114,7 @@ class SupplierRecommendationIT {
     void keepsPlainRankingWithoutCo2PerUnit() throws Exception {
         supplier("Eta", "98765432000198");
 
-        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", CNPJ_ROOT))
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", CNPJ_ROOT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].co2KgPerUnit").value(nullValue()));
@@ -120,11 +126,11 @@ class SupplierRecommendationIT {
     void searchesNameByEveryTermAsPrefix() throws Exception {
         long supplierId = transactionTemplate.execute(status -> supplier("Cooperativa Sustentável", "98765432000198"));
         try {
-            mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", "zpkrecom sustent"))
+            mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", "zpkrecom sustent"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.items", hasSize(1)))
                     .andExpect(jsonPath("$.items[0].supplierId").value(supplierId));
-            mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("search", SEARCH + " inexistente"))
+            mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", SEARCH + " inexistente"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.items", hasSize(0)));
         } finally {
@@ -135,21 +141,28 @@ class SupplierRecommendationIT {
 
     @Test
     void rejectsInvalidParameterCombinations() throws Exception {
-        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("productId", "1")
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("productId", "1")
                         .param("category", "AGRICULTURE").param("unit", "KG"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("category", "AGRICULTURE"))
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("category", "AGRICULTURE"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/suppliers").param("category", "AGRICULTURE").param("unit", "KG"))
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("category", "AGRICULTURE").param("unit", "KG"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("category", "XYZ").param("unit", "KG"))
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("category", "XYZ").param("unit", "KG"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void returnsNotFoundForUnknownProduct() throws Exception {
-        mockMvc.perform(get("/api/v1/suppliers").param("ranked", "true").param("productId", "999999999"))
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("productId", "999999999"))
                 .andExpect(status().isNotFound());
+    }
+
+    // O catálogo é para mercado: companhia fornecedora recebe 403 (RN-13a).
+    private RequestPostProcessor asMarket() {
+        return authentication(new UsernamePasswordAuthenticationToken(TestPrincipals.market(userId, "MANAGER",
+                jdbcTemplate.queryForObject("SELECT MIN(id) FROM company WHERE type = 'MARKET'", Long.class)), null,
+                List.of(new SimpleGrantedAuthority("ROLE_MANAGER"))));
     }
 
     private long product(long supplierId, String category, String unit) {

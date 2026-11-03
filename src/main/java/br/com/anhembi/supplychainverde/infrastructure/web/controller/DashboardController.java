@@ -33,25 +33,25 @@ public class DashboardController {
     @GetMapping("/summary")
     @Operation(
             summary = "Consultar resumo do dashboard",
-            description = "Retorna indicadores globais e os lotes recentes. Usuários de todos os perfis autenticados recebem o mesmo resumo."
+            description = "Retorna os indicadores e os lotes recentes da companhia do usuário. Para o mercado, suppliers conta os fornecedores com quem ele já trabalhou e pendingBatches vem nulo; para a companhia fornecedora, pendingBatches conta os lotes PENDING dela e suppliers vem nulo. O PLATFORM_ADMIN vê a plataforma inteira."
     )
     public DashboardSummaryResponseDTO summary(
-            @RequestParam(required = false) @Min(1) @Max(100) Integer limit
+            @RequestParam(required = false) @Min(1) @Max(100) Integer limit,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return getDashboardSummary.execute(limit);
+        return getDashboardSummary.execute(limit, principal.marketId(), principal.supplierId());
     }
 
     @GetMapping("/emissions")
     @Operation(
             summary = "Consultar emissões mensais",
-            description = "Retorna o CO₂ (kg) mês a mês entre from e to (formato YYYY-MM), incluindo meses sem emissão com co2Kg = 0. Sem parâmetros, retorna os últimos 12 meses até o atual. from posterior a to ou intervalo maior que 24 meses retornam 400. ADMIN, MANAGER e AUDITOR recebem a cadeia inteira; SUPPLIER recebe só as emissões do próprio fornecedor."
+            description = "Retorna o CO₂ (kg) mês a mês entre from e to (formato YYYY-MM), incluindo meses sem emissão com co2Kg = 0. Sem parâmetros, retorna os últimos 12 meses até o atual. from posterior a to ou intervalo maior que 24 meses retornam 400. O mercado recebe as emissões dos próprios lotes e a companhia fornecedora as dela; o PLATFORM_ADMIN, a plataforma inteira."
     )
     public List<MonthlyEmissionDTO> emissions(
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth from,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth to,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        Long supplierId = "SUPPLIER".equals(principal.role()) ? principal.supplierId() : null;
-        return getMonthlyEmissions.execute(from, to, supplierId);
+        return getMonthlyEmissions.execute(from, to, principal.marketId(), principal.supplierId());
     }
 }

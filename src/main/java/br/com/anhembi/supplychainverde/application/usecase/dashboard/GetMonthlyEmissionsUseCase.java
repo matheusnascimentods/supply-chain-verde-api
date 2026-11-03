@@ -23,7 +23,7 @@ public class GetMonthlyEmissionsUseCase {
 
     private final CarbonEmissionRepository carbonEmissionRepository;
 
-    public List<MonthlyEmissionDTO> execute(YearMonth from, YearMonth to, Long supplierId) {
+    public List<MonthlyEmissionDTO> execute(YearMonth from, YearMonth to, Long marketId, Long supplierId) {
         YearMonth end = to != null ? to : YearMonth.now();
         YearMonth start = from != null ? from : end.minusMonths(DEFAULT_MONTHS - 1);
 
@@ -34,7 +34,7 @@ public class GetMonthlyEmissionsUseCase {
             throw new ValidationException("O intervalo máximo é de " + MAX_MONTHS + " meses.");
         }
 
-        Map<YearMonth, BigDecimal> co2ByMonth = carbonEmissionRepository.sumMonthly(start, end, supplierId)
+        Map<YearMonth, BigDecimal> co2ByMonth = carbonEmissionRepository.sumMonthly(start, end, marketId, supplierId)
                 .stream()
                 .collect(
                     Collectors.toMap(

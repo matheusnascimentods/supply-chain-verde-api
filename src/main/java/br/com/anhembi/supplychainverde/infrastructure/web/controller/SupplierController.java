@@ -3,11 +3,14 @@ package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 import br.com.anhembi.supplychainverde.application.usecase.supplier.*;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +26,7 @@ public class SupplierController {
     @GetMapping
     @Operation(
             summary = "Consultar fornecedores",
-            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações. Com ranked=true, productId ou o par category+unit ativa a recomendação: os fornecedores vêm ordenados pelo menor CO₂ médio por unidade daquele produto (ou categoria+unidade), com desempate por sustainabilityScore; quem não tem histórico vem no fim com co2KgPerUnit null. productId não combina com category/unit, e category exige unit. Esses parâmetros exigem ranked=true. withoutUser=true lista só fornecedores sem usuário vinculado (userId null); não combina com supplierId nem com a recomendação."
+            description = "Sem supplierId ou ranked=true, lista fornecedores; ranked=true retorna a mesma estrutura em ranking paginado. Cada item inclui supplierId, name, cnpj, address, phone, registeredAt, sustainabilityScore, activeCertificationCount, totalCo2Kg, reportCount e certifications. supplierId isolado retorna o detalhe cadastral. reportCount é uma contagem não negativa; certifications é sempre uma lista, vazia quando não houver certificações. Com ranked=true, productId ou o par category+unit ativa a recomendação: os fornecedores vêm ordenados pelo menor CO₂ médio por unidade daquele produto (ou categoria+unidade), com desempate por sustainabilityScore; quem não tem histórico vem no fim com co2KgPerUnit null. productId não combina com category/unit, e category exige unit. Esses parâmetros exigem ranked=true. O catálogo é global para o mercado (RN-13): cada item traz workedWith, que diz se o fornecedor tem ou teve lote com o mercado logado, e workedWith=true restringe a lista a eles (não combina com supplierId). reportCount conta só os relatórios do mercado logado. Para o PLATFORM_ADMIN, workedWith vem sempre false. Companhia fornecedora recebe 403, exceto no próprio detalhe (supplierId = a própria)."
     )
     public Object getSuppliers(
             @RequestParam(required = false) @Min(1) Long supplierId,
@@ -34,8 +37,13 @@ public class SupplierController {
             @RequestParam(required = false) @Min(1) Long productId,
             @RequestParam(required = false) ProductCategory category,
             @RequestParam(required = false) ProductUnit unit,
-            @RequestParam(defaultValue = "false") boolean withoutUser
+            @RequestParam(defaultValue = "false") boolean workedWith,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
+        // RN-13a: a companhia fornecedora só lê o próprio detalhe.
+        if (principal.isSupplierCompany() && !principal.supplierId().equals(supplierId)) {
+            throw new AccessDeniedException("Companhia fornecedora não acessa o catálogo de fornecedores.");
+        }
         if (supplierId != null && ranked != null) {
             throw new IllegalArgumentException("supplierId e ranked são parâmetros mutuamente exclusivos.");
         }
@@ -48,17 +56,17 @@ public class SupplierController {
         if (!Boolean.TRUE.equals(ranked) && (productId != null || category != null)) {
             throw new IllegalArgumentException("productId, category e unit exigem ranked=true.");
         }
-        if (withoutUser && (supplierId != null || productId != null || category != null)) {
-            throw new IllegalArgumentException("withoutUser não combina com supplierId nem com productId/category/unit.");
+        if (workedWith && supplierId != null) {
+            throw new IllegalArgumentException("workedWith não combina com supplierId.");
         }
         if (supplierId != null) {
             return get.execute(supplierId);
         }
         if (Boolean.TRUE.equals(ranked)) {
             return productId != null || category != null
-                    ? rank.executeRecommended(productId, category, unit, limit, offset, search)
-                    : rank.execute(limit, offset, search, withoutUser);
+                    ? rank.executeRecommended(productId, category, unit, limit, offset, search, workedWith, principal.marketId())
+                    : rank.execute(limit, offset, search, workedWith, principal.marketId());
         }
-        return rank.executeAll(withoutUser);
+        return rank.executeAll(workedWith, principal.marketId());
     }
 }

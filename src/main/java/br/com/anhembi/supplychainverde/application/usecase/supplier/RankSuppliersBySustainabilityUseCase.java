@@ -44,47 +44,47 @@ public class RankSuppliersBySustainabilityUseCase {
     private final SupplierDtoMapper mapper;
     private final CertificationDtoMapper certificationMapper;
 
-    public List<SupplierRankingDTO> execute() {
-        return executeAll(false);
-    }
-
-    public List<SupplierRankingDTO> executeAll(boolean withoutUser) {
+    // RN-13: o catálogo é global; marketId só calcula workedWith, conta os relatórios e, com workedWithOnly, filtra.
+    // marketId nulo (PLATFORM_ADMIN) deixa workedWith sempre false (RF-06a).
+    public List<SupplierRankingDTO> executeAll(boolean workedWithOnly, Long marketId) {
         List<Company> suppliers = supplierRepository.findAllSuppliers();
-        if (withoutUser) {
-            suppliers = suppliers.stream().filter(supplier -> supplier.getUserId() == null).toList();
+        List<SupplierRankingDTO> rankings = toRankingDTOs(suppliers, Map.of(), marketId);
+        if (workedWithOnly) {
+            rankings = rankings.stream().filter(SupplierRankingDTO::workedWith).collect(Collectors.toCollection(ArrayList::new));
         }
-        List<SupplierRankingDTO> rankings = toRankingDTOs(suppliers, Map.of());
         rankings.sort(SCORE_ORDER);
         return rankings;
     }
 
-    public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search, boolean withoutUser) {
+    public OffsetPageResponseDTO<SupplierRankingDTO> execute(int limit, int offset, String search, boolean workedWithOnly,
+            Long marketId) {
         String term = search == null ? "" : search.trim();
         // Ordem e paginação vêm da vw_supplier_sustainability; findAllById perde a ordem, por isso o sort da página.
-        List<Long> ids = supplierRepository.findIdsRankedByScore(term, withoutUser, limit, offset);
-        List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(ids), Map.of());
+        List<Long> ids = supplierRepository.findIdsRankedByScore(term, workedWithOnly, marketId, limit, offset);
+        List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(ids), Map.of(), marketId);
         items.sort(SCORE_ORDER);
-        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, withoutUser));
+        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, workedWithOnly, marketId));
     }
 
     public OffsetPageResponseDTO<SupplierRankingDTO> executeRecommended(Long productId, ProductCategory category,
-            ProductUnit unit, int limit, int offset, String search) {
+            ProductUnit unit, int limit, int offset, String search, boolean workedWithOnly, Long marketId) {
         if (productId != null && productRepository.findById(productId).isEmpty()) {
             throw new ResourceNotFoundException("Produto não encontrado: " + productId);
         }
         String term = search == null ? "" : search.trim();
         // HashMap: fornecedores sem histórico têm co2 null, que Collectors.toMap não aceita
         Map<Long, BigDecimal> co2 = new HashMap<>();
-        supplierRepository.findRankedByEmission(category, unit, productId, term, limit, offset)
+        supplierRepository.findRankedByEmission(category, unit, productId, term, workedWithOnly, marketId, limit, offset)
                 .forEach(rank -> co2.put(rank.supplierId(), rank.co2KgPerUnit()));
-        List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(co2.keySet()), co2);
+        List<SupplierRankingDTO> items = toRankingDTOs(supplierRepository.findAllById(co2.keySet()), co2, marketId);
         items.sort(RECOMMENDED_ORDER);
-        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, false));
+        return OffsetPageResponseDTO.of(items, limit, offset, supplierRepository.countBySearch(term, workedWithOnly, marketId));
     }
 
-    private List<SupplierRankingDTO> toRankingDTOs(List<Company> suppliers, Map<Long, BigDecimal> co2) {
+    private List<SupplierRankingDTO> toRankingDTOs(List<Company> suppliers, Map<Long, BigDecimal> co2, Long marketId) {
         Set<Long> ids = suppliers.stream().map(Company::getCompanyId).collect(Collectors.toSet());
-        Map<Long, Long> reportCounts = reportRepository.countBySupplierIds(ids);
+        Map<Long, Long> reportCounts = reportRepository.countBySupplierIds(ids, marketId);
+        Set<Long> workedWith = supplierRepository.findWorkedWithIds(marketId, ids);
         Map<Long, SupplierScore> scores = supplierRepository.findScoresByIds(ids).stream()
                 .collect(Collectors.toMap(SupplierScore::supplierId, Function.identity()));
         Map<Long, List<Certification>> certifications = certificationRepository.findBySupplierIds(ids).stream()
@@ -95,6 +95,7 @@ public class RankSuppliersBySustainabilityUseCase {
             SupplierScore score = scores.get(supplier.getCompanyId());
             rankings.add(mapper.toRanking(
                     supplier,
+                    workedWith.contains(supplier.getCompanyId()),
                     score.sustainabilityScore(),
                     Math.toIntExact(score.activeCertificationCount()),
                     score.totalCo2Kg(),

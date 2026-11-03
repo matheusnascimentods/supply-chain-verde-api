@@ -12,13 +12,14 @@ public interface ProductRepository {
 
     List<Product> findAll();
 
-    List<Product> findAll(int limit, int offset);
+    /** supplierId nulo não filtra: para o mercado, produtos são catálogo (RN-12). */
+    List<Product> findAll(Long supplierId, int limit, int offset);
 
-    long countAll();
+    long countAll(Long supplierId);
 
-    List<Product> findBySearch(String search, String categoryCode, int limit, int offset);
+    List<Product> findBySearch(Long supplierId, String search, String categoryCode, int limit, int offset);
 
-    long countBySearch(String search, String categoryCode);
+    long countBySearch(Long supplierId, String search, String categoryCode);
 
     void deleteById(Long productId);
 }

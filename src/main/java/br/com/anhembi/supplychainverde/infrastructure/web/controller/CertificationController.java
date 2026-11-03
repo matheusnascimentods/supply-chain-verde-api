@@ -28,21 +28,22 @@ public class CertificationController {
     @GetMapping("/certifications")
     @Operation(
             summary = "Listar certificações",
-            description = "Lista certificações paginadas, opcionalmente filtradas por status; sem filtro, as mais recentes aparecem primeiro."
+            description = "Lista certificações paginadas, opcionalmente filtradas por status; sem filtro, as mais recentes aparecem primeiro. A companhia fornecedora vê só as próprias; o mercado vê as de todos os fornecedores (catálogo)."
     )
     public CertificationPageResponseDTO list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @RequestParam(required = false) CertificationStatus status
+            @RequestParam(required = false) CertificationStatus status,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return list.execute(page, size, status);
+        return list.execute(page, size, status, principal.supplierId());
     }
 
     @PostMapping("/suppliers/{supplierId}/certifications")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastrar certificação", description = "Registra uma certificação ambiental para um fornecedor.")
     public CertificationResponseDTO create(@PathVariable Long supplierId, @RequestBody CertificationRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
-        if ("SUPPLIER".equals(principal.role()) && !principal.supplierId().equals(supplierId)) {
+        if (principal.isSupplierCompany() && !principal.supplierId().equals(supplierId)) {
             throw new AccessDeniedException("Fornecedor pode cadastrar certificações somente para si.");
         }
         return register.execute(supplierId, request);

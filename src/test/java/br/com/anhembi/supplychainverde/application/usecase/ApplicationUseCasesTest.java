@@ -97,8 +97,8 @@ class ApplicationUseCasesTest {
         when(products.findById(1L)).thenReturn(Optional.of(product));
         when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(supplier));
         when(batches.save(any())).thenReturn(batch);
-        when(batches.findBySupplierId(2L, 0, 20)).thenReturn(List.of(batch));
-        when(batches.countBySupplierId(2L)).thenReturn(1L);
+        when(batches.findPage(null, 2L, 0, 20)).thenReturn(List.of(batch));
+        when(batches.countPage(null, 2L)).thenReturn(1L);
         when(batches.findById(4L)).thenReturn(Optional.of(batch));
         when(chains.findByBatchId(4L)).thenReturn(List.of());
         BatchStagesReader stagesReader = mock(BatchStagesReader.class);
@@ -106,7 +106,7 @@ class ApplicationUseCasesTest {
 
         assertThat(new RegisterBatchUseCase(batches, products, suppliers, DtoMappers.BATCH)
                 .execute(new BatchRequestDTO(1L, 2L, new BigDecimal("10"), LocalDate.now())).batchId()).isEqualTo(4L);
-        assertThat(new ListBatchesUseCase(batches, DtoMappers.BATCH, stagesReader).execute(0, 20, 2L).content()).hasSize(1);
+        assertThat(new ListBatchesUseCase(batches, DtoMappers.BATCH, stagesReader).execute(0, 20, null, 2L).content()).hasSize(1);
         assertThat(new GetBatchTraceabilityUseCase(batches, stagesReader, DtoMappers.BATCH).execute(4L).batchId()).isEqualTo(4L);
     }
 
@@ -173,7 +173,7 @@ class ApplicationUseCasesTest {
         when(suppliers.findAllSuppliers()).thenReturn(List.of(supplier));
         when(suppliers.findScoresByIds(any())).thenReturn(List.of(
                 new CompanyRepository.SupplierScore(2L, new BigDecimal("100.00"), 0L, BigDecimal.ZERO)));
-        when(reports.countBySupplierIds(any())).thenReturn(java.util.Map.of());
+        when(reports.countBySupplierIds(any(), any())).thenReturn(java.util.Map.of());
 
         ChainRequestDTO request = new ChainRequestDTO(9L, null, null, StageType.STORAGE, LocalDateTime.now(), null);
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, DtoMappers.CHAIN)
@@ -181,7 +181,7 @@ class ApplicationUseCasesTest {
         assertThat(new ListChainStagesByBatchUseCase(chains, DtoMappers.CHAIN).execute(9L)).hasSize(1);
         assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, reports,
                 mock(ProductRepository.class), DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION)
-                .execute()).singleElement().satisfies(ranking -> assertThat(ranking.supplierId()).isEqualTo(2L));
+                .executeAll(false, null)).singleElement().satisfies(ranking -> assertThat(ranking.supplierId()).isEqualTo(2L));
     }
 
     @Test
@@ -191,14 +191,14 @@ class ApplicationUseCasesTest {
         Company supplier = Company.builder().companyId(2L).build();
         Report report = Report.builder().reportId(10L).supplier(supplier).periodStartAt(LocalDate.now().minusDays(30)).periodEndAt(LocalDate.now()).totalCo2Kg(BigDecimal.ZERO).batchCount(1).trackedProductCount(1).generatedAt(LocalDateTime.now()).build();
         when(suppliers.findSupplierById(2L)).thenReturn(Optional.of(supplier));
-        when(reports.generate(2L, report.getPeriodStartAt(), report.getPeriodEndAt())).thenReturn(10L);
+        when(reports.generate(2L, 40L, report.getPeriodStartAt(), report.getPeriodEndAt())).thenReturn(10L);
         when(reports.findById(10L)).thenReturn(Optional.of(report));
         when(reports.findBySupplierId(2L)).thenReturn(List.of(report));
 
         ReportRequestDTO request = new ReportRequestDTO(2L, report.getPeriodStartAt(), report.getPeriodEndAt());
-        assertThat(new GenerateSustainabilityReportUseCase(reports, suppliers, DtoMappers.REPORT).execute(2L, request).reportId()).isEqualTo(10L);
+        assertThat(new GenerateSustainabilityReportUseCase(reports, suppliers, DtoMappers.REPORT).execute(2L, 40L, request).reportId()).isEqualTo(10L);
         assertThat(new GetReportUseCase(reports, mock(CarbonEmissionRepository.class),
-                mock(CertificationRepository.class), DtoMappers.ADDRESS, DtoMappers.CERTIFICATION).execute(10L).reportId()).isEqualTo(10L);
+                mock(CertificationRepository.class), DtoMappers.ADDRESS, DtoMappers.CERTIFICATION).execute(10L, null, null).reportId()).isEqualTo(10L);
         assertThat(new ListReportsBySupplierUseCase(reports, DtoMappers.REPORT).execute(2L)).hasSize(1);
     }
 
@@ -206,22 +206,27 @@ class ApplicationUseCasesTest {
     void shouldRegisterAuthenticateAndUpdateUser() {
         UserRepository users = mock(UserRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
-        CompanyRepository suppliers = mock(CompanyRepository.class);
+        CompanyRepository companies = mock(CompanyRepository.class);
+        PlanRepository plans = mock(PlanRepository.class);
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
-        User user = User.builder().userId(11L).name("Admin").email("admin@example.com").password("hash").role(UserRole.ADMIN).build();
+        User user = User.builder().userId(11L).name("Admin").email("admin@example.com").password("hash").role(UserRole.ADMIN)
+                .companyId(5L).build();
         when(hasher.hash("secret")).thenReturn("hash");
         when(hasher.matches("secret", "hash")).thenReturn(true);
         when(users.save(any())).thenReturn(user);
         when(users.findByEmail("admin@example.com")).thenReturn(Optional.of(user));
         when(users.findById(11L)).thenReturn(Optional.of(user));
-        when(jwt.generateToken(user, null)).thenReturn("token");
+        when(users.countByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(2L);
+        when(companies.findById(5L)).thenReturn(Optional.of(Company.builder().companyId(5L).type(CompanyType.MARKET).build()));
+        when(plans.findActiveByCompanyId(5L)).thenReturn(Optional.of(new Plan(2L, "PRO", "Pro", 10)));
+        when(jwt.generateToken(user, CompanyType.MARKET)).thenReturn("token");
 
-        assertThat(new RegisterUserUseCase(users, suppliers, hasher, DtoMappers.USER)
-                .execute(new UserRequestDTO("Admin", "admin@example.com", "secret", UserRole.ADMIN, null)).userId()).isEqualTo(11L);
-        assertThat(new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
+        assertThat(new RegisterUserUseCase(users, companies, plans, hasher, DtoMappers.USER)
+                .execute(new UserRequestDTO("Admin", "admin@example.com", "secret", UserRole.ADMIN), 5L).userId()).isEqualTo(11L);
+        assertThat(new AuthenticateUserUseCase(users, companies, hasher, jwt)
                 .execute(new LoginRequestDTO("admin@example.com", "secret")).token()).isEqualTo("token");
-        assertThat(new UpdateUserRoleUseCase(users, DtoMappers.USER)
-                .execute(11L, new UpdateUserRoleRequestDTO(UserRole.AUDITOR)).role()).isEqualTo(UserRole.AUDITOR);
+        assertThat(new UpdateUserRoleUseCase(users, companies, DtoMappers.USER)
+                .execute(11L, new UpdateUserRoleRequestDTO(UserRole.AUDITOR), 5L).role()).isEqualTo(UserRole.AUDITOR);
     }
 
     @Test
@@ -235,7 +240,7 @@ class ApplicationUseCasesTest {
         when(users.findByEmail("supplier@example.com")).thenReturn(Optional.of(user));
         when(hasher.matches("secret", "hash")).thenReturn(true);
         when(suppliers.findById(7L)).thenReturn(Optional.of(Company.builder().companyId(7L).type(CompanyType.SUPPLIER).build()));
-        when(jwt.generateToken(user, 7L)).thenReturn("token");
+        when(jwt.generateToken(user, CompanyType.SUPPLIER)).thenReturn("token");
 
         LoginResponseDTO response = new AuthenticateUserUseCase(users, suppliers, hasher, jwt)
                 .execute(new LoginRequestDTO("supplier@example.com", "secret"));
@@ -267,10 +272,10 @@ class ApplicationUseCasesTest {
         User user = User.builder().userId(11L).build();
         AuditLog log = AuditLog.builder().logId(12L).user(user).action(AuditAction.INSERT)
                 .affectedTable("supplier").affectedEntityId(42L).build();
-        when(logs.findByFilters(any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(List.of(log));
-        when(logs.countByFilters(any(), any(), any(), any())).thenReturn(1L);
+        when(logs.findByFilters(any(), any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(List.of(log));
+        when(logs.countByFilters(any(), any(), any(), any(), any())).thenReturn(1L);
 
-        assertThat(new ListAuditLogsUseCase(logs, DtoMappers.AUDIT_LOG).execute(LocalDate.now(), LocalDate.now(), null, null, 20, 0).items()).singleElement()
+        assertThat(new ListAuditLogsUseCase(logs, DtoMappers.AUDIT_LOG).execute(LocalDate.now(), LocalDate.now(), null, null, null, 20, 0).items()).singleElement()
                 .satisfies(dto -> {
                     assertThat(dto.logId()).isEqualTo(12L);
                     assertThat(dto.userId()).isEqualTo(11L);
