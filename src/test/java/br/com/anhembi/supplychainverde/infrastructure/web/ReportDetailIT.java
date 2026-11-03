@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -51,7 +50,7 @@ class ReportDetailIT {
         Long reportId = insertReport(supplierId, day, day);
 
         String body = mockMvc.perform(get("/api/v1/reports").param("reportId", reportId.toString())
-                        .with(authentication(as("AUDITOR", null))))
+                        .with(authentication(asMarketOf(supplierId))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCo2Kg").exists())
                 .andReturn().getResponse().getContentAsString();
@@ -94,11 +93,20 @@ class ReportDetailIT {
                 BigDecimal.class, supplierId, day);
     }
 
+    // V10: os lotes de cada fornecedor ficam num mercado só; o relatório e o leitor são desse mercado.
+    private static final String MARKET_OF_SUPPLIER = "(SELECT MIN(market_id) FROM batch WHERE supplier_id = ?)";
+
+    private UsernamePasswordAuthenticationToken asMarketOf(Long supplierId) {
+        Long marketId = jdbcTemplate.queryForObject("SELECT " + MARKET_OF_SUPPLIER, Long.class, supplierId);
+        return new UsernamePasswordAuthenticationToken(TestPrincipals.market(1L, "AUDITOR", marketId), null,
+                List.of(new SimpleGrantedAuthority("ROLE_AUDITOR")));
+    }
+
     private Long insertReport(Long supplierId, LocalDate start, LocalDate end) {
         return insert(jdbcTemplate, """
                 INSERT INTO report (supplier_id, market_id, period_start_at, period_end_at, total_co2_kg, tracked_product_count)
                 VALUES (?, %s, ?, ?, 0, 0)
-                """.formatted(DEMO_MARKET), supplierId, start, end);
+                """.formatted(MARKET_OF_SUPPLIER), supplierId, supplierId, start, end);
     }
 
     private void insertCertification(Long supplierId, String name, LocalDate issuedAt, LocalDate expiresAt) {
@@ -115,8 +123,7 @@ class ReportDetailIT {
 
     private UsernamePasswordAuthenticationToken as(String role, Long supplierId) {
         return new UsernamePasswordAuthenticationToken(
-                supplierId != null ? TestPrincipals.of(1L, "actor@example.com", role, supplierId)
-                        : TestPrincipals.market(1L, role, jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
+                TestPrincipals.of(1L, "actor@example.com", role, supplierId),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }

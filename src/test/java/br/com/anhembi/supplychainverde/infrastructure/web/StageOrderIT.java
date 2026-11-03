@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
+import static br.com.anhembi.supplychainverde.JdbcInserts.SEED_MARKET;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,12 +47,12 @@ class StageOrderIT {
 
     @BeforeEach
     void setUp() {
-        // O responsável precisa ser do mercado ou do fornecedor do lote (RN-15): um usuário do mercado de demonstração.
-        userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE company_id = " + DEMO_MARKET, Long.class);
+        // O responsável precisa ser do mercado ou do fornecedor do lote (RN-15): um usuário do mercado do seed.
+        userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE company_id = " + SEED_MARKET, Long.class);
         batchId = insert(jdbcTemplate, """
                 INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
                 SELECT id, supplier_id, %s, 'ACTIVE', 10, CURRENT_DATE FROM product ORDER BY id LIMIT 1
-                """.formatted(DEMO_MARKET));
+                """.formatted(SEED_MARKET));
     }
 
     @Test
@@ -116,7 +116,7 @@ class StageOrderIT {
     private UsernamePasswordAuthenticationToken asManager() {
         return new UsernamePasswordAuthenticationToken(
                 TestPrincipals.market(userId, "MANAGER",
-                        jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
+                        jdbcTemplate.queryForObject("SELECT " + SEED_MARKET, Long.class)),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_MANAGER")));
     }

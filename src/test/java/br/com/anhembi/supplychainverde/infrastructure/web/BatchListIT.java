@@ -1,6 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
-import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
+import static br.com.anhembi.supplychainverde.JdbcInserts.SEED_MARKET;
 import org.springframework.jdbc.core.JdbcTemplate;
 import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
@@ -46,10 +46,10 @@ class BatchListIT {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    // Os lotes dos seeds são do mercado de demonstração (V8).
+    // Um dos mercados da V10, que recebeu parte dos lotes do seed.
     private UsernamePasswordAuthenticationToken asAdmin() {
         return new UsernamePasswordAuthenticationToken(
-                TestPrincipals.market(1L, "ADMIN", jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
+                TestPrincipals.market(1L, "ADMIN", jdbcTemplate.queryForObject("SELECT " + SEED_MARKET, Long.class)),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
     }

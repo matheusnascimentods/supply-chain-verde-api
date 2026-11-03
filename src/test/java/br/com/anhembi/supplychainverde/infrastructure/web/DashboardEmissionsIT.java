@@ -1,6 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
-import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
+import static br.com.anhembi.supplychainverde.JdbcInserts.SEED_MARKET;
 import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
@@ -64,7 +64,7 @@ class DashboardEmissionsIT {
     void summarizesDashboardFromSeeds() throws Exception {
         // RN-13c: para o mercado, o card conta os fornecedores com quem ele já trabalhou.
         long suppliers = jdbcTemplate.queryForObject(
-                "SELECT COUNT(DISTINCT supplier_id) FROM batch WHERE market_id = " + DEMO_MARKET, Long.class);
+                "SELECT COUNT(DISTINCT supplier_id) FROM batch WHERE market_id = " + SEED_MARKET, Long.class);
 
         mockMvc.perform(get("/api/v1/dashboard/summary").param("limit", "1")
                         .with(authentication(as("ADMIN", null))))
@@ -87,24 +87,25 @@ class DashboardEmissionsIT {
 
     private String latestEmissionMonth(Long supplierId) {
         return jdbcTemplate.queryForObject("""
-                SELECT DATE_FORMAT(MAX(ce.created_at), '%Y-%m') FROM carbon_emission ce
+                SELECT DATE_FORMAT(MAX(ce.created_at), '%%Y-%%m') FROM carbon_emission ce
                 JOIN chain c ON c.id = ce.chain_id JOIN batch b ON b.id = c.batch_id
-                WHERE ? IS NULL OR b.supplier_id = ?
-                """, String.class, supplierId, supplierId);
+                WHERE (? IS NULL AND b.market_id = %s) OR b.supplier_id = ?
+                """.formatted(SEED_MARKET), String.class, supplierId, supplierId);
     }
 
     private BigDecimal expectedCo2(String month, Long supplierId) {
         return jdbcTemplate.queryForObject("""
                 SELECT SUM(ce.co2_kg) FROM carbon_emission ce
                 JOIN chain c ON c.id = ce.chain_id JOIN batch b ON b.id = c.batch_id
-                WHERE DATE_FORMAT(ce.created_at, '%Y-%m') = ? AND (? IS NULL OR b.supplier_id = ?)
-                """, BigDecimal.class, month, supplierId, supplierId);
+                WHERE DATE_FORMAT(ce.created_at, '%%Y-%%m') = ?
+                  AND ((? IS NULL AND b.market_id = %s) OR b.supplier_id = ?)
+                """.formatted(SEED_MARKET), BigDecimal.class, month, supplierId, supplierId);
     }
 
     private UsernamePasswordAuthenticationToken as(String role, Long supplierId) {
         return new UsernamePasswordAuthenticationToken(
                 supplierId != null ? TestPrincipals.of(1L, "actor@example.com", role, supplierId)
-                        : TestPrincipals.market(1L, role, jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
+                        : TestPrincipals.market(1L, role, jdbcTemplate.queryForObject("SELECT " + SEED_MARKET, Long.class)),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }
