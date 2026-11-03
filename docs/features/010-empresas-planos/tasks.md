@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 a 4 concluídas).
+**Status:** concluída.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. As tasks do frontend (`supply-chain-verde-web/docs/features/009-empresas-planos/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -53,8 +53,8 @@ Só banco, com o mínimo de Java para a aplicação continuar subindo.
 
 ## Task 5 — `docs/company-reference`
 
-- [ ] Rotas novas e removidas em `docs/features/000-base/reference.md`
-- [ ] README: perfis, multiempresa e diagrama de entidades atualizados
-- [ ] ADR 0003 curto sobre a FK composta por tipo de companhia e a assinatura ativa única
+- [x] Rotas novas e removidas em `docs/features/000-base/reference.md`
+- [x] README: perfis, multiempresa e diagrama de entidades atualizados
+- [x] ADR 0003 curto sobre a FK composta por tipo de companhia e a assinatura ativa única
 
 **Pronto:** documentação bate com a API.
