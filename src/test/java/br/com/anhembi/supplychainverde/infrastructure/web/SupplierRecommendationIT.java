@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.infrastructure.web;
 
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -54,9 +56,10 @@ class SupplierRecommendationIT {
     }
 
     @Test
+    @Disabled("Task 4: o produto agora é de um fornecedor só (RN-17), e a recomendação por productId sai (RN-21)")
     void ordersSuppliersOfProductByCo2PerUnitWithoutHistoryLast() throws Exception {
-        long product = product("AGRICULTURE", "KG");
         long clean = supplier("Alfa", "98765432000198");
+        long product = product(clean, "AGRICULTURE", "KG");
         long dirty = supplier("Beta", "98765432000279");
         long withoutHistory = supplier("Gama", "98765432000350");
         batch(clean, product, "100", "40");
@@ -78,17 +81,14 @@ class SupplierRecommendationIT {
 
     @Test
     void comparesCategoryByWeightedAverageAndIgnoresOtherUnits() throws Exception {
-        long kgProduct = product("FORESTRY", "KG");
-        long otherKgProduct = product("FORESTRY", "KG");
-        long tonProduct = product("FORESTRY", "TON");
         long mixed = supplier("Delta", "98765432000430");
         long steady = supplier("Epsilon", "98765432000511");
         long tonOnly = supplier("Zeta", "98765432000600");
         // Média das médias de Delta seria (0,1 + 0,8) / 2 = 0,45; a ponderada é 801 / 1010 ≈ 0,7931.
-        batch(mixed, kgProduct, "10", "1");
-        batch(mixed, otherKgProduct, "1000", "800");
-        batch(steady, kgProduct, "100", "50");
-        batch(tonOnly, tonProduct, "1", "0.0001");
+        batch(mixed, product(mixed, "FORESTRY", "KG"), "10", "1");
+        batch(mixed, product(mixed, "FORESTRY", "KG"), "1000", "800");
+        batch(steady, product(steady, "FORESTRY", "KG"), "100", "50");
+        batch(tonOnly, product(tonOnly, "FORESTRY", "TON"), "1", "0.0001");
 
         mockMvc.perform(get("/api/v1/suppliers")
                         .param("ranked", "true")
@@ -128,7 +128,7 @@ class SupplierRecommendationIT {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.items", hasSize(0)));
         } finally {
-            jdbcTemplate.update("DELETE FROM supplier WHERE id = ?", supplierId);
+            jdbcTemplate.update("DELETE FROM company WHERE id = ?", supplierId);
             jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
         }
     }
@@ -152,20 +152,24 @@ class SupplierRecommendationIT {
                 .andExpect(status().isNotFound());
     }
 
-    private long product(String category, String unit) {
+    private long product(long supplierId, String category, String unit) {
         return insert(jdbcTemplate,
-                "INSERT INTO product (name, category, unit) VALUES ('Produto teste', ?, ?)", category, unit);
+                "INSERT INTO product (supplier_id, name, category, unit) VALUES (?, 'Produto teste', ?, ?)",
+                supplierId, category, unit);
     }
 
     private long supplier(String name, String cnpj) {
-        return insert(jdbcTemplate,
-                "INSERT INTO supplier (name, cnpj, address_id) VALUES (?, ?, ?)", SEARCH + " " + name, cnpj, addressId);
+        return insert(jdbcTemplate, """
+                INSERT INTO company (name, cnpj, address_id, email, type)
+                VALUES (?, ?, ?, CONCAT(?, '@fornecedor.test'), 'SUPPLIER')
+                """, SEARCH + " " + name, cnpj, addressId, cnpj);
     }
 
     private void batch(long supplierId, long productId, String quantity, String co2Kg) {
-        long batchId = insert(jdbcTemplate,
-                "INSERT INTO batch (product_id, supplier_id, quantity, produced_at) VALUES (?, ?, ?, CURRENT_DATE)",
-                productId, supplierId, quantity);
+        long batchId = insert(jdbcTemplate, """
+                INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
+                VALUES (?, ?, %s, 'ACTIVE', ?, CURRENT_DATE)
+                """.formatted(DEMO_MARKET), productId, supplierId, quantity);
         long chainId = insert(jdbcTemplate,
                 "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW())",
                 batchId, userId);

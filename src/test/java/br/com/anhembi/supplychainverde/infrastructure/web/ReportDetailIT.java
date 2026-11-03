@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -94,9 +95,9 @@ class ReportDetailIT {
 
     private Long insertReport(Long supplierId, LocalDate start, LocalDate end) {
         return insert(jdbcTemplate, """
-                INSERT INTO report (supplier_id, period_start_at, period_end_at, total_co2_kg, tracked_product_count)
-                VALUES (?, ?, ?, 0, 0)
-                """, supplierId, start, end);
+                INSERT INTO report (supplier_id, market_id, period_start_at, period_end_at, total_co2_kg, tracked_product_count)
+                VALUES (?, %s, ?, ?, 0, 0)
+                """.formatted(DEMO_MARKET), supplierId, start, end);
     }
 
     private void insertCertification(Long supplierId, String name, LocalDate issuedAt, LocalDate expiresAt) {

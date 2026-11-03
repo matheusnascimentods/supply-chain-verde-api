@@ -60,7 +60,7 @@ class DashboardEmissionsIT {
     // Passa pelas 5 consultas do resumo; o lote recente exercita a conversão de unit/status para enum.
     @Test
     void summarizesDashboardFromSeeds() throws Exception {
-        long suppliers = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM supplier", Long.class);
+        long suppliers = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM company WHERE type = 'SUPPLIER'", Long.class);
 
         mockMvc.perform(get("/api/v1/dashboard/summary").param("limit", "1")
                         .with(authentication(as("ADMIN", null))))

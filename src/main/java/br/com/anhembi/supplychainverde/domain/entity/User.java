@@ -16,6 +16,7 @@ public class User {
     private String email;
     private String password;
     private UserRole role;
+    private Long companyId;
     private LocalDateTime createdAt;
 
     public void updateRole(UserRole newRole) {

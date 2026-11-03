@@ -39,7 +39,8 @@ class RegisterUserUseCaseTest {
 
         assertThat(response.supplierId()).isEqualTo(7L);
         assertThat(response.supplierName()).isEqualTo("Fazenda Verde");
-        verify(suppliers).save(argThat(supplier -> supplier.getUserId().equals(3L)));
+        // O vínculo agora é users.company_id (V8).
+        verify(users).save(argThat(user -> user.getCompanyId().equals(7L)));
     }
 
     @Test

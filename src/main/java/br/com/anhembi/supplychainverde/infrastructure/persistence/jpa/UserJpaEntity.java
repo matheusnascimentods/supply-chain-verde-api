@@ -31,6 +31,9 @@ public class UserJpaEntity {
     @Column(name = "role", nullable = false)
     private UserRole role;
 
+    @Column(name = "company_id")
+    private Long companyId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

@@ -34,8 +34,10 @@ public class ReportRepositoryImpl implements ReportRepository {
     @Override
     public Long generate(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt) {
         // Mesma conexão nas duas chamadas: o aspect exige transação ativa para generate.
-        jdbcTemplate.update("CALL sp_generate_sustainability_report(?, ?, ?, @report_id)",
-                supplierId, periodStartAt, periodEndAt);
+        // ponytail: mercado padrão até a Task 3 passar o mercado logado (RN-23).
+        Long marketId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM company WHERE type = 'MARKET'", Long.class);
+        jdbcTemplate.update("CALL sp_generate_sustainability_report(?, ?, ?, ?, @report_id)",
+                supplierId, marketId, periodStartAt, periodEndAt);
         return jdbcTemplate.queryForObject("SELECT @report_id", Long.class);
     }
 

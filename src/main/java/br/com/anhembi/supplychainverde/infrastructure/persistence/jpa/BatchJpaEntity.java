@@ -31,4 +31,16 @@ public class BatchJpaEntity {
 
     @Column(name = "produced_at", nullable = false)
     private LocalDate producedAt;
+
+    // ponytail: o lote nasce ACTIVE no mercado padrão até a Task 4 trazer o pedido (PENDING) do mercado logado.
+    @Column(name = "market_id", nullable = false, updatable = false)
+    private Long marketId;
+
+    @Column(name = "status", nullable = false, updatable = false)
+    private String status;
+
+    @PrePersist
+    void fillStatus() {
+        if (status == null) status = "ACTIVE";
+    }
 }

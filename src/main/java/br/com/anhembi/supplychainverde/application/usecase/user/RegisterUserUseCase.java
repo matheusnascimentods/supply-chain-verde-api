@@ -58,11 +58,11 @@ public class RegisterUserUseCase {
                 .email(request.email())
                 .password(passwordHasher.hash(request.password()))
                 .role(request.role())
+                .companyId(supplier == null ? null : supplier.getSupplierId())
                 .createdAt(LocalDateTime.now())
                 .build());
         if (supplier != null) {
             supplier.setUserId(saved.getUserId());
-            supplierRepository.save(supplier);
         }
         return mapper.toResponse(saved, supplier);
     }

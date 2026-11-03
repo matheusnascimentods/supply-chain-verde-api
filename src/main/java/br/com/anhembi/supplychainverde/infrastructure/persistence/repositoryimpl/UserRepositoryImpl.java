@@ -5,6 +5,7 @@ import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.UserJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.UserJpaEntity;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.SupplierJpaRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.UserJpaRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -24,10 +25,16 @@ public class UserRepositoryImpl implements UserRepository {
     private final UserJpaRepository jpaRepository;
     private final UserJpaMapper mapper;
     private final EntityManager entityManager;
+    private final SupplierJpaRepository supplierJpaRepository;
 
+    // ponytail: usuário sem companhia entra no mercado padrão, como na V8, até a Task 3 usar a do principal.
     @Override
     public User save(User user) {
-        return mapper.toDomain(jpaRepository.save(mapper.toJpaEntity(user)));
+        UserJpaEntity entity = mapper.toJpaEntity(user);
+        if (entity.getCompanyId() == null && entity.getRole() != UserRole.PLATFORM_ADMIN) {
+            entity.setCompanyId(supplierJpaRepository.findDefaultMarketId());
+        }
+        return mapper.toDomain(jpaRepository.save(entity));
     }
 
     @Override

@@ -53,7 +53,8 @@ class UpdateOwnUserIT {
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.name").value("Manuel N."))
                 .andExpect(jsonPath("$.email").value(EMAIL))
-                .andExpect(jsonPath("$.role").value("ADMIN"));
+                // O role do corpo é ignorado; o seed virou PLATFORM_ADMIN na V8 (RN-26).
+                .andExpect(jsonPath("$.role").value("PLATFORM_ADMIN"));
 
         mockMvc.perform(get("/api/v1/users/me").with(admin))
                 .andExpect(jsonPath("$.name").value("Manuel N."));

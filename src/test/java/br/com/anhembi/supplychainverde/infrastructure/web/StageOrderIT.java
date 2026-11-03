@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,9 +48,9 @@ class StageOrderIT {
     void setUp() {
         userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
         batchId = insert(jdbcTemplate, """
-                INSERT INTO batch (product_id, supplier_id, quantity, produced_at)
-                VALUES ((SELECT MIN(id) FROM product), (SELECT MIN(id) FROM supplier), 10, CURRENT_DATE)
-                """);
+                INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
+                SELECT id, supplier_id, %s, 'ACTIVE', 10, CURRENT_DATE FROM product ORDER BY id LIMIT 1
+                """.formatted(DEMO_MARKET));
     }
 
     @Test
