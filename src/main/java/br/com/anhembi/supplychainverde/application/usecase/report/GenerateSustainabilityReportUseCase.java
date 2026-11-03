@@ -4,7 +4,7 @@ import br.com.anhembi.supplychainverde.application.dto.report.ReportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.report.ReportResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.application.mapper.ReportDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GenerateSustainabilityReportUseCase {
     private final ReportRepository reportRepository;
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
     private final ReportDtoMapper mapper;
 
     @Transactional
@@ -25,7 +25,7 @@ public class GenerateSustainabilityReportUseCase {
         if (request.periodEndAt().isBefore(request.periodStartAt())) {
             throw new ValidationException("A data final do período deve ser igual ou posterior à inicial.");
         }
-        supplierRepository.findById(supplierId)
+        supplierRepository.findSupplierById(supplierId)
                 .orElseThrow(() -> new IllegalArgumentException("Fornecedor não encontrado: " + supplierId));
 
         // Os totais são consolidados pela sp_generate_sustainability_report (V36).

@@ -5,7 +5,7 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.BatchJpaEn
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {ProductJpaMapper.class, SupplierJpaMapper.class})
+@Mapper(componentModel = "spring", uses = {ProductJpaMapper.class, CompanyJpaMapper.class})
 public interface BatchJpaMapper {
     Batch toDomain(BatchJpaEntity entity);
     @Mapping(target = "marketId", ignore = true)

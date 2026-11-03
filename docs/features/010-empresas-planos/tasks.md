@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Task 1 concluída).
+**Status:** em andamento (Tasks 1 e 2 concluídas).
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. As tasks do frontend (`supply-chain-verde-web/docs/features/009-empresas-planos/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -21,10 +21,10 @@ Só banco, com o mínimo de Java para a aplicação continuar subindo.
 
 ## Task 2 — `feat/company-signup`
 
-- [ ] Renomear `Supplier*` para `Company*` no domínio, na aplicação e na persistência (plan §2)
-- [ ] `PlanRepository`, `GET /plans` e `POST /companies` (`RegisterCompanyUseCase`)
-- [ ] `GET` e `PATCH /companies/me`; remover `PATCH /suppliers/me`, `POST /suppliers` e `PUT /suppliers/{id}`
-- [ ] `CompanySignupIT` e testes unitários do `RegisterCompanyUseCase`
+- [x] Renomear `Supplier*` para `Company*` no domínio, na aplicação e na persistência (plan §2)
+- [x] `PlanRepository`, `GET /plans` e `POST /companies` (`RegisterCompanyUseCase`)
+- [x] `GET` e `PATCH /companies/me`; remover `PATCH /suppliers/me`, `POST /suppliers` e `PUT /suppliers/{id}`
+- [x] `CompanySignupIT` e testes unitários do `RegisterCompanyUseCase`
 
 **Pronto:** uma empresa se cadastra e já usa a API logada. Isso libera a Task 1 do frontend.
 

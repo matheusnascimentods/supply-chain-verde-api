@@ -1,27 +1,26 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "company")
-@SQLRestriction("type = 'SUPPLIER'")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SupplierJpaEntity {
+public class CompanyJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Long supplierId;
+    private Long companyId;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -41,21 +40,15 @@ public class SupplierJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime registeredAt;
 
-    // ponytail: tipo fixo e email placeholder (padrão da V8, com o CNPJ porque o id ainda não existe)
-    // até a Task 2 trazer o cadastro de companhia.
-    @Column(name = "email", nullable = false, updatable = false)
+    @Column(name = "email", nullable = false)
     private String email;
 
+    // RN-05: o tipo não muda depois do cadastro.
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, updatable = false)
-    private String type;
+    private CompanyType type;
 
     // supplier.user_id saiu na V8: o vínculo agora é users.company_id. Só leitura até a Task 3.
     @Formula("(SELECT MIN(u.id) FROM users u WHERE u.company_id = id)")
     private Long userId;
-
-    @PrePersist
-    void fillCompanyDefaults() {
-        type = "SUPPLIER";
-        if (email == null) email = "fornecedor" + cnpj + "@supplychainverde.local";
-    }
 }

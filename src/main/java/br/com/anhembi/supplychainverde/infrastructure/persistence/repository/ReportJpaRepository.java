@@ -7,9 +7,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ReportJpaRepository extends JpaRepository<ReportJpaEntity, Long> {
-    List<ReportJpaEntity> findBySupplierSupplierId(Long supplierId);
+    List<ReportJpaEntity> findBySupplierCompanyId(Long supplierId);
 
-    @Query("select report.supplier.supplierId, count(report) from ReportJpaEntity report " +
-            "where report.supplier.supplierId in :supplierIds group by report.supplier.supplierId")
+    @Query("select report.supplier.companyId, count(report) from ReportJpaEntity report " +
+            "where report.supplier.companyId in :supplierIds group by report.supplier.companyId")
     List<Object[]> countBySupplierIds(@Param("supplierIds") List<Long> supplierIds);
 }

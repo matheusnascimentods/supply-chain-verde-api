@@ -13,7 +13,7 @@ public interface CertificationDtoMapper {
     @Mapping(target = "status", ignore = true)
     Certification toDomain(CertificationRequestDTO request);
 
-    @Mapping(target = "supplierId", source = "supplier.supplierId")
+    @Mapping(target = "supplierId", source = "supplier.companyId")
     CertificationResponseDTO toResponse(Certification certification);
 
     SupplierCertificationDTO toSupplierCertification(Certification certification);

@@ -3,9 +3,9 @@ package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 import br.com.anhembi.supplychainverde.application.dto.user.*;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.user.*;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,7 +31,7 @@ public class UserController {
     private final ListUsersUseCase list;
     private final UpdateOwnUserUseCase updateOwn;
     private final UserRepository userRepository;
-    private final SupplierRepository supplierRepository;
+    private final CompanyRepository supplierRepository;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -88,6 +88,6 @@ public class UserController {
     }
 
     private String supplierName(Long supplierId) {
-        return supplierId == null ? null : supplierRepository.findById(supplierId).map(Supplier::getName).orElse(null);
+        return supplierId == null ? null : supplierRepository.findSupplierById(supplierId).map(Company::getName).orElse(null);
     }
 }

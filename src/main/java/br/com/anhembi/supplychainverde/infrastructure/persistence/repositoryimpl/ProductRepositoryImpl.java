@@ -6,7 +6,7 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.Product
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.FullTextSearch;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.ProductJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.ProductJpaRepository;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.SupplierJpaRepository;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.CompanyJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.Optional;
 public class ProductRepositoryImpl implements ProductRepository {
     private final ProductJpaRepository jpaRepository;
     private final ProductJpaMapper mapper;
-    private final SupplierJpaRepository supplierJpaRepository;
+    private final CompanyJpaRepository supplierJpaRepository;
 
     @Override
     public Product save(Product product) {

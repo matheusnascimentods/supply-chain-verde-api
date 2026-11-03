@@ -3,7 +3,7 @@ package br.com.anhembi.supplychainverde.application.usecase.report;
 import br.com.anhembi.supplychainverde.application.dto.report.ReportListItemDTO;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Report;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,8 +25,8 @@ public class ListReportsUseCase {
     }
 
     private ReportListItemDTO toResponse(Report report) {
-        Supplier supplier = report.getSupplier();
-        Long supplierId = supplier == null ? null : supplier.getSupplierId();
+        Company supplier = report.getSupplier();
+        Long supplierId = supplier == null ? null : supplier.getCompanyId();
         return new ReportListItemDTO(
                 report.getReportId(),
                 supplierId,

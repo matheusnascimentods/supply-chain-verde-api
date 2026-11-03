@@ -21,7 +21,7 @@ public class ReportJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "supplier_id", nullable = false)
-    private SupplierJpaEntity supplier;
+    private CompanyJpaEntity supplier;
 
     @Column(name = "period_start_at", nullable = false)
     private LocalDate periodStartAt;

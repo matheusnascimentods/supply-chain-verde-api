@@ -4,15 +4,15 @@ import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.domain.entity.Product;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierEmissionRank;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierScore;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierEmissionRank;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierScore;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class RankSuppliersBySustainabilityUseCaseTest {
-    private final SupplierRepository suppliers = mock(SupplierRepository.class);
+    private final CompanyRepository suppliers = mock(CompanyRepository.class);
     private final CertificationRepository certifications = mock(CertificationRepository.class);
     private final ReportRepository reports = mock(ReportRepository.class);
     private final ProductRepository products = mock(ProductRepository.class);
@@ -83,9 +83,9 @@ class RankSuppliersBySustainabilityUseCaseTest {
 
     @Test
     void listsOnlySuppliersWithoutLinkedUserWhenRequested() {
-        Supplier linked = supplier(3L);
+        Company linked = supplier(3L);
         linked.setUserId(10L);
-        when(suppliers.findAll()).thenReturn(List.of(linked, supplier(5L)));
+        when(suppliers.findAllSuppliers()).thenReturn(List.of(linked, supplier(5L)));
         stubScores();
         when(reports.countBySupplierIds(any())).thenReturn(Map.of());
 
@@ -105,7 +105,7 @@ class RankSuppliersBySustainabilityUseCaseTest {
                 .toList());
     }
 
-    private static Supplier supplier(Long supplierId) {
-        return Supplier.builder().supplierId(supplierId).name("Fornecedor " + supplierId).build();
+    private static Company supplier(Long supplierId) {
+        return Company.builder().companyId(supplierId).name("Fornecedor " + supplierId).build();
     }
 }

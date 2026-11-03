@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class Certification {
     private Long certificationId;
-    private Supplier supplier;
+    private Company supplier;
     private String certification;
     private String issuingBody;
     private LocalDate issuedAt;

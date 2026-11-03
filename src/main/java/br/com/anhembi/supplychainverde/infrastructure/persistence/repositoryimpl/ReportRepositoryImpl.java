@@ -62,7 +62,7 @@ public class ReportRepositoryImpl implements ReportRepository {
                 JOIN FETCH supplier.address
                 """);
         if (supplierId != null) {
-            jpql.append(" WHERE supplier.supplierId = :supplierId");
+            jpql.append(" WHERE supplier.companyId = :supplierId");
         }
         jpql.append(" ORDER BY report.generatedAt DESC, report.reportId DESC");
 
@@ -80,7 +80,7 @@ public class ReportRepositoryImpl implements ReportRepository {
     public long countPage(Long supplierId) {
         String jpql = supplierId == null
                 ? "SELECT COUNT(report) FROM ReportJpaEntity report"
-                : "SELECT COUNT(report) FROM ReportJpaEntity report WHERE report.supplier.supplierId = :supplierId";
+                : "SELECT COUNT(report) FROM ReportJpaEntity report WHERE report.supplier.companyId = :supplierId";
         var query = entityManager.createQuery(jpql, Long.class);
         if (supplierId != null) {
             query.setParameter("supplierId", supplierId);
@@ -100,12 +100,12 @@ public class ReportRepositoryImpl implements ReportRepository {
 
     @Override
     public List<Report> findBySupplierId(Long supplierId) {
-        return jpaRepository.findBySupplierSupplierId(supplierId).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findBySupplierCompanyId(supplierId).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public List<Report> findBySupplierIdAndPeriodBetween(Long supplierId, LocalDate periodStartAt, LocalDate periodEndAt) {
-        return jpaRepository.findBySupplierSupplierId(supplierId).stream()
+        return jpaRepository.findBySupplierCompanyId(supplierId).stream()
                 .map(mapper::toDomain)
                 .filter(report -> !report.getPeriodStartAt().isBefore(periodStartAt) && !report.getPeriodEndAt().isAfter(periodEndAt))
                 .toList();

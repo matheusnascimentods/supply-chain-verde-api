@@ -13,7 +13,7 @@ import org.mapstruct.Mapping;
 public interface BatchDtoMapper {
     @Mapping(target = "productId", source = "batch.product.productId")
     @Mapping(target = "productName", source = "batch.product.name")
-    @Mapping(target = "supplierId", source = "batch.supplier.supplierId")
+    @Mapping(target = "supplierId", source = "batch.supplier.companyId")
     @Mapping(target = "supplierName", source = "batch.supplier.name")
     BatchResponseDTO toResponse(Batch batch, StageType currentStage, List<ChainResponseDTO> stages);
 

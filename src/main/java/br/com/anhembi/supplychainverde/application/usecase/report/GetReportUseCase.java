@@ -5,7 +5,7 @@ import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundExc
 import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
 import br.com.anhembi.supplychainverde.application.mapper.CertificationDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.Report;
-import br.com.anhembi.supplychainverde.domain.entity.Supplier;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
@@ -27,8 +27,8 @@ public class GetReportUseCase {
     public ReportDetailDTO execute(Long reportId) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("Relatório não encontrado: " + reportId));
-        Supplier supplier = report.getSupplier();
-        Long supplierId = supplier == null ? null : supplier.getSupplierId();
+        Company supplier = report.getSupplier();
+        Long supplierId = supplier == null ? null : supplier.getCompanyId();
         LocalDate start = report.getPeriodStartAt();
         LocalDate end = report.getPeriodEndAt();
         boolean hasSupplier = supplierId != null;
@@ -43,7 +43,7 @@ public class GetReportUseCase {
                 report.getBatchCount(),
                 report.getTrackedProductCount(),
                 report.getGeneratedAt(),
-                supplier == null ? null : new ReportDetailDTO.Supplier(
+                supplier == null ? null : new ReportDetailDTO.Company(
                         supplier.getPhone(), addressMapper.toResponse(supplier.getAddress())),
                 hasSupplier ? emissions(supplierId, start, end) : emptyEmissions(),
                 hasSupplier

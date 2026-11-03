@@ -6,13 +6,13 @@ import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** Regras de nome e senha do próprio usuário, usadas por PATCH /users/me e PATCH /suppliers/me. Não grava nada. */
+/** Regras de nome e senha do próprio usuário, usadas por PATCH /users/me. Não grava nada. */
 @Component
 @RequiredArgsConstructor
 public class OwnAccountChanges {
     private final PasswordHasher passwordHasher;
 
-    // Separado de apply: o fornecedor valida empresa, endereço e usuário antes da primeira gravação.
+    // Separado de apply: valida tudo antes da primeira gravação.
     public void validate(User user, String userName, String currentPassword, String newPassword) {
         if (userName != null && userName.isBlank()) throw new ValidationException("Nome do usuário não pode ser vazio.");
         if (newPassword != null) {

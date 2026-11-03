@@ -1,8 +1,9 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierEmissionRank;
-import br.com.anhembi.supplychainverde.domain.repository.SupplierRepository.SupplierScore;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.SupplierJpaEntity;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierEmissionRank;
+import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierScore;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.CompanyJpaEntity;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,17 +13,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, Long> {
+public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Long> {
     @Override
     @EntityGraph(attributePaths = "address")
-    Optional<SupplierJpaEntity> findById(Long supplierId);
+    Optional<CompanyJpaEntity> findById(Long companyId);
 
     @EntityGraph(attributePaths = "address")
-    Optional<SupplierJpaEntity> findByCnpj(String cnpj);
+    Optional<CompanyJpaEntity> findByCompanyIdAndType(Long companyId, CompanyType type);
 
-    @Override
     @EntityGraph(attributePaths = "address")
-    List<SupplierJpaEntity> findAll();
+    List<CompanyJpaEntity> findAllByType(CompanyType type);
 
     @Query(value = """
             SELECT s.*, (SELECT MIN(u.id) FROM users u WHERE u.company_id = s.id) AS user_id
@@ -31,7 +31,7 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
               AND (MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
                OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
             """, nativeQuery = true)
-    List<SupplierJpaEntity> findBySearch(
+    List<CompanyJpaEntity> findBySearch(
             @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch
     );
@@ -118,10 +118,10 @@ public interface SupplierJpaRepository extends JpaRepository<SupplierJpaEntity, 
     Long findDefaultSupplierId();
 
     @EntityGraph(attributePaths = "address")
-    Optional<SupplierJpaEntity> findByUserId(Long userId);
+    Optional<CompanyJpaEntity> findByUserId(Long userId);
 
     boolean existsByUserId(Long userId);
 
     @EntityGraph(attributePaths = "address")
-    List<SupplierJpaEntity> findByUserIdIn(Collection<Long> userIds);
+    List<CompanyJpaEntity> findByUserIdIn(Collection<Long> userIds);
 }
