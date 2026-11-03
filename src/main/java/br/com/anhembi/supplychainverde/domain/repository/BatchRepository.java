@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.domain.repository;
 
+import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
@@ -23,12 +24,12 @@ public interface BatchRepository {
 
     List<Batch> findBySupplierId(Long supplierId, int page, int size);
 
-    /** marketId e supplierId nulos não filtram. */
-    List<Batch> findPage(Long marketId, Long supplierId, int page, int size);
+    /** marketId, supplierId e status nulos não filtram. */
+    List<Batch> findPage(Long marketId, Long supplierId, BatchStatus status, int page, int size);
 
-    long countPage(Long marketId, Long supplierId);
+    long countPage(Long marketId, Long supplierId, BatchStatus status);
 
-    long countBySupplierIdAndStatus(Long supplierId, String status);
+    long countBySupplierIdAndStatus(Long supplierId, BatchStatus status);
 
     long countBySupplierId(Long supplierId);
 

@@ -7,6 +7,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.application.mapper.ProductDtoMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +18,13 @@ public class UpdateProductUseCase {
     private final ProductDtoMapper mapper;
 
     @Transactional
-    public ProductResponseDTO execute(Long productId, ProductRequestDTO request) {
+    public ProductResponseDTO execute(Long productId, ProductRequestDTO request, Long supplierId) {
         if (request == null) throw new ValidationException("Requisição de produto é obrigatória.");
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Produto não encontrado: " + productId));
+        if (supplierId == null || !supplierId.equals(product.getSupplierId())) {
+            throw new AccessDeniedException("Só o fornecedor do produto o edita.");
+        }
         mapper.update(request, product);
         return mapper.toResponse(productRepository.save(product));
     }

@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.application.usecase.transport;
 
+import org.springframework.security.access.AccessDeniedException;
 import br.com.anhembi.supplychainverde.application.dto.transport.TransportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.transport.TransportResponseDTO;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
@@ -20,10 +21,12 @@ public class RegisterTransportUseCase {
     private final TransportDtoMapper mapper;
 
     @Transactional
-    public TransportResponseDTO execute(TransportRequestDTO request) {
+    /** RN-15: só o mercado ou o fornecedor do lote da etapa; os dois nulos são o PLATFORM_ADMIN. */
+    public TransportResponseDTO execute(TransportRequestDTO request, Long marketId, Long supplierId) {
         if (request == null) throw new ValidationException("Requisição de transporte é obrigatória.");
         Chain chain = chainRepository.findById(request.chainId())
                 .orElseThrow(() -> new IllegalArgumentException("Etapa não encontrada: " + request.chainId()));
+        if (!chain.getBatch().isWithin(marketId, supplierId)) throw new AccessDeniedException("Lote de outra companhia.");
 
         Transport transport = mapper.toDomain(request);
         transport.setChain(chain);

@@ -1,5 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import br.com.anhembi.supplychainverde.application.dto.transport.*;
 import br.com.anhembi.supplychainverde.application.usecase.transport.RegisterTransportUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,11 +19,12 @@ public class TransportController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar transporte", description = "Registra os dados de transporte de uma etapa.")
-    public TransportResponseDTO create(@PathVariable Long chainId, @RequestBody TransportRequestDTO request) {
+    @Operation(summary = "Registrar transporte", description = "Registra os dados de transporte de uma etapa de um lote do mercado ou do fornecedor do usuário; outro lote retorna 403.")
+    public TransportResponseDTO create(@PathVariable Long chainId, @RequestBody TransportRequestDTO request,
+                                       @AuthenticationPrincipal CustomUserPrincipal principal) {
         if (request == null || request.chainId() == null || !chainId.equals(request.chainId())) {
             throw new IllegalArgumentException("chainId do path e do corpo devem coincidir.");
         }
-        return register.execute(request);
+        return register.execute(request, principal.marketId(), principal.supplierId());
     }
 }

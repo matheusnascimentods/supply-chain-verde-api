@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
+import static br.com.anhembi.supplychainverde.JdbcInserts.DEMO_MARKET;
 import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
@@ -61,7 +62,9 @@ class DashboardEmissionsIT {
     // Passa pelas 5 consultas do resumo; o lote recente exercita a conversão de unit/status para enum.
     @Test
     void summarizesDashboardFromSeeds() throws Exception {
-        long suppliers = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM company WHERE type = 'SUPPLIER'", Long.class);
+        // RN-13c: para o mercado, o card conta os fornecedores com quem ele já trabalhou.
+        long suppliers = jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT supplier_id) FROM batch WHERE market_id = " + DEMO_MARKET, Long.class);
 
         mockMvc.perform(get("/api/v1/dashboard/summary").param("limit", "1")
                         .with(authentication(as("ADMIN", null))))
@@ -100,7 +103,8 @@ class DashboardEmissionsIT {
 
     private UsernamePasswordAuthenticationToken as(String role, Long supplierId) {
         return new UsernamePasswordAuthenticationToken(
-                TestPrincipals.of(1L, "actor@example.com", role, supplierId),
+                supplierId != null ? TestPrincipals.of(1L, "actor@example.com", role, supplierId)
+                        : TestPrincipals.market(1L, role, jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }

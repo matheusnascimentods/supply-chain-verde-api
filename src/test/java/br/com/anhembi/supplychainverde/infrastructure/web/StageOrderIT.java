@@ -47,7 +47,8 @@ class StageOrderIT {
 
     @BeforeEach
     void setUp() {
-        userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
+        // O responsável precisa ser do mercado ou do fornecedor do lote (RN-15): um usuário do mercado de demonstração.
+        userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE company_id = " + DEMO_MARKET, Long.class);
         batchId = insert(jdbcTemplate, """
                 INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
                 SELECT id, supplier_id, %s, 'ACTIVE', 10, CURRENT_DATE FROM product ORDER BY id LIMIT 1
@@ -114,7 +115,8 @@ class StageOrderIT {
 
     private UsernamePasswordAuthenticationToken asManager() {
         return new UsernamePasswordAuthenticationToken(
-                TestPrincipals.of(userId, "actor@example.com", "MANAGER", null),
+                TestPrincipals.market(userId, "MANAGER",
+                        jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_MANAGER")));
     }

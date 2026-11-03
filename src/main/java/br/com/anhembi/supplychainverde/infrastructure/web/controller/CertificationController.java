@@ -41,15 +41,19 @@ public class CertificationController {
 
     @PostMapping("/suppliers/{supplierId}/certifications")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Cadastrar certificação", description = "Registra uma certificação ambiental para um fornecedor.")
+    @Operation(summary = "Cadastrar certificação", description = "Somente o próprio fornecedor registra as certificações dele; outras companhias recebem 403 (RN-22).")
     public CertificationResponseDTO create(@PathVariable Long supplierId, @RequestBody CertificationRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
-        if (principal.isSupplierCompany() && !principal.supplierId().equals(supplierId)) {
+        // RN-22: o fornecedor cadastra só as próprias; o mercado não cadastra.
+        if (principal.companyId() != null && !supplierId.equals(principal.supplierId())) {
             throw new AccessDeniedException("Fornecedor pode cadastrar certificações somente para si.");
         }
         return register.execute(supplierId, request);
     }
 
     @PatchMapping("/certifications/{certificationId}/status")
-    @Operation(summary = "Atualizar status da certificação", description = "Atualiza o status de uma certificação.")
-    public CertificationResponseDTO updateStatus(@PathVariable Long certificationId, @RequestBody UpdateCertificationStatusRequestDTO request) { return updateStatus.execute(certificationId, request); }
+    @Operation(summary = "Atualizar status da certificação", description = "Somente o fornecedor dono da certificação (SUPPLIER ou ADMIN da companhia fornecedora); os demais recebem 403 (RN-22).")
+    public CertificationResponseDTO updateStatus(@PathVariable Long certificationId, @RequestBody UpdateCertificationStatusRequestDTO request,
+                                                 @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return updateStatus.execute(certificationId, request, principal.supplierId(), principal.companyId() == null);
+    }
 }

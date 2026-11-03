@@ -1,5 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import br.com.anhembi.supplychainverde.application.dto.chain.*;
 import br.com.anhembi.supplychainverde.application.usecase.chain.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,9 +22,10 @@ public class ChainController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar etapa", description = "Registra uma nova etapa da cadeia para um lote.")
-    public ChainResponseDTO create(@PathVariable Long batchId, @RequestHeader("X-Responsible-User-Id") Long responsibleUserId, @RequestBody ChainRequestDTO request) {
-        return register.execute(batchId, responsibleUserId, request);
+    @Operation(summary = "Registrar etapa", description = "Registra a próxima etapa da cadeia de um lote do mercado ou do fornecedor do usuário (outro lote: 403). Em lote PENDING, só o fornecedor registra, e só PRODUCTION, que muda o lote para ACTIVE e preenche producedAt com a data de startedAt. Lote REJECTED retorna 409. O usuário de X-Responsible-User-Id precisa ser do mercado ou do fornecedor do lote (403).")
+    public ChainResponseDTO create(@PathVariable Long batchId, @RequestHeader("X-Responsible-User-Id") Long responsibleUserId,
+                                   @RequestBody ChainRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return register.execute(batchId, responsibleUserId, request, principal.marketId(), principal.supplierId());
     }
 
     @GetMapping

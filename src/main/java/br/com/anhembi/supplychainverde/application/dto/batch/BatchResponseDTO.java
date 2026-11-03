@@ -3,8 +3,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
+import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
 public record BatchResponseDTO(Long batchId, Long productId, String productName, Long supplierId, String supplierName,
+        Long marketId, String marketName, BatchStatus status, String rejectionReason,
         BigDecimal quantity, LocalDate producedAt, StageType currentStage, List<ChainResponseDTO> stages) {
     public BatchResponseDTO {
         stages = stages == null ? List.of() : List.copyOf(stages);

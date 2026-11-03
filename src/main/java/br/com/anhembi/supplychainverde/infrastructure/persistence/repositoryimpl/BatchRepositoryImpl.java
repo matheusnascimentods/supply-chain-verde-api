@@ -1,13 +1,12 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl;
 
+import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
 import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.BatchJpaMapper;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.BatchJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.BatchJpaRepository;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.CompanyJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,13 +19,10 @@ import java.util.Optional;
 public class BatchRepositoryImpl implements BatchRepository {
     private final BatchJpaRepository jpaRepository;
     private final BatchJpaMapper mapper;
-    private final CompanyJpaRepository supplierJpaRepository;
 
     @Override
     public Batch save(Batch batch) {
-        BatchJpaEntity entity = mapper.toJpaEntity(batch);
-        entity.setMarketId(supplierJpaRepository.findDefaultMarketId());
-        return mapper.toDomain(jpaRepository.save(entity));
+        return mapper.toDomain(jpaRepository.save(mapper.toJpaEntity(batch)));
     }
 
     @Override
@@ -88,17 +84,17 @@ public class BatchRepositoryImpl implements BatchRepository {
     }
 
     @Override
-    public List<Batch> findPage(Long marketId, Long supplierId, int page, int size) {
-        return jpaRepository.findPage(marketId, supplierId, pageRequest(page, size)).stream().map(mapper::toDomain).toList();
+    public List<Batch> findPage(Long marketId, Long supplierId, BatchStatus status, int page, int size) {
+        return jpaRepository.findPage(marketId, supplierId, status, pageRequest(page, size)).stream().map(mapper::toDomain).toList();
     }
 
     @Override
-    public long countPage(Long marketId, Long supplierId) {
-        return jpaRepository.findPage(marketId, supplierId, PageRequest.of(0, 1)).getTotalElements();
+    public long countPage(Long marketId, Long supplierId, BatchStatus status) {
+        return jpaRepository.findPage(marketId, supplierId, status, PageRequest.of(0, 1)).getTotalElements();
     }
 
     @Override
-    public long countBySupplierIdAndStatus(Long supplierId, String status) {
+    public long countBySupplierIdAndStatus(Long supplierId, BatchStatus status) {
         return jpaRepository.countBySupplierCompanyIdAndStatus(supplierId, status);
     }
 

@@ -115,7 +115,8 @@ class ReportDetailIT {
 
     private UsernamePasswordAuthenticationToken as(String role, Long supplierId) {
         return new UsernamePasswordAuthenticationToken(
-                TestPrincipals.of(1L, "actor@example.com", role, supplierId),
+                supplierId != null ? TestPrincipals.of(1L, "actor@example.com", role, supplierId)
+                        : TestPrincipals.market(1L, role, jdbcTemplate.queryForObject("SELECT " + DEMO_MARKET, Long.class)),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }
