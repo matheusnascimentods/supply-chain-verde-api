@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import br.com.anhembi.supplychainverde.infrastructure.web.advice.GlobalExceptionHandler;
@@ -113,7 +114,7 @@ class StageOrderIT {
 
     private UsernamePasswordAuthenticationToken asManager() {
         return new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(userId, "actor@example.com", "MANAGER", null),
+                TestPrincipals.of(userId, "actor@example.com", "MANAGER", null),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_MANAGER")));
     }

@@ -12,9 +12,11 @@ public interface AuditLogRepository {
             LocalDate to,
             AuditAction action,
             String userEmail,
+            Long companyId,
             int limit,
             int offset
     );
 
-    long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail);
+    /** companyId filtra pela companhia do autor (RN-14); nulo não filtra. */
+    long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail, Long companyId);
 }

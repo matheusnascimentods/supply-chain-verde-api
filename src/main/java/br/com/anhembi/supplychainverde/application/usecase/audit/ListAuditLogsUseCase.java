@@ -22,6 +22,7 @@ public class ListAuditLogsUseCase {
             LocalDate to,
             AuditAction action,
             String userEmail,
+            Long companyId,
             int limit,
             int offset
     ) {
@@ -31,8 +32,8 @@ public class ListAuditLogsUseCase {
         String emailFilter = userEmail == null || userEmail.isBlank()
                 ? null
                 : userEmail.trim().toLowerCase(Locale.ROOT);
-        var logs = auditLogRepository.findByFilters(from, to, action, emailFilter, limit, offset);
-        long totalElements = auditLogRepository.countByFilters(from, to, action, emailFilter);
+        var logs = auditLogRepository.findByFilters(from, to, action, emailFilter, companyId, limit, offset);
+        long totalElements = auditLogRepository.countByFilters(from, to, action, emailFilter, companyId);
         var items = logs.stream().map(mapper::toResponse).toList();
         return OffsetPageResponseDTO.of(items, limit, offset, totalElements);
     }

@@ -25,7 +25,7 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
     List<CompanyJpaEntity> findAllByType(CompanyType type);
 
     @Query(value = """
-            SELECT s.*, (SELECT MIN(u.id) FROM users u WHERE u.company_id = s.id) AS user_id
+            SELECT s.*
             FROM company s
             WHERE s.type = 'SUPPLIER'
               AND (MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
@@ -50,6 +50,7 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
               AND (:search = ''
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
                OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
+              AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
             GROUP BY s.id
             ORDER BY co2KgPerUnit IS NULL, co2KgPerUnit, s.id
             LIMIT :limit OFFSET :offset
@@ -61,6 +62,8 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             @Param("search") String search,
             @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
+            @Param("workedWithOnly") boolean workedWithOnly,
+            @Param("marketId") Long marketId,
             @Param("limit") int limit,
             @Param("offset") int offset
     );
@@ -72,11 +75,12 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
               AND (:search = ''
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
                OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
-              AND (:withoutUser = false OR NOT EXISTS (SELECT 1 FROM users u WHERE u.company_id = s.id))
+              AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
             """, nativeQuery = true)
     long countBySearch(@Param("search") String search, @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
-            @Param("withoutUser") boolean withoutUser);
+            @Param("workedWithOnly") boolean workedWithOnly,
+            @Param("marketId") Long marketId);
 
     @Query(value = """
             SELECT s.id
@@ -86,7 +90,7 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
               AND (:search = ''
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
                OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
-              AND (:withoutUser = false OR NOT EXISTS (SELECT 1 FROM users u WHERE u.company_id = s.id))
+              AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
             ORDER BY v.sustainability_score DESC, s.id
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
@@ -94,7 +98,8 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             @Param("search") String search,
             @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
-            @Param("withoutUser") boolean withoutUser,
+            @Param("workedWithOnly") boolean workedWithOnly,
+            @Param("marketId") Long marketId,
             @Param("limit") int limit,
             @Param("offset") int offset
     );
@@ -109,19 +114,15 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             """, nativeQuery = true)
     List<SupplierScore> findScoresByIds(@Param("supplierIds") Collection<Long> supplierIds);
 
-    // ponytail: mercado e fornecedor padrão das escritas que ainda não sabem a companhia; saem quando as
-    // Tasks 3 e 4 tirarem a companhia do principal.
+    // Glossário: fornecedores do mercado são os que têm ou tiveram lote com ele, em qualquer status.
+    @Query(value = "SELECT DISTINCT b.supplier_id FROM batch b WHERE b.market_id = :marketId AND b.supplier_id IN (:supplierIds)",
+            nativeQuery = true)
+    List<Long> findWorkedWithIds(@Param("marketId") Long marketId, @Param("supplierIds") Collection<Long> supplierIds);
+
+    // ponytail: mercado e fornecedor padrão das escritas que ainda não sabem a companhia; saem na Task 4.
     @Query(value = "SELECT MIN(id) FROM company WHERE type = 'MARKET'", nativeQuery = true)
     Long findDefaultMarketId();
 
     @Query(value = "SELECT MIN(id) FROM company WHERE type = 'SUPPLIER'", nativeQuery = true)
     Long findDefaultSupplierId();
-
-    @EntityGraph(attributePaths = "address")
-    Optional<CompanyJpaEntity> findByUserId(Long userId);
-
-    boolean existsByUserId(Long userId);
-
-    @EntityGraph(attributePaths = "address")
-    List<CompanyJpaEntity> findByUserIdIn(Collection<Long> userIds);
 }

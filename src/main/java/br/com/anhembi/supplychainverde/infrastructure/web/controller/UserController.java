@@ -4,7 +4,8 @@ import br.com.anhembi.supplychainverde.application.dto.user.*;
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.application.usecase.user.*;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
-import br.com.anhembi.supplychainverde.domain.enums.UserRole;
+import br.com.anhembi.supplychainverde.application.mapper.UserDtoMapper;
+import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
@@ -14,7 +15,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,39 +31,36 @@ public class UserController {
     private final ListUsersUseCase list;
     private final UpdateOwnUserUseCase updateOwn;
     private final UserRepository userRepository;
-    private final CompanyRepository supplierRepository;
+    private final CompanyRepository companyRepository;
+    private final UserDtoMapper mapper;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @Operation(summary = "Criar usuário", description = "Cria um usuário. supplierId é obrigatório quando role = SUPPLIER (fornecedor existente e ainda sem usuário) e proibido nos demais perfis (400). Email já cadastrado ou fornecedor já vinculado retornam 409. ADMIN cria qualquer perfil; MANAGER cria somente SUPPLIER (403 nos demais).")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Criar usuário", description = "Somente o ADMIN da companhia (RN-09). O usuário nasce na companhia de quem cria. Perfis por tipo (RN-07): MARKET aceita ADMIN, MANAGER e AUDITOR; SUPPLIER aceita ADMIN e SUPPLIER; outro perfil retorna 400. Email já cadastrado ou limite de usuários do plano atingido (RN-04) retornam 409. O PLATFORM_ADMIN não tem companhia e recebe 403.")
     public UserResponseDTO create(@RequestBody UserRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
-        if (isManager(principal) && (request == null || request.role() != UserRole.SUPPLIER)) {
-            throw new AccessDeniedException("MANAGER pode criar somente usuários SUPPLIER.");
-        }
-        return register.execute(request);
+        return register.execute(request, principal.companyId());
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @Operation(summary = "Listar usuários", description = "Lista usuários de forma paginada, com filtro opcional de email parcial e sem diferenciar maiúsculas de minúsculas. Cada item traz supplierId e supplierName, nulos fora de SUPPLIER. ADMIN vê todos; MANAGER vê somente usuários SUPPLIER.")
+    @Operation(summary = "Listar usuários", description = "Qualquer usuário autenticado lista os usuários da própria companhia (RN-13b), paginados e com filtro opcional de email parcial, sem diferenciar maiúsculas de minúsculas. O PLATFORM_ADMIN lista todos. Cada item traz companyId, companyType e companyName; supplierId e supplierName repetem a companhia quando ela é fornecedora.")
     public OffsetPageResponseDTO<UserResponseDTO> list(
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return list.execute(email, isManager(principal) ? UserRole.SUPPLIER : null, limit, offset);
+        return list.execute(email, principal.companyId(), limit, offset);
     }
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Consultar usuário autenticado", description = "Retorna os dados do usuário associado ao token atual.")
+    @Operation(summary = "Consultar usuário autenticado", description = "Retorna os dados do usuário do token, com companyId, companyType e companyName (nulos para o PLATFORM_ADMIN). supplierId e supplierName repetem a companhia quando ela é fornecedora (RF-04).")
     public UserResponseDTO me(@AuthenticationPrincipal CustomUserPrincipal principal) {
-        return userRepository.findById(principal.userId())
-                .map(user -> new UserResponseDTO(user.getUserId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(),
-                        principal.supplierId(), supplierName(principal.supplierId())))
+        User user = userRepository.findById(principal.userId())
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + principal.userId()));
+        Company company = user.getCompanyId() == null ? null : companyRepository.findById(user.getCompanyId()).orElse(null);
+        return mapper.toResponse(user, company);
     }
 
     @PatchMapping("/me")
@@ -80,14 +77,9 @@ public class UserController {
 
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Atualizar perfil do usuário", description = "Altera o perfil de acesso de um usuário. Mudar de ou para SUPPLIER retorna 409, porque o SUPPLIER está sempre vinculado a um fornecedor. Requer ADMIN.")
-    public UserResponseDTO updateRole(@PathVariable Long userId, @RequestBody UpdateUserRoleRequestDTO request) { return updateRole.execute(userId, request); }
-
-    private boolean isManager(CustomUserPrincipal principal) {
-        return "MANAGER".equals(principal.role());
-    }
-
-    private String supplierName(Long supplierId) {
-        return supplierId == null ? null : supplierRepository.findSupplierById(supplierId).map(Company::getName).orElse(null);
+    @Operation(summary = "Atualizar perfil do usuário", description = "Somente ADMIN, e só na própria companhia (outra companhia retorna 403); o PLATFORM_ADMIN altera qualquer uma. O novo perfil precisa ser permitido para o tipo da companhia (RN-07) e não pode ser PLATFORM_ADMIN (400). Deixar a companhia sem ADMIN, inclusive o único admin trocando o próprio perfil, retorna 409 (RN-08).")
+    public UserResponseDTO updateRole(@PathVariable Long userId, @RequestBody UpdateUserRoleRequestDTO request,
+                                      @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return updateRole.execute(userId, request, principal.companyId());
     }
 }

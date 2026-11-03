@@ -60,7 +60,7 @@ class RegisterCompanyUseCaseTest {
         });
         when(hasher.hash("segredo123")).thenReturn("hash");
         when(users.save(any())).thenAnswer(call -> call.getArgument(0));
-        LoginResponseDTO token = new LoginResponseDTO("jwt", LocalDateTime.now(), UserRole.ADMIN, null, 40L, CompanyType.MARKET);
+        LoginResponseDTO token = new LoginResponseDTO("jwt", LocalDateTime.now(), UserRole.ADMIN, null, 40L, CompanyType.MARKET, "Mercado");
         when(authenticate.issueToken(any())).thenReturn(token);
 
         assertThat(useCase.execute(request("PRO", CNPJ, "ana@bompreco.com"))).isSameAs(token);

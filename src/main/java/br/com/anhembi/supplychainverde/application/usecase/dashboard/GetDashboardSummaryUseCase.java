@@ -19,18 +19,20 @@ public class GetDashboardSummaryUseCase {
     private final CompanyRepository supplierRepository;
     private final CarbonEmissionRepository carbonEmissionRepository;
 
-    public DashboardSummaryResponseDTO execute(Integer requestedLimit) {
+    /** marketId e supplierId nulos são o PLATFORM_ADMIN, que vê a plataforma inteira. */
+    public DashboardSummaryResponseDTO execute(Integer requestedLimit, Long marketId, Long supplierId) {
         int limit = requestedLimit == null ? 10 : requestedLimit;
         LocalDate today = LocalDate.now();
         LocalDate monthStart = today.withDayOfMonth(1);
         LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
 
         return new DashboardSummaryResponseDTO(
-                batchRepository.countActiveBatches(),
-                certificationRepository.countByExpiresAtBetween(today, today.plusDays(30)),
-                supplierRepository.countBySearch("", false),
-                carbonEmissionRepository.sumEmissionsCalculatedBetween(monthStart, monthEnd),
-                batchRepository.findRecentBatches(limit).stream()
+                batchRepository.countActiveBatches(marketId, supplierId),
+                certificationRepository.countByExpiresAtBetween(today, today.plusDays(30), supplierId),
+                supplierId != null ? null : supplierRepository.countBySearch("", marketId != null, marketId),
+                supplierId == null ? null : batchRepository.countBySupplierIdAndStatus(supplierId, "PENDING"),
+                carbonEmissionRepository.sumEmissionsCalculatedBetween(monthStart, monthEnd, marketId, supplierId),
+                batchRepository.findRecentBatches(marketId, supplierId, limit).stream()
                         .map(batch -> new RecentBatchSummaryDTO(
                                 batch.batchId(),
                                 batch.productName(),

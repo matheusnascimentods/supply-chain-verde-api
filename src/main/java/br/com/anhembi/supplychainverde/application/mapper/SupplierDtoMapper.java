@@ -17,7 +17,7 @@ public interface SupplierDtoMapper {
 
     @Mapping(target = "supplierId", source = "supplier.companyId")
     @Mapping(target = "name", source = "supplier.name")
-    SupplierRankingDTO toRanking(Company supplier, BigDecimal sustainabilityScore, Integer activeCertificationCount,
+    SupplierRankingDTO toRanking(Company supplier, boolean workedWith, BigDecimal sustainabilityScore, Integer activeCertificationCount,
             BigDecimal totalCo2Kg, long reportCount, List<SupplierCertificationDTO> certifications, BigDecimal co2KgPerUnit);
 
     default Cnpj map(String value) {

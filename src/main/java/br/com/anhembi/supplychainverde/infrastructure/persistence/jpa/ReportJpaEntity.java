@@ -23,6 +23,10 @@ public class ReportJpaEntity {
     @JoinColumn(name = "supplier_id", nullable = false)
     private CompanyJpaEntity supplier;
 
+    // Só a sp_generate_sustainability_report grava relatório (RN-23).
+    @Column(name = "market_id", nullable = false, insertable = false, updatable = false)
+    private Long marketId;
+
     @Column(name = "period_start_at", nullable = false)
     private LocalDate periodStartAt;
 

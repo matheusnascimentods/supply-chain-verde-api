@@ -15,9 +15,9 @@ import java.util.List;
 public class ListReportsUseCase {
     private final ReportRepository reportRepository;
 
-    public OffsetPageResponseDTO<ReportListItemDTO> execute(Long supplierId, int limit, int offset) {
-        List<Report> reports = reportRepository.findPage(supplierId, limit, offset);
-        long totalElements = reportRepository.countPage(supplierId);
+    public OffsetPageResponseDTO<ReportListItemDTO> execute(Long supplierId, Long marketId, int limit, int offset) {
+        List<Report> reports = reportRepository.findPage(supplierId, marketId, limit, offset);
+        long totalElements = reportRepository.countPage(supplierId, marketId);
         List<ReportListItemDTO> items = reports.stream()
                 .map(this::toResponse)
                 .toList();

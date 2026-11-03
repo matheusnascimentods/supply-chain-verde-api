@@ -28,17 +28,18 @@ public interface CarbonEmissionRepository {
 
     void deleteById(Long emissionId);
 
-    BigDecimal sumEmissionsCalculatedBetween(LocalDate startsAt, LocalDate endsAt);
+    /** marketId e supplierId nulos não filtram. */
+    BigDecimal sumEmissionsCalculatedBetween(LocalDate startsAt, LocalDate endsAt, Long marketId, Long supplierId);
 
-    List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long supplierId);
+    List<MonthlyEmission> sumMonthly(YearMonth from, YearMonth to, Long marketId, Long supplierId);
 
     record MonthlyEmission(YearMonth month, BigDecimal co2Kg) {}
 
-    List<StageEmission> sumByStage(Long supplierId, LocalDate start, LocalDate end);
+    List<StageEmission> sumByStage(Long supplierId, Long marketId, LocalDate start, LocalDate end);
 
-    List<BatchEmission> sumByBatch(Long supplierId, LocalDate start, LocalDate end);
+    List<BatchEmission> sumByBatch(Long supplierId, Long marketId, LocalDate start, LocalDate end);
 
-    List<MethodEmission> sumByMethod(Long supplierId, LocalDate start, LocalDate end);
+    List<MethodEmission> sumByMethod(Long supplierId, Long marketId, LocalDate start, LocalDate end);
 
     record StageEmission(StageType stageType, BigDecimal co2Kg) {}
 

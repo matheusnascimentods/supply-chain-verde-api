@@ -10,6 +10,7 @@ import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepositor
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -24,11 +25,16 @@ public class GetReportUseCase {
     private final AddressDtoMapper addressMapper;
     private final CertificationDtoMapper certificationMapper;
 
-    public ReportDetailDTO execute(Long reportId) {
+    /** RN-12: o mercado vê os relatórios dele e o fornecedor os sobre ele. Os dois nulos são o PLATFORM_ADMIN. */
+    public ReportDetailDTO execute(Long reportId, Long marketId, Long ownSupplierId) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("Relatório não encontrado: " + reportId));
         Company supplier = report.getSupplier();
         Long supplierId = supplier == null ? null : supplier.getCompanyId();
+        if ((marketId != null && !marketId.equals(report.getMarketId()))
+                || (ownSupplierId != null && !ownSupplierId.equals(supplierId))) {
+            throw new AccessDeniedException("Relatório de outra companhia.");
+        }
         LocalDate start = report.getPeriodStartAt();
         LocalDate end = report.getPeriodEndAt();
         boolean hasSupplier = supplierId != null;
@@ -45,7 +51,7 @@ public class GetReportUseCase {
                 report.getGeneratedAt(),
                 supplier == null ? null : new ReportDetailDTO.Company(
                         supplier.getPhone(), addressMapper.toResponse(supplier.getAddress())),
-                hasSupplier ? emissions(supplierId, start, end) : emptyEmissions(),
+                hasSupplier ? emissions(supplierId, report.getMarketId(), start, end) : emptyEmissions(),
                 hasSupplier
                         ? certificationRepository.findBySupplierIdOverlapping(supplierId, start, end).stream()
                                 .map(certificationMapper::toSupplierCertification).toList()
@@ -53,14 +59,15 @@ public class GetReportUseCase {
         );
     }
 
-    private ReportDetailDTO.Emissions emissions(Long supplierId, LocalDate start, LocalDate end) {
+    // RN-23: o relatório considera só os lotes do mercado dele.
+    private ReportDetailDTO.Emissions emissions(Long supplierId, Long marketId, LocalDate start, LocalDate end) {
         return new ReportDetailDTO.Emissions(
-                carbonEmissionRepository.sumByStage(supplierId, start, end).stream()
+                carbonEmissionRepository.sumByStage(supplierId, marketId, start, end).stream()
                         .map(row -> new ReportDetailDTO.ByStage(row.stageType(), row.co2Kg())).toList(),
-                carbonEmissionRepository.sumByBatch(supplierId, start, end).stream()
+                carbonEmissionRepository.sumByBatch(supplierId, marketId, start, end).stream()
                         .map(row -> new ReportDetailDTO.ByBatch(
                                 row.batchId(), row.productName(), row.quantity(), row.unit(), row.co2Kg())).toList(),
-                carbonEmissionRepository.sumByMethod(supplierId, start, end).stream()
+                carbonEmissionRepository.sumByMethod(supplierId, marketId, start, end).stream()
                         .map(row -> new ReportDetailDTO.ByMethod(
                                 row.calculationMethod(), row.emissionFactor(), row.co2Kg())).toList()
         );

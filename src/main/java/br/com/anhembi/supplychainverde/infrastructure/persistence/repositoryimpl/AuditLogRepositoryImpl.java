@@ -28,6 +28,7 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
             LocalDate to,
             AuditAction action,
             String userEmail,
+            Long companyId,
             int limit,
             int offset
     ) {
@@ -44,6 +45,10 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (userEmail != null && !userEmail.isBlank()) {
             jpql.append(" AND LOWER(auditUser.email) LIKE :userEmailPattern");
         }
+        // RN-14: a companhia vê as ações dos próprios usuários; sem companhia (PLATFORM_ADMIN), tudo.
+        if (companyId != null) {
+            jpql.append(" AND auditUser.companyId = :companyId");
+        }
         jpql.append(" ORDER BY auditLog.performedAt DESC, auditLog.logId DESC");
 
         TypedQuery<AuditLogJpaEntity> query = entityManager.createQuery(jpql.toString(), AuditLogJpaEntity.class)
@@ -57,13 +62,16 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (userEmail != null && !userEmail.isBlank()) {
             query.setParameter("userEmailPattern", "%" + userEmail.toLowerCase(Locale.ROOT) + "%");
         }
+        if (companyId != null) {
+            query.setParameter("companyId", companyId);
+        }
 
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail) {
+    public long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail, Long companyId) {
         StringBuilder jpql = new StringBuilder("""
                 SELECT COUNT(auditLog)
                 FROM AuditLogJpaEntity auditLog
@@ -77,6 +85,10 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (userEmail != null && !userEmail.isBlank()) {
             jpql.append(" AND LOWER(auditUser.email) LIKE :userEmailPattern");
         }
+        // RN-14: a companhia vê as ações dos próprios usuários; sem companhia (PLATFORM_ADMIN), tudo.
+        if (companyId != null) {
+            jpql.append(" AND auditUser.companyId = :companyId");
+        }
 
         TypedQuery<Long> query = entityManager.createQuery(jpql.toString(), Long.class)
                 .setParameter("from", from.atStartOfDay())
@@ -86,6 +98,9 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         }
         if (userEmail != null && !userEmail.isBlank()) {
             query.setParameter("userEmailPattern", "%" + userEmail.toLowerCase(Locale.ROOT) + "%");
+        }
+        if (companyId != null) {
+            query.setParameter("companyId", companyId);
         }
         return query.getSingleResult();
     }

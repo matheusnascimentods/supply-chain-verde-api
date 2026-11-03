@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -30,13 +29,16 @@ public class ReportController {
 
     @PostMapping("/suppliers/{supplierId}/reports")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Gerar relatório de sustentabilidade", description = "Consolida emissões e dados rastreados de um fornecedor em um período.")
-    public ReportResponseDTO generate(@PathVariable Long supplierId, @RequestBody ReportRequestDTO request) { return generate.execute(supplierId, request); }
+    @Operation(summary = "Gerar relatório de sustentabilidade", description = "Somente mercado. Consolida as emissões dos lotes do mercado logado com o fornecedor no período (RN-23). Fornecedor ou PLATFORM_ADMIN recebem 403.")
+    public ReportResponseDTO generate(@PathVariable Long supplierId, @RequestBody ReportRequestDTO request,
+                                      @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return generate.execute(supplierId, principal.marketId(), request);
+    }
 
     @GetMapping("/reports")
     @Operation(
             summary = "Consultar relatórios",
-            description = "Sem reportId, lista relatórios paginados. Com reportId, retorna o detalhe do relatório para o PDF: dados do fornecedor, emissões do período por etapa, lote e metodologia, e certificações vigentes no período. SUPPLIER só consulta os próprios relatórios."
+            description = "Sem reportId, lista relatórios paginados. Com reportId, retorna o detalhe do relatório para o PDF: dados do fornecedor, emissões do período por etapa, lote e metodologia, e certificações vigentes no período. O mercado vê só os próprios relatórios e o fornecedor só os relatórios sobre ele; fora disso, 403."
     )
     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(oneOf = {
             ReportDetailDTO.class,
@@ -50,21 +52,9 @@ public class ReportController {
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
         if (reportId != null) {
-            ReportDetailDTO report = get.execute(reportId);
-            ensureSupplierOwns(principal, report.supplierId());
-            return report;
+            return get.execute(reportId, principal.marketId(), principal.supplierId());
         }
-        Long effectiveSupplierId = isSupplier(principal) ? principal.supplierId() : supplierId;
-        return listAll.execute(effectiveSupplierId, limit, offset);
-    }
-
-    private boolean isSupplier(CustomUserPrincipal principal) {
-        return "SUPPLIER".equalsIgnoreCase(principal.role());
-    }
-
-    private void ensureSupplierOwns(CustomUserPrincipal principal, Long supplierId) {
-        if (isSupplier(principal) && !principal.supplierId().equals(supplierId)) {
-            throw new AccessDeniedException("Fornecedor pode consultar somente os próprios relatórios.");
-        }
+        Long effectiveSupplierId = principal.isSupplierCompany() ? principal.supplierId() : supplierId;
+        return listAll.execute(effectiveSupplierId, principal.marketId(), limit, offset);
     }
 }

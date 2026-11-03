@@ -27,7 +27,7 @@ public class BatchController {
     @GetMapping("/batches")
     @Operation(
             summary = "Listar lotes",
-            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. SUPPLIER consulta somente os lotes do fornecedor vinculado ao seu usuário."
+            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. O mercado vê só os próprios lotes, e a companhia fornecedora só os lotes dela; supplierId filtra dentro desse escopo."
     )
     public BatchPageResponseDTO list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -35,15 +35,15 @@ public class BatchController {
             @RequestParam(required = false) @Min(1) Long supplierId,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        Long effectiveSupplierId = "SUPPLIER".equals(principal.role()) ? principal.supplierId() : supplierId;
-        return list.execute(page, size, effectiveSupplierId);
+        Long effectiveSupplierId = principal.isSupplierCompany() ? principal.supplierId() : supplierId;
+        return list.execute(page, size, principal.marketId(), effectiveSupplierId);
     }
 
     @PostMapping("/batches")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastrar lote", description = "Cadastra um lote vinculado a um produto e fornecedor. SUPPLIER cadastra sempre no próprio fornecedor; o supplierId do corpo é ignorado.")
     public BatchResponseDTO create(@RequestBody BatchRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
-        if ("SUPPLIER".equals(principal.role())) {
+        if (principal.isSupplierCompany()) {
             request = new BatchRequestDTO(request.productId(), principal.supplierId(), request.quantity(), request.producedAt());
         }
         return register.execute(request);

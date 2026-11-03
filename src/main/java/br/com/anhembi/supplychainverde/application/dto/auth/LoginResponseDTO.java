@@ -3,4 +3,4 @@ import java.time.LocalDateTime;
 import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 public record LoginResponseDTO(String token, LocalDateTime expiresAt, UserRole role, Long supplierId, Long companyId,
-        CompanyType companyType) {}
+        CompanyType companyType, String companyName) {}

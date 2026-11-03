@@ -23,6 +23,13 @@ public interface BatchRepository {
 
     List<Batch> findBySupplierId(Long supplierId, int page, int size);
 
+    /** marketId e supplierId nulos não filtram. */
+    List<Batch> findPage(Long marketId, Long supplierId, int page, int size);
+
+    long countPage(Long marketId, Long supplierId);
+
+    long countBySupplierIdAndStatus(Long supplierId, String status);
+
     long countBySupplierId(Long supplierId);
 
 
@@ -30,9 +37,9 @@ public interface BatchRepository {
 
     void deleteById(Long batchId);
 
-    long countActiveBatches();
+    long countActiveBatches(Long marketId, Long supplierId);
 
-    List<RecentBatch> findRecentBatches(int limit);
+    List<RecentBatch> findRecentBatches(Long marketId, Long supplierId, int limit);
 
     record RecentBatch(Long batchId, String productName, String supplierName, BigDecimal quantity, ProductUnit unit, StageType status) {}
 }

@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchRequestDTO;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.ListBatchesUseCase;
@@ -21,25 +22,32 @@ class BatchControllerTest {
 
     @Test
     void shouldListOnlyLinkedSupplierBatchesForSupplier() {
-        CustomUserPrincipal supplier = new CustomUserPrincipal(3L, "s@example.com", "SUPPLIER", 7L);
+        CustomUserPrincipal supplier = TestPrincipals.of(3L, "s@example.com", "SUPPLIER", 7L);
 
         controller.list(0, 20, 99L, supplier);
 
-        verify(listBatches).execute(0, 20, 7L);
+        verify(listBatches).execute(0, 20, null, 7L);
     }
 
     @Test
     void shouldUseRequestedSupplierFilterForNonSupplier() {
-        CustomUserPrincipal admin = new CustomUserPrincipal(1L, "a@example.com", "ADMIN", null);
+        CustomUserPrincipal admin = TestPrincipals.of(1L, "a@example.com", "ADMIN", null);
 
         controller.list(0, 20, 99L, admin);
 
-        verify(listBatches).execute(0, 20, 99L);
+        verify(listBatches).execute(0, 20, null, 99L);
+    }
+
+    @Test
+    void shouldScopeMarketToItsOwnBatches() {
+        controller.list(0, 20, 99L, br.com.anhembi.supplychainverde.TestPrincipals.market(2L, "MANAGER", 40L));
+
+        verify(listBatches).execute(0, 20, 40L, 99L);
     }
 
     @Test
     void shouldRegisterBatchForLinkedSupplierIgnoringBodySupplierId() {
-        CustomUserPrincipal supplier = new CustomUserPrincipal(3L, "s@example.com", "SUPPLIER", 7L);
+        CustomUserPrincipal supplier = TestPrincipals.of(3L, "s@example.com", "SUPPLIER", 7L);
 
         controller.create(batchFor(99L), supplier);
 
@@ -48,7 +56,7 @@ class BatchControllerTest {
 
     @Test
     void shouldRegisterBatchForBodySupplierIdForNonSupplier() {
-        CustomUserPrincipal admin = new CustomUserPrincipal(1L, "a@example.com", "ADMIN", null);
+        CustomUserPrincipal admin = TestPrincipals.of(1L, "a@example.com", "ADMIN", null);
 
         controller.create(batchFor(99L), admin);
 

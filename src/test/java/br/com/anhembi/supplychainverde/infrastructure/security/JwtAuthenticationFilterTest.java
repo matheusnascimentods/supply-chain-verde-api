@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.security;
 
 import org.junit.jupiter.api.AfterEach;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -22,17 +23,19 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void shouldAuthenticateSupplierTokenWithSupplierId() throws Exception {
-        givenToken("SUPPLIER", 7L);
+        givenToken("SUPPLIER", 7L, CompanyType.SUPPLIER);
 
         filter.doFilter(requestWithToken(), new MockHttpServletResponse(), new MockFilterChain());
 
         CustomUserPrincipal principal = (CustomUserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         assertThat(principal.supplierId()).isEqualTo(7L);
+        assertThat(principal.marketId()).isNull();
     }
 
+    // Sem companhia as listagens não filtram: um token antigo, sem companyId, não pode virar visão global.
     @Test
-    void shouldNotAuthenticateSupplierTokenWithoutSupplierId() throws Exception {
-        givenToken("SUPPLIER", null);
+    void shouldNotAuthenticateCompanyRoleWithoutCompany() throws Exception {
+        givenToken("ADMIN", null, null);
 
         filter.doFilter(requestWithToken(), new MockHttpServletResponse(), new MockFilterChain());
 
@@ -40,20 +43,21 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void shouldAuthenticateNonSupplierTokenWithoutSupplierId() throws Exception {
-        givenToken("ADMIN", null);
+    void shouldAuthenticatePlatformAdminWithoutCompany() throws Exception {
+        givenToken("PLATFORM_ADMIN", null, null);
 
         filter.doFilter(requestWithToken(), new MockHttpServletResponse(), new MockFilterChain());
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
     }
 
-    private void givenToken(String role, Long supplierId) {
+    private void givenToken(String role, Long companyId, CompanyType companyType) {
         when(jwt.validateToken("token")).thenReturn(true);
         when(jwt.getUserIdFromToken("token")).thenReturn(3L);
         when(jwt.getEmailFromToken("token")).thenReturn("user@example.com");
         when(jwt.getRoleFromToken("token")).thenReturn(role);
-        when(jwt.getSupplierIdFromToken("token")).thenReturn(supplierId);
+        when(jwt.getCompanyIdFromToken("token")).thenReturn(companyId);
+        when(jwt.getCompanyTypeFromToken("token")).thenReturn(companyType);
     }
 
     private MockHttpServletRequest requestWithToken() {

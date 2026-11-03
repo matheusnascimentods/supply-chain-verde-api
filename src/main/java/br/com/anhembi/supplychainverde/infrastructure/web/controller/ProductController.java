@@ -5,7 +5,9 @@ import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResp
 import br.com.anhembi.supplychainverde.application.usecase.product.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -33,12 +35,13 @@ public class ProductController {
     public ProductResponseDTO update(@PathVariable Long productId, @RequestBody ProductRequestDTO request) { return update.execute(productId, request); }
 
     @GetMapping
-    @Operation(summary = "Listar produtos", description = "Busca e pagina produtos por nome, descrição ou categoria.")
+    @Operation(summary = "Listar produtos", description = "Busca e pagina produtos por nome, descrição ou categoria. A companhia fornecedora vê só os próprios; o mercado vê os de todos os fornecedores (catálogo).")
     public OffsetPageResponseDTO<ProductResponseDTO> list(
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return list.execute(limit, offset, search);
+        return list.execute(limit, offset, search, principal.supplierId());
     }
 }

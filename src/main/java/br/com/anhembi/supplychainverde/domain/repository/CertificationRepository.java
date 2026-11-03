@@ -30,7 +30,13 @@ public interface CertificationRepository {
 
     long countAll();
 
-    long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt);
+    /** supplierId nulo conta as de todos os fornecedores (catálogo, RN-12). */
+    long countByExpiresAtBetween(LocalDate startsAt, LocalDate endsAt, Long supplierId);
+
+    /** supplierId nulo não filtra. */
+    List<Certification> findPage(CertificationStatus status, Long supplierId, int page, int size);
+
+    long countPage(CertificationStatus status, Long supplierId);
 
     long countByStatus(CertificationStatus status);
 

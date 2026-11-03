@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 e 2 concluídas).
+**Status:** em andamento (Tasks 1 a 3 concluídas).
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. As tasks do frontend (`supply-chain-verde-web/docs/features/009-empresas-planos/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -30,12 +30,12 @@ Só banco, com o mínimo de Java para a aplicação continuar subindo.
 
 ## Task 3 — `feat/company-scope`
 
-- [ ] `PLATFORM_ADMIN`, `RoleHierarchy`, o novo `CustomUserPrincipal` e os claims do JWT (plan §3)
-- [ ] `GET /users/me` e o login com `companyId`, `companyType` e `companyName`
-- [ ] Regras de usuário: perfil por tipo, limite do plano, último admin e lock (plan §2)
-- [ ] Filtro por companhia em usuários (leitura para todos), auditoria, produtos, certificações, relatórios e dashboard
-- [ ] Catálogo de fornecedores com `workedWith` e o filtro, 403 para companhia fornecedora, e `pendingBatches` no dashboard (plan §2)
-- [ ] `TenantIsolationIT` e `UserPlanLimitIT`; apagar `SupplierUserLinkIT` e `SupplierOwnProfileIT`
+- [x] `PLATFORM_ADMIN`, `RoleHierarchy`, o novo `CustomUserPrincipal` e os claims do JWT (plan §3)
+- [x] `GET /users/me` e o login com `companyId`, `companyType` e `companyName`
+- [x] Regras de usuário: perfil por tipo, limite do plano, último admin e lock (plan §2)
+- [x] Filtro por companhia em usuários (leitura para todos), auditoria, produtos, certificações, relatórios e dashboard
+- [x] Catálogo de fornecedores com `workedWith` e o filtro, 403 para companhia fornecedora, e `pendingBatches` no dashboard (plan §2)
+- [x] `TenantIsolationIT` e `UserPlanLimitIT`; apagar `SupplierUserLinkIT` e `SupplierOwnProfileIT`
 
 **Pronto:** dois mercados não enxergam nada um do outro, e o `PLATFORM_ADMIN` vê tudo. Isso libera as Tasks 2 e 3 do frontend.
 

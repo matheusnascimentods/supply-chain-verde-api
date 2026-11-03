@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.application.usecase.dashboard.GetDashboardSummaryUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.dashboard.GetMonthlyEmissionsUseCase;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
@@ -19,15 +20,22 @@ class DashboardControllerTest {
 
     @Test
     void shouldScopeEmissionsToLinkedSupplierForSupplier() {
-        controller.emissions(from, to, new CustomUserPrincipal(3L, "s@example.com", "SUPPLIER", 7L));
+        controller.emissions(from, to, TestPrincipals.of(3L, "s@example.com", "SUPPLIER", 7L));
 
-        verify(monthlyEmissions).execute(from, to, 7L);
+        verify(monthlyEmissions).execute(from, to, null, 7L);
     }
 
     @Test
     void shouldReturnWholeChainForNonSupplier() {
-        controller.emissions(from, to, new CustomUserPrincipal(1L, "a@example.com", "ADMIN", null));
+        controller.emissions(from, to, TestPrincipals.of(1L, "a@example.com", "ADMIN", null));
 
-        verify(monthlyEmissions).execute(from, to, null);
+        verify(monthlyEmissions).execute(from, to, null, null);
+    }
+
+    @Test
+    void shouldScopeEmissionsToTheMarket() {
+        controller.emissions(from, to, br.com.anhembi.supplychainverde.TestPrincipals.market(2L, "MANAGER", 40L));
+
+        verify(monthlyEmissions).execute(from, to, 40L, null);
     }
 }

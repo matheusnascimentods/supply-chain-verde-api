@@ -4,7 +4,6 @@ import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
@@ -48,7 +47,4 @@ public class CompanyJpaEntity {
     @Column(name = "type", nullable = false, updatable = false)
     private CompanyType type;
 
-    // supplier.user_id saiu na V8: o vínculo agora é users.company_id. Só leitura até a Task 3.
-    @Formula("(SELECT MIN(u.id) FROM users u WHERE u.company_id = id)")
-    private Long userId;
 }

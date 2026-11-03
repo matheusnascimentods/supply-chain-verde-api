@@ -1,5 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.audit;
 
+import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -65,7 +66,7 @@ class AuditLogTriggerIT {
                 "m.neuer@bayern.com"
         );
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(actorId, "m.neuer@bayern.com", "ADMIN", null),
+                TestPrincipals.of(actorId, "m.neuer@bayern.com", "ADMIN", null),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
         ));
@@ -145,7 +146,7 @@ class AuditLogTriggerIT {
                         .param("from", LocalDate.now().toString())
                         .param("to", LocalDate.now().toString())
                         .with(authentication(new UsernamePasswordAuthenticationToken(
-                                new CustomUserPrincipal(actorId, "m.neuer@bayern.com", "ADMIN", null),
+                                TestPrincipals.of(actorId, "m.neuer@bayern.com", "ADMIN", null),
                                 null,
                                 List.of(new SimpleGrantedAuthority("ROLE_AUDITOR"))
                         ))))
@@ -232,7 +233,7 @@ class AuditLogTriggerIT {
     void doesNotLeakActorToTheNextWriteOnTheSameConnection() {
         Long actorId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                new CustomUserPrincipal(actorId, "actor@example.com", "ADMIN", null), null, List.of()));
+                TestPrincipals.of(actorId, "actor@example.com", "ADMIN", null), null, List.of()));
         Long addressId = transactionTemplate.execute(status -> {
             actorContextAspect.setAuthenticatedActorForTransaction();
             return insert(jdbcTemplate, """

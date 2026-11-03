@@ -11,6 +11,7 @@ import java.util.Collection;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface CompanyRepository {
     Company save(Company company);
@@ -22,6 +23,9 @@ public interface CompanyRepository {
 
     List<Company> findAllSuppliers();
 
+    /** SELECT ... FOR UPDATE: serializa as regras que contam usuários ou admins da companhia (RN-04, RN-08). */
+    void lockById(Long companyId);
+
     /** Abre a assinatura ativa da companhia (RN-03). */
     void subscribe(Long companyId, Long planId);
 
@@ -31,18 +35,16 @@ public interface CompanyRepository {
 
     List<Company> findAllById(Collection<Long> supplierIds);
 
-    List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search, int limit, int offset);
+    List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, Long productId, String search,
+            boolean workedWithOnly, Long marketId, int limit, int offset);
 
-    long countBySearch(String search, boolean withoutUser);
-    List<Long> findIdsRankedByScore(String search, boolean withoutUser, int limit, int offset);
+    /** workedWithOnly restringe aos fornecedores que têm ou tiveram lote com marketId (RN-13). */
+    long countBySearch(String search, boolean workedWithOnly, Long marketId);
+    List<Long> findIdsRankedByScore(String search, boolean workedWithOnly, Long marketId, int limit, int offset);
+    Set<Long> findWorkedWithIds(Long marketId, Collection<Long> supplierIds);
     List<SupplierScore> findScoresByIds(Collection<Long> supplierIds);
     record SupplierScore(Long supplierId, BigDecimal sustainabilityScore, Long activeCertificationCount, BigDecimal totalCo2Kg) {}
 
     record SupplierEmissionRank(Long supplierId, BigDecimal co2KgPerUnit) {};
 
-    Optional<Company> findByUserId(Long userId);
-
-    boolean existsByUserId(Long userId);
-
-    List<Company> findByUserIdIn(Collection<Long> userIds);
 }

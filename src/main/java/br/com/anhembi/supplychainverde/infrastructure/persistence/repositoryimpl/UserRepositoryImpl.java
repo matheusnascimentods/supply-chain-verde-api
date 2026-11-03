@@ -5,7 +5,6 @@ import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.UserJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.UserJpaEntity;
-import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.CompanyJpaRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.UserJpaRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -25,16 +24,10 @@ public class UserRepositoryImpl implements UserRepository {
     private final UserJpaRepository jpaRepository;
     private final UserJpaMapper mapper;
     private final EntityManager entityManager;
-    private final CompanyJpaRepository supplierJpaRepository;
 
-    // ponytail: usuário sem companhia entra no mercado padrão, como na V8, até a Task 3 usar a do principal.
     @Override
     public User save(User user) {
-        UserJpaEntity entity = mapper.toJpaEntity(user);
-        if (entity.getCompanyId() == null && entity.getRole() != UserRole.PLATFORM_ADMIN) {
-            entity.setCompanyId(supplierJpaRepository.findDefaultMarketId());
-        }
-        return mapper.toDomain(jpaRepository.save(entity));
+        return mapper.toDomain(jpaRepository.save(mapper.toJpaEntity(user)));
     }
 
     @Override
@@ -54,35 +47,45 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<User> findPage(String email, UserRole role, int limit, int offset) {
+    public List<User> findPage(String email, Long companyId, int limit, int offset) {
         TypedQuery<UserJpaEntity> query = entityManager
-                .createQuery("SELECT user FROM UserJpaEntity user" + where(email, role) + " ORDER BY user.userId ASC", UserJpaEntity.class)
+                .createQuery("SELECT user FROM UserJpaEntity user" + where(email, companyId) + " ORDER BY user.userId ASC", UserJpaEntity.class)
                 .setFirstResult(offset)
                 .setMaxResults(limit);
-        bindFilters(query, email, role);
+        bindFilters(query, email, companyId);
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countPage(String email, UserRole role) {
-        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(email, role), Long.class);
-        bindFilters(query, email, role);
+    public long countPage(String email, Long companyId) {
+        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(email, companyId), Long.class);
+        bindFilters(query, email, companyId);
         return query.getSingleResult();
     }
 
-    private String where(String email, UserRole role) {
+    @Override
+    public long countByCompanyId(Long companyId) {
+        return jpaRepository.countByCompanyId(companyId);
+    }
+
+    @Override
+    public long countByCompanyIdAndRole(Long companyId, UserRole role) {
+        return jpaRepository.countByCompanyIdAndRole(companyId, role);
+    }
+
+    private String where(String email, Long companyId) {
         List<String> conditions = new ArrayList<>();
         if (email != null && !email.isBlank()) conditions.add("LOWER(user.email) LIKE :emailPattern");
-        if (role != null) conditions.add("user.role = :role");
+        if (companyId != null) conditions.add("user.companyId = :companyId");
         return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
     }
 
-    private void bindFilters(Query query, String email, UserRole role) {
+    private void bindFilters(Query query, String email, Long companyId) {
         if (email != null && !email.isBlank()) {
             query.setParameter("emailPattern", "%" + email.trim().toLowerCase(Locale.ROOT) + "%");
         }
-        if (role != null) query.setParameter("role", role);
+        if (companyId != null) query.setParameter("companyId", companyId);
     }
 
     @Override

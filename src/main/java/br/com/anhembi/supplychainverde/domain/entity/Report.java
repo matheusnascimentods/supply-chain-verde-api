@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class Report {
     private Long reportId;
     private Company supplier;
+    private Long marketId;
     private LocalDate periodStartAt;
     private LocalDate periodEndAt;
     private BigDecimal totalCo2Kg;

@@ -14,13 +14,10 @@ public class ListCertificationsUseCase {
     private final CertificationRepository certificationRepository;
     private final CertificationDtoMapper mapper;
 
-    public CertificationPageResponseDTO execute(int page, int size, CertificationStatus status) {
-        var certifications = status == null
-                ? certificationRepository.findAll(page, size)
-                : certificationRepository.findByStatus(status, page, size);
-        long totalElements = status == null
-                ? certificationRepository.countAll()
-                : certificationRepository.countByStatus(status);
+    /** RN-12: certificações são catálogo para o mercado; a companhia fornecedora (supplierId) vê só as dela. */
+    public CertificationPageResponseDTO execute(int page, int size, CertificationStatus status, Long supplierId) {
+        var certifications = certificationRepository.findPage(status, supplierId, page, size);
+        long totalElements = certificationRepository.countPage(status, supplierId);
 
         int totalPages = PageCount.totalPages(totalElements, size);
         return new CertificationPageResponseDTO(
