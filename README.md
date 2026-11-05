@@ -432,18 +432,19 @@ As migrations de seed criam usuários para desenvolvimento e demonstração. A s
 rolocompressor06
 ```
 
-Depois da V10, o seed fica assim:
+Depois da V11, o seed fica assim:
 
 - **`PLATFORM_ADMIN`**: `m.neuer@bayern.com`, sem companhia.
-- **Mercados** (plano `PRO`, 8 usuários cada). Cada um tem os lotes e relatórios de um terço dos fornecedores do seed, divididos pelo resto de `supplier_id` por 3:
+- **Mercados** (plano `PRO`, 10 usuários cada). Cada um tem os lotes e relatórios de um terço dos fornecedores do seed, divididos pelo resto de `supplier_id` por 3:
 
 | Mercado | Fornecedores (`supplier_id`) | `ADMIN` | Demais usuários |
 | :--- | :--- | :--- | :--- |
-| Mercado Bom Preço | múltiplos de 3 | `h.kane@bayern.com` | `j.tah`, `j.kimmich` (`MANAGER`), `j.stanisic`, `a.davies` (`AUDITOR`) e `v.vandijk@liverpool.example.com` (`MANAGER`), `d.rice` e `m.odegaard@arsenal.example.com` (`AUDITOR`) |
-| Supermercado Vale Verde | resto 1 | `warren.zaire-emery@psg.example.com` | `j.musiala`, `ousmane.dembele` (`MANAGER`), `m.olise`, `desire.doue` (`AUDITOR`) e `m.caicedo@chelsea.example.com` (`MANAGER`), `r.lavia` e `c.palmer@chelsea.example.com` (`AUDITOR`) |
-| Rede Feira Viva | resto 2 | `matvey.safonov@psg.example.com` | `fabian.ruiz`, `nuno.mendes` (`MANAGER`), `joao.neves`, `marquinhos` (`AUDITOR`) e `b.fernandes@manutd.example.com` (`MANAGER`), `m.cunha` e `b.mbeumo@manutd.example.com` (`AUDITOR`) |
+| Mercado Bom Preço | múltiplos de 3 | `h.kane@bayern.com` | `j.tah`, `j.kimmich` (`MANAGER`), `j.stanisic`, `a.davies` (`AUDITOR`), `v.vandijk@liverpool.com` (`MANAGER`), `d.rice` e `m.odegaard@arsenal.com` (`AUDITOR`), `m.maignan@milan.com` (`MANAGER`) e `l.modric@milan.com` (`AUDITOR`) |
+| Supermercado Vale Verde | resto 1 | `warren.zaire-emery@psg.example.com` | `j.musiala`, `ousmane.dembele` (`MANAGER`), `m.olise`, `desire.doue` (`AUDITOR`), `m.caicedo@chelsea.com` (`MANAGER`), `r.lavia` e `c.palmer@chelsea.com` (`AUDITOR`), `n.barella@inter.com` (`MANAGER`) e `h.calhanoglu@inter.com` (`AUDITOR`) |
+| Rede Feira Viva | resto 2 | `matvey.safonov@psg.example.com` | `fabian.ruiz`, `nuno.mendes` (`MANAGER`), `joao.neves`, `marquinhos` (`AUDITOR`), `b.fernandes@manutd.com` (`MANAGER`), `m.cunha` e `b.mbeumo@manutd.com` (`AUDITOR`), `g.dilorenzo@napoli.com` (`MANAGER`) e `k.debruyne@napoli.com` (`AUDITOR`) |
 
-- **Fornecedores** (plano `BASIC`): todos os 41 têm um `ADMIN`. Os seis que já tinham usuário mantêm o antigo `SUPPLIER`, promovido na V8 (por exemplo, `d.upamecano@bayern.com` no fornecedor 3). Os outros 35 recebem, em ordem de id, um jogador da V10 (`alisson@liverpool.example.com` no fornecedor 1, `m.kerkez@liverpool.example.com` no 2, e assim por diante).
+- **Fornecedores** (plano `BASIC`): todos os 41 têm um `ADMIN`. Os seis que já tinham usuário mantêm o antigo `SUPPLIER`, promovido na V8 (por exemplo, `d.upamecano@bayern.com` no fornecedor 3). Os outros 35 recebem, em ordem de id, um jogador da V10 (`alisson@liverpool.com` no fornecedor 1, `m.kerkez@liverpool.com` no 2, e assim por diante). A V11 adiciona um `SUPPLIER` nos fornecedores 1 a 38, também em ordem de id (`m.gila@milan.com` no 1, `k.dewinter@milan.com` no 2, e assim por diante, com jogadores de Milan, Inter, Juventus e Napoli).
+- **Lotes**: além dos lotes ativos do seed original, a V11 cria três lotes por fornecedor, cada um num mercado: um `PENDING`, um `ACTIVE` e um `REJECTED` (com motivo). Esses lotes não têm etapas, então não entram nos relatórios.
 - O Mercado Verde Demonstração, criado na V8, continua existindo, mas sem usuários, lotes nem relatórios.
 
 Essa credencial é exclusiva para o ambiente local/demonstrativo e deve ser substituída antes de qualquer uso em ambiente compartilhado ou de produção.
