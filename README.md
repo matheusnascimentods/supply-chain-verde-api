@@ -10,7 +10,7 @@
 
 > Rastreabilidade de lotes, mensuração de emissões de CO₂ e auditoria contínua para cadeias de suprimento sustentáveis.
 
-A **Supply Chain Verde API** é uma solução backend de alta confiabilidade desenvolvida em **Java 25** e **Spring Boot**, estruturada sob os pilares da **Clean Architecture** e **Domain-Driven Design (DDD)**. O sistema rastreia cada lote de produto (`Batch`) desde a sua origem primária até o varejo através de etapas logísticas e produtivas (`Chain`), calculando emissões de gases de efeito estufa por transporte/processamento, validando certificações ambientais e gerando relatórios auditáveis com ranking dinâmico de fornecedores.
+A **Supply Chain Verde API** é um projeto acadêmico da disciplina **Banco de Dados**, do curso de **Ciência da Computação** da **Universidade Anhembi Morumbi**: uma solução backend de alta confiabilidade desenvolvida em **Java 25** e **Spring Boot**, estruturada sob os pilares da **Clean Architecture** e **Domain-Driven Design (DDD)**. O sistema rastreia cada lote de produto (`Batch`) desde a sua origem primária até o varejo através de etapas logísticas e produtivas (`Chain`), calculando emissões de gases de efeito estufa por transporte/processamento, validando certificações ambientais e gerando relatórios auditáveis com ranking dinâmico de fornecedores.
 
 ```mermaid
 sequenceDiagram
@@ -603,6 +603,12 @@ Em desenvolvimento local, defina `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` no 
 - **Criptografia Segura de Senhas**: Hashes gerados via `BCryptPasswordEncoder` através da abstração `PasswordHasher`.
 - **Proteção de Integridade & Auditoria**: Triggers MySQL registram usuário, ação, tabela/entidade e snapshots. A aplicação define `@app_user_id` antes de cada escrita, limpa ao fim da transação, e só tem `SELECT` em `audit_log`.
 - **Clean Architecture & DDD**: Desacoplamento completo entre modelo relacional de banco e entidades de negócio.
+
+---
+
+## 🎓 Contexto Acadêmico
+
+Projeto acadêmico desenvolvido para a disciplina **Banco de Dados**, do curso de **Ciência da Computação** da **Universidade Anhembi Morumbi**. O frontend que consome esta API está no repositório [supply-chain-verde-web](https://github.com/matheusnascimentods/supply-chain-verde-web).
 
 ---
 
