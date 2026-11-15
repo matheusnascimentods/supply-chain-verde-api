@@ -13,7 +13,6 @@ import br.com.anhembi.supplychainverde.application.dto.product.ProductRequestDTO
 import br.com.anhembi.supplychainverde.application.dto.report.ReportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.transport.TransportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
-import br.com.anhembi.supplychainverde.application.dto.user.UserRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
@@ -37,7 +36,6 @@ import br.com.anhembi.supplychainverde.application.usecase.supplier.ListSupplier
 import br.com.anhembi.supplychainverde.application.usecase.supplier.RankSuppliersBySustainabilityUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.transport.RegisterTransportUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.AuthenticateUserUseCase;
-import br.com.anhembi.supplychainverde.application.usecase.user.RegisterUserUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.UpdateUserRoleUseCase;
 import br.com.anhembi.supplychainverde.domain.entity.*;
 import br.com.anhembi.supplychainverde.domain.enums.*;
@@ -208,26 +206,21 @@ class ApplicationUseCasesTest {
     }
 
     @Test
-    void shouldRegisterAuthenticateAndUpdateUser() {
+    void shouldAuthenticateAndUpdateUser() {
         UserRepository users = mock(UserRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
         CompanyRepository companies = mock(CompanyRepository.class);
-        PlanRepository plans = mock(PlanRepository.class);
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
         User user = User.builder().userId(11L).name("Admin").email("admin@example.com").password("hash").role(UserRole.ADMIN)
                 .companyId(5L).build();
-        when(hasher.hash("secret")).thenReturn("hash");
         when(hasher.matches("secret", "hash")).thenReturn(true);
         when(users.save(any())).thenReturn(user);
         when(users.findByEmail("admin@example.com")).thenReturn(Optional.of(user));
         when(users.findById(11L)).thenReturn(Optional.of(user));
         when(users.countByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(2L);
         when(companies.findById(5L)).thenReturn(Optional.of(Company.builder().companyId(5L).type(CompanyType.MARKET).build()));
-        when(plans.findActiveByCompanyId(5L)).thenReturn(Optional.of(new Plan(2L, "PRO", "Pro", 10)));
         when(jwt.generateToken(user, CompanyType.MARKET)).thenReturn("token");
 
-        assertThat(new RegisterUserUseCase(users, companies, plans, hasher, DtoMappers.USER)
-                .execute(new UserRequestDTO("Admin", "admin@example.com", "secret", UserRole.ADMIN), 5L).userId()).isEqualTo(11L);
         assertThat(new AuthenticateUserUseCase(users, companies, hasher, jwt)
                 .execute(new LoginRequestDTO("admin@example.com", "secret")).token()).isEqualTo("token");
         assertThat(new UpdateUserRoleUseCase(users, companies, DtoMappers.USER)
