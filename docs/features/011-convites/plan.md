@@ -86,7 +86,7 @@ São 256 bits aleatórios, o que torna força bruta inviável, e o banco só gua
 
 - `domain/service/EmailSender` é uma interface (`send(String to, String subject, String html)`), no mesmo padrão de `PasswordHasher`/`BcryptPasswordHasher`.
 - `infrastructure/email/SendGridEmailSender` faz `POST https://api.sendgrid.com/v3/mail/send` com o `RestClient` do Spring, que já está no classpath via `spring-boot-starter-webmvc`. Não entra o SDK `sendgrid-java`: o Spring Boot 4 não tem autoconfiguração do SendGrid, e uma chamada só não justifica uma dependência nova. Qualquer resposta diferente de 2xx, ou erro de I/O, vira `EmailDeliveryException`.
-- O conteúdo do email fica no código: assunto e HTML curto num text block, em `InviteEmail.of(companyName, role, link)`. Assim é revisável em PR e não depende de template no painel.
+- O conteúdo do email fica no repositório: `InviteEmail.of(companyName, role, link)` monta o assunto e preenche `src/main/resources/templates/invite-email.html` com `String.formatted` (`%1$s` companhia, `%2$s` perfil, `%3$s` link). Assim é revisável em PR e não depende de template no painel. O HTML segue o visual do login do front, em tabelas e estilos inline. O logo (`templates/logo.png`) vai como anexo inline (`cid:logo`), porque Gmail e Outlook não mostram SVG nem data URI.
 - Propriedades novas, todas **obrigatórias e sem default** (a API não sobe sem elas):
 
   ```properties

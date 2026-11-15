@@ -10,6 +10,7 @@
 | `Company` | Companhia (`MARKET` ou `SUPPLIER`) com razão social, CNPJ único, email, telefone e endereço. Substitui `Supplier` desde a feature 010 |
 | `Plan` | Catálogo de planos (`BASIC`, `PRO`, `PRO_MAX`) com o limite de usuários (`maxUsers`) |
 | `User` | Usuário, email, hash de senha, perfil e companhia; só o `PLATFORM_ADMIN` não tem companhia |
+| `Invite` | Convite por email (feature 011): quem convidou, email e perfil do convidado, hash SHA-256 do token, `accepted` e `expiresAt` (`createdAt` + 24h, gerado pelo banco). A companhia é a de quem convidou |
 | `Certification` | Certificação ambiental de um fornecedor, emissor, validade e status |
 | `Product` | Produto de um fornecedor, com categoria, unidade e descrição |
 | `Batch` | Lote pedido por um mercado a um fornecedor, com status `PENDING`, `ACTIVE` ou `REJECTED` |
@@ -38,7 +39,8 @@ chain: RegisterStage, ListStagesByBatch
 transport: Register
 emission: Calculate, GetBatchCarbonFootprint
 report: Generate, Get, List
-user: Register, Authenticate, UpdateRole, UpdateOwn, List
+user: Authenticate, UpdateRole, UpdateOwn, List
+invite: Send, Get, Accept
 audit: ListAuditLogs
 dashboard: GetSummary, GetMonthlyEmissions
 ```
@@ -52,7 +54,8 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | Auth | `POST /auth/login` | Público. Resposta: `token`, `expiresAt`, `role`, `supplierId`, `companyId`, `companyType`, `companyName` |
 | Plans | `GET /plans` | Público. Catálogo com `code`, `name` e `maxUsers` |
 | Companies | `POST /companies` (cadastro público de companhia, endereço, assinatura e `ADMIN`; resposta igual à do login), `GET /companies/me`, `PATCH /companies/me` (razão social, email, telefone e endereço) | Cadastro: público. `GET /me`: usuário com companhia. `PATCH /me`: `ADMIN`. Sem companhia: 403 |
-| Users | `POST /users`, `GET /users?email={fragment}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role` | Criação e troca de perfil: `ADMIN`, só na própria companhia. Listagem: qualquer autenticado, só a própria companhia. O limite do plano (RN-04) e o último admin (RN-08) retornam 409 |
+| Users | `GET /users?email={fragment}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role` | Troca de perfil: `ADMIN`, só na própria companhia; o último admin (RN-08) retorna 409. Listagem: qualquer autenticado, só a própria companhia. Usuários novos só entram por convite |
+| Invites | `POST /invites` (`email`, `role`; 201 sem corpo), `GET /invites/{token}` (`email`, `role`, `companyName`, `expiresAt`), `POST /invites/accept` (`token`, `name`, `password`; resposta igual à do login) | Envio: `ADMIN`, na própria companhia; perfil não permitido para o tipo → 400, `PLATFORM_ADMIN` → 403, email já cadastrado, convite ativo para o email ou limite do plano (usuários + convites ativos) → 409, falha no SendGrid → 502 sem gravar nada. Consulta e aceite: públicos; token desconhecido, expirado ou aceito → 404 "Convite inválido ou expirado." sem dizer qual. O `GET` não consome o token. No aceite, nome ou senha vazios → 400, e plano cheio ou email já cadastrado → 409 |
 | Suppliers | `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}&workedWith=true`, recomendação com `ranked=true&category={c}&unit={u}`. Cada item traz dados cadastrais, métricas de sustentabilidade, `reportCount` (do mercado logado), `certifications` e `workedWith` | Catálogo global para o mercado (RN-13). Companhia fornecedora: 403, exceto no próprio detalhe |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE`, `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status` | Consulta: `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER`; o fornecedor vê só as próprias. Cadastro e status: o fornecedor dono (RN-22) |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}&supplierId={id}` | Cadastro e edição: o fornecedor dono (RN-16). Listagem: catálogo para o mercado, só os próprios para o fornecedor |
@@ -76,6 +79,12 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | `producedAt` no corpo de `POST /batches` | Preenchido pela etapa `PRODUCTION` (RN-20) |
 | `userId` em `SupplierResponseDTO` e `SupplierRankingDTO` | `workedWith` no ranking; o vínculo é `users.company_id` |
 
+### Rotas removidas na feature 011
+
+| Removido | Substituto |
+|---|---|
+| `POST /users` | `POST /invites` (o `ADMIN` convida) e `POST /invites/accept` (o convidado define nome e senha). O primeiro `ADMIN` continua nascendo no `POST /companies` |
+
 ### Evento de auditoria
 
 ```json
@@ -97,7 +106,8 @@ Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos
 ## 5. DTOs e regras de entrada
 
 - Auth: `LoginRequestDTO`, `LoginResponseDTO`.
-- Users: `UserRequestDTO`, `UserResponseDTO`, `UpdateUserRoleRequestDTO`.
+- Users: `UserResponseDTO`, `UpdateUserRoleRequestDTO`, `UpdateOwnUserRequestDTO`.
+- Invite: `SendInviteRequestDTO`, `InviteDetailsResponseDTO`, `AcceptInviteRequestDTO`; o aceite responde `LoginResponseDTO`.
 - Address: `AddressRequestDTO`, `AddressResponseDTO`.
 - Company: `RegisterCompanyRequestDTO`, `UpdateOwnCompanyRequestDTO`, `CompanyResponseDTO`.
 - Plan: `PlanResponseDTO`.
@@ -130,7 +140,8 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 - `RoleHierarchy` com `ROLE_PLATFORM_ADMIN > ROLE_ADMIN`, nas rotas e nos `@PreAuthorize`.
 - Senhas armazenadas somente como hash BCrypt.
 - `JWT_SECRET` deve ser fornecido externamente e ter pelo menos 256 bits.
-- Rotas públicas: login, `GET /plans`, `POST /companies`, rastreabilidade e pegada de carbono.
+- Rotas públicas: login, `GET /plans`, `POST /companies`, `GET /invites/{token}`, `POST /invites/accept`, rastreabilidade e pegada de carbono.
+- Token de convite: 32 bytes de `SecureRandom` em base64url no link `<APP_FRONTEND_URL>/convites/<token>`; o banco guarda só o SHA-256. Vale 24h e uma vez. Veja a [ADR 0004](../../adr/0004-token-de-convite-opaco-com-hash.md).
 - Risco conhecido: `POST /companies` é público e não tem confirmação de email, captcha nem rate limit (fora de escopo da feature 010).
 - Risco conhecido: `batchId` sequencial exposto publicamente pode permitir enumeração; avaliar rate limiting ou UUID público.
 
@@ -147,6 +158,9 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 | `JWT_EXPIRATION_MS` | Expiração do token |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas |
 | `FLYWAY_ENABLED` | Ativação do Flyway |
+| `SENDGRID_API_KEY` | Chave da API do Twilio SendGrid (permissão Mail Send). Obrigatória: a API não sobe sem ela |
+| `SENDGRID_FROM` | Remetente dos emails, verificado no SendGrid. Obrigatória |
+| `APP_FRONTEND_URL` | URL do front usada no link do convite (ex.: `http://localhost:4200`), nunca o `Host` da requisição. Obrigatória |
 
 Segredos não devem ter valores reais, previsíveis ou versionados.
 
@@ -158,6 +172,7 @@ erDiagram
   COMPANY ||--o{ COMPANY_PLAN : assina
   ADDRESS ||--o{ COMPANY : locatedAt
   COMPANY |o--o{ USER : employs
+  USER ||--o{ INVITE : sends
   COMPANY ||--o{ PRODUCT : "supplier owns"
   COMPANY ||--o{ CERTIFICATION : "supplier has"
   COMPANY ||--o{ BATCH : "market requests"
