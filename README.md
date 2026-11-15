@@ -109,6 +109,7 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada por um `EVENT` do MySQL (V3–V4). Ordem obrigatória das etapas garantida por constraints (V1). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - **Multiempresa (feature 010)**: mercados e fornecedores se cadastram sozinhos com um plano, cada companhia só vê os próprios dados e o mercado pede lotes ao fornecedor (V7–V9). Especificação em [`docs/features/010-empresas-planos`](docs/features/010-empresas-planos/spec.md); integridade por tipo de companhia na [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
+- **Convites (feature 011)**: o `ADMIN` convida usuários por email (Twilio SendGrid), e o convidado aceita pelo link e entra logado; o `POST /users` deixou de existir (V12). Especificação em [`docs/features/011-convites`](docs/features/011-convites/spec.md); token do link na [ADR 0004](docs/adr/0004-token-de-convite-opaco-com-hash.md).
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
 ### Principais Entidades de Domínio
@@ -135,7 +136,8 @@ Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora 
 | `SUPPLIER` | `SUPPLIER` | Cadastra os próprios produtos e certificações, recusa lotes ou inicia a produção |
 
 - **Cadastro**: `POST /api/v1/companies` é público e cria companhia, endereço, assinatura e o `ADMIN` numa transação; a resposta já traz o token.
-- **Limites**: o número de usuários nunca passa do plano ativo, e toda companhia mantém pelo menos um `ADMIN` (409 nos dois casos).
+- **Convites**: os demais usuários entram só por convite. O `ADMIN` convida por email com o perfil escolhido, e o convidado abre o link, define nome e senha e já entra logado. O link vale 24h e uma vez.
+- **Limites**: usuários mais convites ativos nunca passam do plano ativo, e toda companhia mantém pelo menos um `ADMIN` (409 nos dois casos).
 - **Catálogo**: o mercado vê todos os fornecedores, produtos e certificações para encontrar fornecedores novos. Cada fornecedor traz `workedWith`, que indica se ele tem ou teve lote com o mercado logado.
 - **Ciclo do lote**: o mercado pede o lote (`PENDING`) com um produto do fornecedor. O fornecedor recusa com motivo (`REJECTED`, final) ou registra a etapa `PRODUCTION`, que ativa o lote (`ACTIVE`) e preenche `producedAt`.
 
@@ -167,6 +169,7 @@ erDiagram
     chain ||--o| transport : "transportada por"
     chain ||--o| carbon_emission : emite
     users |o--o{ audit_log : executa
+    users ||--o{ invite : convida
 
     plan {
         bigint id PK
@@ -198,6 +201,16 @@ erDiagram
         varchar password "hash BCrypt"
         user_role role
         bigint company_id FK "NULL só no PLATFORM_ADMIN"
+    }
+    invite {
+        bigint id PK
+        bigint invited_by FK "a companhia é a de quem convida"
+        varchar invited_for "email do convidado"
+        user_role role
+        char token_hash UK "SHA-256 do token do link"
+        boolean accepted
+        datetime created_at
+        datetime expires_at "gerada: created_at + 24h"
     }
     address {
         bigint id PK
@@ -412,8 +425,26 @@ Isso iniciará o MySQL 8.4 na porta `3306` com o banco `supply_chain_verde`, em 
 
 O MySQL faz commit implícito a cada DDL: uma migration que falhe no meio deixa o schema pela metade. Em desenvolvimento, recrie o volume com `docker compose down -v`. Quem vinha do PostgreSQL também precisa recriar o banco do zero: não há cópia de dados.
 
-### 3. Executar a Aplicação
+### 3. Configurar o envio de email
+
+O convite de usuários sai por email via [Twilio SendGrid](https://sendgrid.com). As três variáveis abaixo são obrigatórias e não têm valor padrão: sem elas, a API não sobe.
+
+| Variável | Valor |
+| :--- | :--- |
+| `SENDGRID_API_KEY` | Chave criada em *Settings → API Keys*, com a permissão *Mail Send* |
+| `SENDGRID_FROM` | Email remetente, verificado no SendGrid |
+| `APP_FRONTEND_URL` | URL do front, usada no link do convite (ex.: `http://localhost:4200`) |
+
+Para verificar o remetente, vá em *Settings → Sender Authentication* e use uma destas opções:
+
+- **Single Sender Verification**: cadastre o email do `SENDGRID_FROM` e clique no link que o SendGrid envia para ele. É o caminho mais rápido para desenvolvimento.
+- **Domain Authentication**: publique no DNS os registros CNAME que o SendGrid indicar. Vale para qualquer endereço do domínio e melhora a entrega.
+
+Com um remetente não verificado, o SendGrid recusa o envio, e o `POST /api/v1/invites` responde 502 sem gravar o convite. Nos testes, o `EmailSender` é mockado, e nenhuma chamada chega ao SendGrid.
+
+### 4. Executar a Aplicação
 ```bash
+export SENDGRID_API_KEY=SG.xxxxx SENDGRID_FROM=noreply@seu-dominio.com APP_FRONTEND_URL=http://localhost:4200
 ./mvnw spring-boot:run
 ```
 
@@ -505,10 +536,18 @@ Todas as rotas abaixo respeitam o escopo da companhia do usuário (veja [Perfis 
 ### 👤 Usuários (`/api/v1/users`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/users` | Cria usuário na companhia de quem cria, com perfil permitido para o tipo dela; limite do plano → 409 | `ADMIN` |
 | `GET` | `/api/v1/users?email={trecho}&limit=20&offset=0` | Usuários da própria companhia; o `PLATFORM_ADMIN` vê todos | Autenticado |
 | `GET`/`PATCH` | `/api/v1/users/me` | Dados do usuário logado, com a companhia; o `PATCH` altera nome e senha | Autenticado |
 | `PATCH` | `/api/v1/users/{userId}/role` | Troca de perfil na própria companhia; deixar a companhia sem `ADMIN` → 409 | `ADMIN` |
+
+Não existe `POST /api/v1/users`: usuários novos entram por convite.
+
+### ✉️ Convites (`/api/v1/invites`)
+| Método | Rota | Descrição | Acesso |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/invites` | Envia por email o link `<APP_FRONTEND_URL>/convites/<token>`, válido por 24h, com `email` e `role`. Perfil não permitido → 400; email já cadastrado, convite ativo ou plano cheio (usuários + convites ativos) → 409; falha no SendGrid → 502 | `ADMIN` |
+| `GET` | `/api/v1/invites/{token}` | Email, perfil, companhia e validade do convite, sem consumi-lo. Token desconhecido, expirado ou aceito → 404 | **Público** |
+| `POST` | `/api/v1/invites/accept` | Com `token`, `name` e `password`, cria o usuário na companhia de quem convidou e responde igual ao login. Plano cheio ou email já cadastrado → 409 | **Público** |
 
 ### 🏭 Fornecedores (`/api/v1/suppliers`)
 | Método | Rota | Descrição | Acesso |

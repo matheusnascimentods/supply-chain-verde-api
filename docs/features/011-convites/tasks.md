@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento.
+**Status:** concluída.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As tasks do frontend (`supply-chain-verde-web/docs/features/010-convites/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -27,7 +27,7 @@ Depende da Task 1.
 
 - [x] `InviteToken` (plan §4) + `InviteTokenTest`
 - [x] `EmailSender`, `SendGridEmailSender` via `RestClient`, `EmailDeliveryException` e o handler 502 (plan §5)
-- [x] `InviteEmail` (assunto + HTML em text block)
+- [x] `InviteEmail` (assunto + HTML, depois movido para `templates/invite-email.html`)
 - [x] `SendInviteRequestDTO`, `SendInviteUseCase` + teste unitário (plan §3)
 - [x] `InviteController` com `POST /invites` e a regra no `SecurityConfig`
 - [x] Propriedades `sendgrid.*` e `app.frontend-url` obrigatórias. Valores de teste na configuração de testes
@@ -64,9 +64,9 @@ Depende da Task 3. Libera a Task 1 do frontend.
 
 ## Task 5 — `docs/invite-reference`
 
-- [ ] `docs/features/000-base/reference.md`: rotas de convite e remoção de `POST /users`
-- [ ] README: variáveis `SENDGRID_API_KEY`, `SENDGRID_FROM` e `APP_FRONTEND_URL`, e como verificar o remetente no SendGrid
-- [ ] ADR 0004 curto: token opaco com hash SHA-256 em vez de id ou JWT no link
+- [x] `docs/features/000-base/reference.md`: rotas de convite e remoção de `POST /users`
+- [x] README: variáveis `SENDGRID_API_KEY`, `SENDGRID_FROM` e `APP_FRONTEND_URL`, e como verificar o remetente no SendGrid
+- [x] ADR 0004 curto: token opaco com hash SHA-256 em vez de id ou JWT no link
 
 **Arquivos (~3):** `reference.md`, `README.md`, ADR 0004.
 
