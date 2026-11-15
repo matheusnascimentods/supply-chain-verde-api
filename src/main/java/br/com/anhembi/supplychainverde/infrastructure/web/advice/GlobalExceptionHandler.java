@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.infrastructure.web.advice;
 
 import br.com.anhembi.supplychainverde.application.exception.ApplicationException;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
+import br.com.anhembi.supplychainverde.application.exception.EmailDeliveryException;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.domain.exception.BatchStatusConflictException;
@@ -41,6 +42,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException exception) {
         HttpStatus status = HttpStatus.FORBIDDEN;
         return ResponseEntity.status(status).body(error(status, exception.getMessage()));
+    }
+
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailDelivery(EmailDeliveryException exception) {
+        logger.error("Falha no envio de email", exception);
+        HttpStatus status = HttpStatus.BAD_GATEWAY;
+        return ResponseEntity.status(status).body(error(status, "Não foi possível enviar o convite. Tente novamente."));
     }
 
     @ExceptionHandler({DomainException.class, ApplicationException.class, IllegalArgumentException.class})

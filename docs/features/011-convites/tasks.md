@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** planejada.
+**Status:** em andamento.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As tasks do frontend (`supply-chain-verde-web/docs/features/010-convites/tasks.md`) dependem destas, conforme indicado nelas.
 
@@ -12,10 +12,10 @@ As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task m
 
 Só banco e persistência. Nenhuma rota nova.
 
-- [ ] `V12__create_invite.sql`: tabela com `accepted` e `expires_at` gerado (`created_at + 24h`), triggers de auditoria sem `token_hash` e grants (plan §1)
-- [ ] `Invite` (com `accept`) e `InviteRepository` no domínio (plan §2)
-- [ ] `InviteJpaEntity`, `InviteJpaMapper`, `InviteJpaRepository` e `InviteRepositoryImpl`
-- [ ] `InviteSchemaIT`: `expires_at` gerado, unique de `token_hash` e auditoria
+- [x] `V12__create_invite.sql`: tabela com `accepted` e `expires_at` gerado (`created_at + 24h`), triggers de auditoria sem `token_hash` e grants (plan §1)
+- [x] `Invite` (com `accept`) e `InviteRepository` no domínio (plan §2)
+- [x] `InviteJpaEntity`, `InviteJpaMapper`, `InviteJpaRepository` e `InviteRepositoryImpl`
+- [x] `InviteSchemaIT`: `expires_at` gerado, unique de `token_hash` e auditoria
 
 **Arquivos (~8):** V12, `Invite`, `InviteRepository`, `InviteJpaEntity`, `InviteJpaMapper`, `InviteJpaRepository`, `InviteRepositoryImpl`, `InviteSchemaIT`.
 
@@ -25,12 +25,12 @@ Só banco e persistência. Nenhuma rota nova.
 
 Depende da Task 1.
 
-- [ ] `InviteToken` (plan §4) + `InviteTokenTest`
-- [ ] `EmailSender`, `SendGridEmailSender` via `RestClient`, `EmailDeliveryException` e o handler 502 (plan §5)
-- [ ] `InviteEmail` (assunto + HTML em text block)
-- [ ] `SendInviteRequestDTO`, `SendInviteUseCase` + teste unitário (plan §3)
-- [ ] `InviteController` com `POST /invites` e a regra no `SecurityConfig`
-- [ ] Propriedades `sendgrid.*` e `app.frontend-url` obrigatórias. Valores de teste na configuração de testes
+- [x] `InviteToken` (plan §4) + `InviteTokenTest`
+- [x] `EmailSender`, `SendGridEmailSender` via `RestClient`, `EmailDeliveryException` e o handler 502 (plan §5)
+- [x] `InviteEmail` (assunto + HTML em text block)
+- [x] `SendInviteRequestDTO`, `SendInviteUseCase` + teste unitário (plan §3)
+- [x] `InviteController` com `POST /invites` e a regra no `SecurityConfig`
+- [x] Propriedades `sendgrid.*` e `app.frontend-url` obrigatórias. Valores de teste na configuração de testes
 
 **Arquivos (~14):** `InviteToken` + teste, `EmailSender`, `SendGridEmailSender`, `EmailDeliveryException`, `GlobalExceptionHandler`, `InviteEmail`, `SendInviteRequestDTO`, `SendInviteUseCase` + teste, `InviteController`, `SecurityConfig`, `application.properties`, `TestcontainersConfiguration`.
 
