@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,21 +25,12 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 @Tag(name = "Usuários", description = "Administração de usuários e perfis de acesso.")
 public class UserController {
-    private final RegisterUserUseCase register;
     private final UpdateUserRoleUseCase updateRole;
     private final ListUsersUseCase list;
     private final UpdateOwnUserUseCase updateOwn;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final UserDtoMapper mapper;
-
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Criar usuário", description = "Somente o ADMIN da companhia (RN-09). O usuário nasce na companhia de quem cria. Perfis por tipo (RN-07): MARKET aceita ADMIN, MANAGER e AUDITOR; SUPPLIER aceita ADMIN e SUPPLIER; outro perfil retorna 400. Email já cadastrado ou limite de usuários do plano atingido (RN-04) retornam 409. O PLATFORM_ADMIN não tem companhia e recebe 403.")
-    public UserResponseDTO create(@RequestBody UserRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
-        return register.execute(request, principal.companyId());
-    }
 
     @GetMapping
     @Operation(summary = "Listar usuários", description = "Qualquer usuário autenticado lista os usuários da própria companhia (RN-13b), paginados e com filtro opcional de email parcial, sem diferenciar maiúsculas de minúsculas. O PLATFORM_ADMIN lista todos. Cada item traz companyId, companyType e companyName; supplierId e supplierName repetem a companhia quando ela é fornecedora.")

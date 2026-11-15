@@ -53,10 +53,10 @@ Depende da Task 2. Libera a Task 2 do frontend.
 
 Depende da Task 3. Libera a Task 1 do frontend.
 
-- [ ] Apagar `POST /users`, `RegisterUserUseCase`, `UserRequestDTO` e `RegisterUserUseCaseTest`
-- [ ] Remover a regra de `POST /api/v1/users` no `SecurityConfig`
-- [ ] `UserControllerTest` e `ApplicationUseCasesTest` sem os casos de criação
-- [ ] `UserPlanLimitIT` e `TenantIsolationIT` criando usuários por convite ou por `JdbcInserts`
+- [x] Apagar `POST /users`, `RegisterUserUseCase`, `UserRequestDTO` e `RegisterUserUseCaseTest`
+- [x] Remover a regra de `POST /api/v1/users` no `SecurityConfig`
+- [x] `UserControllerTest` e `ApplicationUseCasesTest` sem os casos de criação
+- [x] `UserPlanLimitIT` e `TenantIsolationIT` criando usuários por convite ou por `JdbcInserts`
 
 **Arquivos (~9):** `UserController`, `RegisterUserUseCase`, `UserRequestDTO`, `RegisterUserUseCaseTest`, `SecurityConfig`, `UserControllerTest`, `ApplicationUseCasesTest`, `UserPlanLimitIT`, `TenantIsolationIT`.
 

@@ -106,9 +106,9 @@ class TenantIsolationIT {
                 .andExpect(jsonPath("$.items[*].companyId", everyItem(is((int) marketA))))
                 .andExpect(jsonPath("$.items[*].userId", hasItem((int) adminA)))
                 .andExpect(jsonPath("$.items[*].userId", not(hasItem((int) adminB))));
-        mockMvc.perform(post("/api/v1/users").with(as(auditorA, "AUDITOR", marketA, CompanyType.MARKET))
+        mockMvc.perform(post("/api/v1/invites").with(as(auditorA, "AUDITOR", marketA, CompanyType.MARKET))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"X\",\"email\":\"x@isolamento.test\",\"password\":\"segredo\",\"role\":\"AUDITOR\"}"))
+                        .content("{\"email\":\"x@isolamento.test\",\"role\":\"AUDITOR\"}"))
                 .andExpect(status().isForbidden());
 
         // A ação é do admin de A: as triggers gravam o ator de @app_user_id.
