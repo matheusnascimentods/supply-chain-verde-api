@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/traceability").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/carbon-footprint").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/invites").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/invites/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/invites/accept").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users").authenticated()

@@ -40,10 +40,10 @@ Depende da Task 1.
 
 Depende da Task 2. Libera a Task 2 do frontend.
 
-- [ ] `InviteDetailsResponseDTO` e `GetInviteUseCase` (`GET /invites/{token}`)
-- [ ] `AcceptInviteRequestDTO` e `AcceptInviteUseCase` (`POST /invites/accept`), devolvendo `LoginResponseDTO`
-- [ ] `permitAll` das duas rotas no `SecurityConfig`
-- [ ] `AcceptInviteUseCaseTest` e `InviteFlowIT` com todos os casos do plan §8
+- [x] `InviteDetailsResponseDTO` e `GetInviteUseCase` (`GET /invites/{token}`)
+- [x] `AcceptInviteRequestDTO` e `AcceptInviteUseCase` (`POST /invites/accept`), devolvendo `LoginResponseDTO`
+- [x] `permitAll` das duas rotas no `SecurityConfig`
+- [x] `AcceptInviteUseCaseTest` e `InviteFlowIT` com todos os casos do plan §8
 
 **Arquivos (~9):** 2 DTOs, 2 use cases, `AcceptInviteUseCaseTest`, `InviteController`, `SecurityConfig`, `InviteFlowIT`, `JdbcInserts` (se precisar de convite vencido).
 

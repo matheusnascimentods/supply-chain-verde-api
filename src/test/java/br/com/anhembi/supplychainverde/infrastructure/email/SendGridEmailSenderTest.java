@@ -26,6 +26,9 @@ class SendGridEmailSenderTest {
                 .andExpect(jsonPath("$.subject").value("Assunto"))
                 .andExpect(jsonPath("$.content[0].type").value("text/html"))
                 .andExpect(jsonPath("$.content[0].value").value("<p>oi</p>"))
+                .andExpect(jsonPath("$.attachments[0].content_id").value("logo"))
+                .andExpect(jsonPath("$.attachments[0].disposition").value("inline"))
+                .andExpect(jsonPath("$.attachments[0].content").isNotEmpty())
                 .andRespond(withStatus(HttpStatus.ACCEPTED));
 
         sender.send("ana@it.test", "Assunto", "<p>oi</p>");
