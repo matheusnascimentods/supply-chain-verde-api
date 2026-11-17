@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** Tasks 1 e 2 concluídas (falta marcar o pacote do GHCR como público); Task 3 pendente.
+**Status:** Tasks 1 e 2 concluídas (falta marcar o pacote do GHCR como público). Task 3 pendente, redefinida para usar um compose único entre os ambientes (RN-11).
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As dependências "Web Task N" apontam para `supply-chain-verde-web/docs/features/011-deploy/tasks.md`.
 
@@ -35,15 +35,25 @@ Depende da Task 1.
 
 **Pronto:** `docker build -t api .` funciona localmente, e o container sobe contra o MySQL do `docker-compose.yml` com as variáveis exportadas. O push na `main` publica `ghcr.io/matheusnascimentods/supply-chain-verde-api:latest`.
 
-## Task 3 — `build/prod-compose`
+## Task 3 — `build/compose`
 
-Depende da Task 2 e da Web Task 2 (imagem do web com o Caddy).
+Depende da Task 2 e da Web Task 2 (imagem do web com o Caddy). Sem a imagem do web, dá para validar tudo menos o front door, com `docker compose up -d mysql` e o `spring-boot:run`.
 
-- [ ] `docker-compose.prod.yml` com mysql, api e web (plan §5)
-- [ ] `.env.example` com as seis variáveis e como gerar cada segredo, e `.env` no `.gitignore`
-- [ ] README: seção **Deploy** com o passo a passo da VM (plan §7) e as contas de demonstração
-- [ ] Teste de fumaça local com `SITE_ADDRESS=localhost` (plan §9)
+- [ ] `docker-compose.yml` vira o compose único, com mysql, api e web. O MySQL publica a porta só em `127.0.0.1:3306`, e as senhas vêm do `.env` (plan §5)
+- [ ] `.env.example` com as seis variáveis, os valores sugeridos para desenvolvimento e como gerar os segredos de produção. `.env` entra no `.gitignore`
+- [ ] `application.properties`: importa o `.env`. O datasource e o Flyway leem `MYSQL_APP_PASSWORD` e `MYSQL_ROOT_PASSWORD`, e `app.frontend-url` cai em `https://${SITE_ADDRESS}` (plan §4)
+- [ ] `TestcontainersConfiguration` registra `spring.datasource.password`, para o `.env` local não vazar nos testes
+- [ ] README:
+  - Quick Start com `.env` e `docker compose up -d --build`, sem `export`, e o `spring-boot:run` como opção para debug
+  - seção **Deploy** com o passo a passo da VM (plan §7) e as contas de demonstração
+  - tabela de variáveis com os nomes novos
+- [ ] `docs/features/000-base/reference.md`: tabela de variáveis com os nomes novos
+- [ ] Teste de fumaça local (plan §9)
 
-**Arquivos (~4):** `docker-compose.prod.yml`, `.env.example`, `.gitignore`, `README.md`.
+**Arquivos (~8):** `docker-compose.yml`, `.env.example`, `.gitignore`, `application.properties`, `TestcontainersConfiguration`, `README.md`, `reference.md`, `tasks.md`.
 
-**Pronto:** numa máquina limpa, o README sozinho basta para subir tudo. Login e Swagger funcionam em `https://localhost`, e as portas 3306 e 8080 não aparecem em `docker compose ps`.
+**Pronto:**
+- Numa máquina limpa, o README sozinho basta: `cp .env.example .env` e `docker compose up -d --build` sobem tudo, e o login e o Swagger funcionam em `https://localhost`.
+- O `spring-boot:run` sobe sem `export`.
+- `docker compose ps` mostra a 3306 só em `127.0.0.1` e não mostra a 8080.
+- O `./mvnw verify` passa mesmo com um `.env` local de senhas diferentes.
