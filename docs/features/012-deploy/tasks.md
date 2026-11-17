@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** Task 1 concluída; Tasks 2 e 3 pendentes.
+**Status:** Tasks 1 e 2 concluídas (falta marcar o pacote do GHCR como público); Task 3 pendente.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As dependências "Web Task N" apontam para `supply-chain-verde-web/docs/features/011-deploy/tasks.md`.
 
@@ -27,8 +27,8 @@ Configuração que vale para qualquer ambiente. Nada de Docker novo ainda.
 
 Depende da Task 1.
 
-- [ ] `Dockerfile` em dois estágios e `.dockerignore` (plan §2)
-- [ ] Job `publish` no `ci.yml`, publicando no GHCR com as tags `latest` e `sha` (plan §6)
+- [x] `Dockerfile` em dois estágios e `.dockerignore` (plan §2)
+- [x] Job `publish` no `ci.yml`, publicando no GHCR com as tags `latest` e `sha` (plan §6)
 - [ ] Depois do primeiro merge: marcar o pacote como público no GHCR
 
 **Arquivos (~3):** `Dockerfile`, `.dockerignore`, `.github/workflows/ci.yml`.
