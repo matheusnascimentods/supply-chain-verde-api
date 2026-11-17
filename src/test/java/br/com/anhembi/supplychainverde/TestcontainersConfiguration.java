@@ -16,6 +16,7 @@ public class TestcontainersConfiguration {
 				.withDatabaseName("supply_chain_verde")
 				.withUsername("root")
 				.withPassword("root")
+				.withEnv("MYSQL_APP_PASSWORD", "supply_app")
 				.withUrlParam("connectionTimeZone", "SERVER")
 				.withCopyFileToContainer(MountableFile.forHostPath("docker/mysql/init"), "/docker-entrypoint-initdb.d")
 				.withCommand("--default-time-zone=America/Sao_Paulo", "--character-set-server=utf8mb4",

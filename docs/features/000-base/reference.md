@@ -139,7 +139,7 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 - JWT stateless com claims `userId`, `email`, `role`, `companyId`, `companyType` e `supplierId` (igual a `companyId` quando a companhia é fornecedora). Um token sem `companyId` só autentica para o `PLATFORM_ADMIN`.
 - `RoleHierarchy` com `ROLE_PLATFORM_ADMIN > ROLE_ADMIN`, nas rotas e nos `@PreAuthorize`.
 - Senhas armazenadas somente como hash BCrypt.
-- `JWT_SECRET` deve ser fornecido externamente e ter pelo menos 256 bits.
+- `JWT_SECRET` é obrigatório, sem valor padrão (a API não sobe sem ele), e deve ter pelo menos 256 bits.
 - Rotas públicas: login, `GET /plans`, `POST /companies`, `GET /invites/{token}`, `POST /invites/accept`, rastreabilidade e pegada de carbono.
 - Token de convite: 32 bytes de `SecureRandom` em base64url no link `<APP_FRONTEND_URL>/convites/<token>`; o banco guarda só o SHA-256. Vale 24h e uma vez. Veja a [ADR 0004](../../adr/0004-token-de-convite-opaco-com-hash.md).
 - Risco conhecido: `POST /companies` é público e não tem confirmação de email, captcha nem rate limit (fora de escopo da feature 010).
@@ -154,7 +154,7 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 | `SPRING_DATASOURCE_URL` | URL JDBC |
 | `SPRING_DATASOURCE_USERNAME` | Usuário MySQL da API |
 | `SPRING_DATASOURCE_PASSWORD` | Senha MySQL da API |
-| `JWT_SECRET` | Chave de assinatura JWT |
+| `JWT_SECRET` | Chave de assinatura JWT; obrigatória, sem padrão |
 | `JWT_EXPIRATION_MS` | Expiração do token |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas |
 | `FLYWAY_ENABLED` | Ativação do Flyway |

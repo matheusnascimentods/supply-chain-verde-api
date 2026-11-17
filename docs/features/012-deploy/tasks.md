@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** não iniciada.
+**Status:** Task 1 concluída; Tasks 2 e 3 pendentes.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As dependências "Web Task N" apontam para `supply-chain-verde-web/docs/features/011-deploy/tasks.md`.
 
@@ -12,12 +12,12 @@ As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task m
 
 Configuração que vale para qualquer ambiente. Nada de Docker novo ainda.
 
-- [ ] `git mv docker/mysql/init/01-users.sql 01-users.sh` lendo `MYSQL_APP_PASSWORD` (plan §3)
-- [ ] `MYSQL_APP_PASSWORD: supply_app` no `docker-compose.yml` e no `TestcontainersConfiguration`
-- [ ] `jwt.secret=${JWT_SECRET}` sem padrão e valor de teste em `src/test/resources/config/application.properties` (plan §4)
-- [ ] `server.forward-headers-strategy=framework`
-- [ ] README: `JWT_SECRET` no passo 4 do Quick Start, tabela de variáveis sem o padrão do JWT e o init em `.sh`
-- [ ] `docs/features/000-base/reference.md`: `JWT_SECRET` obrigatório
+- [x] `git mv docker/mysql/init/01-users.sql 01-users.sh` lendo `MYSQL_APP_PASSWORD` (plan §3)
+- [x] `MYSQL_APP_PASSWORD: supply_app` no `docker-compose.yml` e no `TestcontainersConfiguration`
+- [x] `jwt.secret=${JWT_SECRET}` sem padrão e valor de teste em `src/test/resources/config/application.properties` (plan §4)
+- [x] `server.forward-headers-strategy=framework`
+- [x] README: `JWT_SECRET` no passo 4 do Quick Start, tabela de variáveis sem o padrão do JWT e o init em `.sh`
+- [x] `docs/features/000-base/reference.md`: `JWT_SECRET` obrigatório
 
 **Arquivos (~7):** `01-users.sh`, `docker-compose.yml`, `TestcontainersConfiguration`, `application.properties`, `application.properties` de teste, `README.md`, `reference.md`.
 
