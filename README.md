@@ -421,7 +421,7 @@ O projeto disponibiliza um `docker-compose.yml` pré-configurado:
 ```bash
 docker compose up -d
 ```
-Isso iniciará o MySQL 8.4 na porta `3306` com o banco `supply_chain_verde`, em `America/Sao_Paulo` e collation `utf8mb4_0900_as_cs`. Na criação do volume, [`docker/mysql/init`](docker/mysql/init) cria os usuários `supply_app` (datasource da API) e `supply_audit` (DEFINER das triggers, sem login). O Flyway roda como `root`. Os testes com Testcontainers usam a mesma imagem, flags e init.
+Isso iniciará o MySQL 8.4 na porta `3306` com o banco `supply_chain_verde`, em `America/Sao_Paulo` e collation `utf8mb4_0900_as_cs`. Na criação do volume, [`docker/mysql/init/01-users.sh`](docker/mysql/init/01-users.sh) cria os usuários `supply_app` (datasource da API, com a senha de `MYSQL_APP_PASSWORD`, que no compose de desenvolvimento é `supply_app`) e `supply_audit` (DEFINER das triggers, sem login). Um volume que já existe não muda: o init só roda na criação. O Flyway roda como `root`. Os testes com Testcontainers usam a mesma imagem, flags e init.
 
 O MySQL faz commit implícito a cada DDL: uma migration que falhe no meio deixa o schema pela metade. Em desenvolvimento, recrie o volume com `docker compose down -v`. Quem vinha do PostgreSQL também precisa recriar o banco do zero: não há cópia de dados.
 
@@ -443,7 +443,11 @@ Para verificar o remetente, vá em *Settings → Sender Authentication* e use um
 Com um remetente não verificado, o SendGrid recusa o envio, e o `POST /api/v1/invites` responde 502 sem gravar o convite. Nos testes, o `EmailSender` é mockado, e nenhuma chamada chega ao SendGrid.
 
 ### 4. Executar a Aplicação
+
+`JWT_SECRET` também é obrigatória e não tem valor padrão. Gere uma chave com `openssl rand -hex 32`:
+
 ```bash
+export JWT_SECRET=$(openssl rand -hex 32)
 export SENDGRID_API_KEY=SG.xxxxx SENDGRID_FROM=noreply@seu-dominio.com APP_FRONTEND_URL=http://localhost:4200
 ./mvnw spring-boot:run
 ```
@@ -626,13 +630,13 @@ O projeto dispensa arquivos `.env` versionados. As configurações são centrali
 | `SPRING_DATASOURCE_PASSWORD` | Senha do banco de dados | Configurar localmente; nunca usar default em ambientes compartilhados |
 | `FLYWAY_ENABLED` | Execução automática de migrations Flyway | `true` |
 | `FLYWAY_USER` / `FLYWAY_PASSWORD` | Admin que aplica as migrations (cria triggers com outro DEFINER e dá grants) | `root` / `root` |
-| `JWT_SECRET` | Chave HMAC de 256 bits para assinatura do token | Configurar localmente; obrigatório e forte em ambientes compartilhados |
+| `JWT_SECRET` | Chave HMAC de 256 bits para assinatura do token | Obrigatória, sem padrão: a API não sobe sem ela |
 | `JWT_EXPIRATION_MS` | Tempo de expiração do token em milissegundos | `3600000` (1 hora) |
 | `CORS_ALLOWED_ORIGINS` | Origem permitida para o frontend cliente | `http://localhost:4200` |
 
 ---
 
-Em desenvolvimento local, defina `SPRING_DATASOURCE_PASSWORD` e `JWT_SECRET` no ambiente da execução quando necessário. Em ambientes compartilhados ou de produção, esses valores devem ser obrigatoriamente fornecidos por secrets da plataforma e nunca devem ser credenciais previsíveis ou versionadas.
+Em desenvolvimento local, exporte `JWT_SECRET` (passo 4 do Quick Start) e, se mudar a senha do `supply_app`, `SPRING_DATASOURCE_PASSWORD`. Em ambientes compartilhados ou de produção, esses valores devem ser obrigatoriamente fornecidos por secrets da plataforma e nunca devem ser credenciais previsíveis ou versionadas.
 
 ## 🔒 Segurança & Boas Práticas
 
