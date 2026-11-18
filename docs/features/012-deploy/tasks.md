@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** Tasks 1 e 2 concluídas (falta marcar o pacote do GHCR como público). Task 3 implementada, com o compose único (RN-11). Falta o teste de fumaça do front door, que depende da Web Task 2.
+**Status:** Tasks 1 e 2 concluídas. Task 3 implementada, com o compose único (RN-11). Falta o teste de fumaça do front door, que depende da Web Task 2.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As dependências "Web Task N" apontam para `supply-chain-verde-web/docs/features/011-deploy/tasks.md`.
 
@@ -29,7 +29,7 @@ Depende da Task 1.
 
 - [x] `Dockerfile` em dois estágios e `.dockerignore` (plan §2)
 - [x] Job `publish` no `ci.yml`, publicando no GHCR com as tags `latest` e `sha` (plan §6)
-- [ ] Depois do primeiro merge: marcar o pacote como público no GHCR
+- [x] Depois do primeiro merge: marcar o pacote como público no GHCR
 
 **Arquivos (~3):** `Dockerfile`, `.dockerignore`, `.github/workflows/ci.yml`.
 
