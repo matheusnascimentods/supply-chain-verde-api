@@ -474,7 +474,19 @@ docker compose up -d mysql
 ./mvnw spring-boot:run
 ```
 
-A API fica em **`http://localhost:8080`**, e o Swagger em **`http://localhost:8080/swagger-ui.html`**. Com o front em `ng serve`, defina `APP_FRONTEND_URL=http://localhost:4200` no `.env`, para os links de convite apontarem para ele.
+A API fica em **`http://localhost:8080`**, e o Swagger em **`http://localhost:8080/swagger-ui.html`**. Com o front em `ng serve`, defina `APP_FRONTEND_URL=http://localhost:4200` no `.env`, para os links de convite apontarem para ele. Na IDE, rode a classe `SupplyChainVerdeApplication` com a raiz do projeto como diretório de trabalho, para ela encontrar o `.env`.
+
+### 5. Testar a imagem da API
+
+Rodando pela IDE, a API usa o seu JDK e a compilação do IntelliJ. A imagem Docker usa o JRE da imagem, o `./mvnw package` dentro do build e só os arquivos que o [`.dockerignore`](.dockerignore) deixa entrar. É essa imagem que vai para produção. Antes de abrir um PR que mexa em dependências, configuração, `Dockerfile` ou compose, suba a API pela imagem:
+
+```bash
+docker compose up -d --build api   # sobe o mysql antes, pelo depends_on
+docker compose logs -f api         # espere "Started SupplyChainVerdeApplication"
+docker compose stop api
+```
+
+A API em Docker não publica porta (RN-05). Na sua máquina, ela só é acessível pelo web, em `https://localhost`. Ela pode rodar ao mesmo tempo que a API da IDE, mas o front em `ng serve` e o Swagger em `localhost:8080` falam com a da IDE.
 
 ### Usuários Seed
 

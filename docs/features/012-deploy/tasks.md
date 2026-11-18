@@ -45,10 +45,11 @@ Depende da Task 2 e da Web Task 2 (imagem do web com o Caddy). Sem a imagem do w
 - [x] `TestcontainersConfiguration` registra `spring.datasource.password`, para o `.env` local não vazar nos testes
 - [x] README:
   - Quick Start com `.env` e `docker compose up -d --build`, sem `export`, e o `spring-boot:run` como opção para debug
+  - como testar a imagem da API localmente antes de um PR
   - seção **Deploy** com o passo a passo da VM (plan §7) e as contas de demonstração
   - tabela de variáveis com os nomes novos
 - [x] `docs/features/000-base/reference.md`: tabela de variáveis com os nomes novos
-- [ ] Teste de fumaça local (plan §9). Já validado sem o web: stack com senhas geradas, login, MySQL só no loopback, `spring-boot:run` sem `export` e `verify` com `.env` divergente. Falta o front door em `https://localhost`, que depende da Web Task 2
+- [ ] Teste de fumaça local (plan §9). Já validado sem o web: stack com senhas geradas, login, MySQL só no loopback, `spring-boot:run` sem `export` e `verify` com `.env` divergente. Também validado na máquina de quem desenvolve, com o volume que já existia: a API pela IDE, com login pelo front em `ng serve`, e a API pela imagem. Falta o front door em `https://localhost`, que depende da Web Task 2
 
 **Arquivos (~8):** `docker-compose.yml`, `.env.example`, `.gitignore`, `application.properties`, `TestcontainersConfiguration`, `README.md`, `reference.md`, `tasks.md`.
 
