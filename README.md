@@ -416,48 +416,77 @@ git clone https://github.com/matheusnascimentods/supply-chain-verde-api.git
 cd supply-chain-verde-api
 ```
 
-### 2. Subir o Banco de Dados MySQL
-O projeto disponibiliza um `docker-compose.yml` pré-configurado:
+### 2. Criar o `.env`
+
+O mesmo [`docker-compose.yml`](docker-compose.yml) roda na sua máquina e no servidor. A imagem e os serviços são os mesmos, e o que muda é o `.env`, que nunca vai para o Git. O compose e o `./mvnw spring-boot:run` leem esse arquivo, então nenhuma variável precisa ser exportada no terminal.
+
 ```bash
-docker compose up -d
+cp .env.example .env
 ```
-Isso iniciará o MySQL 8.4 na porta `3306` com o banco `supply_chain_verde`, em `America/Sao_Paulo` e collation `utf8mb4_0900_as_cs`. Na criação do volume, [`docker/mysql/init/01-users.sh`](docker/mysql/init/01-users.sh) cria os usuários `supply_app` (datasource da API, com a senha de `MYSQL_APP_PASSWORD`, que no compose de desenvolvimento é `supply_app`) e `supply_audit` (DEFINER das triggers, sem login). Um volume que já existe não muda: o init só roda na criação. O Flyway roda como `root`. Os testes com Testcontainers usam a mesma imagem, flags e init.
 
-O MySQL faz commit implícito a cada DDL: uma migration que falhe no meio deixa o schema pela metade. Em desenvolvimento, recrie o volume com `docker compose down -v`. Quem vinha do PostgreSQL também precisa recriar o banco do zero: não há cópia de dados.
-
-### 3. Configurar o envio de email
-
-O convite de usuários sai por email via [Twilio SendGrid](https://sendgrid.com). As três variáveis abaixo são obrigatórias e não têm valor padrão: sem elas, a API não sobe.
+O [`.env.example`](.env.example) já traz valores de desenvolvimento. Antes de subir, preencha:
 
 | Variável | Valor |
 | :--- | :--- |
+| `JWT_SECRET` | Saída de `openssl rand -hex 32`. Obrigatória e sem padrão: sem ela, a API não sobe |
 | `SENDGRID_API_KEY` | Chave criada em *Settings → API Keys*, com a permissão *Mail Send* |
 | `SENDGRID_FROM` | Email remetente, verificado no SendGrid |
-| `APP_FRONTEND_URL` | URL do front, usada no link do convite (ex.: `http://localhost:4200`) |
 
-Para verificar o remetente, vá em *Settings → Sender Authentication* e use uma destas opções:
+`MYSQL_ROOT_PASSWORD` e `MYSQL_APP_PASSWORD` vêm como `root` e `supply_app`, e `SITE_ADDRESS` vem como `localhost`. O arquivo usa o formato `KEY=valor`, sem `export`, aspas ou espaços em volta do `=`.
+
+#### Envio de email
+
+O convite de usuários sai por email via [Twilio SendGrid](https://sendgrid.com). Para verificar o remetente, vá em *Settings → Sender Authentication* e use uma destas opções:
 
 - **Single Sender Verification**: cadastre o email do `SENDGRID_FROM` e clique no link que o SendGrid envia para ele. É o caminho mais rápido para desenvolvimento.
 - **Domain Authentication**: publique no DNS os registros CNAME que o SendGrid indicar. Vale para qualquer endereço do domínio e melhora a entrega.
 
-Com um remetente não verificado, o SendGrid recusa o envio, e o `POST /api/v1/invites` responde 502 sem gravar o convite. Nos testes, o `EmailSender` é mockado, e nenhuma chamada chega ao SendGrid.
+Com um remetente não verificado, o SendGrid recusa o envio, e o `POST /api/v1/invites` responde 502 sem gravar o convite. O link do convite aponta para `https://<SITE_ADDRESS>`, ou para `APP_FRONTEND_URL` quando ela está definida. Nos testes, o `EmailSender` é mockado, e nenhuma chamada chega ao SendGrid.
 
-### 4. Executar a Aplicação
-
-`JWT_SECRET` também é obrigatória e não tem valor padrão. Gere uma chave com `openssl rand -hex 32`:
+### 3. Subir a stack
 
 ```bash
-export JWT_SECRET=$(openssl rand -hex 32)
-export SENDGRID_API_KEY=SG.xxxxx SENDGRID_FROM=noreply@seu-dominio.com APP_FRONTEND_URL=http://localhost:4200
+docker compose up -d --build
+```
+
+O compose sobe três containers: o MySQL, a API (montada com o código da sua máquina e o mesmo [`Dockerfile`](Dockerfile) do CI) e o web, com o Caddy na frente. Use sempre `--build`: sem ele, o compose roda a imagem que já estiver na máquina, que pode estar desatualizada.
+
+- App: **`https://localhost`**. Em `localhost`, o Caddy usa uma CA local, e o navegador pede para aceitar o certificado.
+- Swagger: **`https://localhost/swagger-ui.html`** e **`https://localhost/v3/api-docs`**
+
+O MySQL 8.4 sobe com o banco `supply_chain_verde`, em `America/Sao_Paulo` e collation `utf8mb4_0900_as_cs`. Ele publica a porta 3306 só em `127.0.0.1`, para a IDE. A API não publica porta, e só o web abre 80 e 443.
+
+Na criação do volume, [`docker/mysql/init/01-users.sh`](docker/mysql/init/01-users.sh) cria dois usuários:
+
+- `supply_app`: datasource da API, com a senha de `MYSQL_APP_PASSWORD`.
+- `supply_audit`: DEFINER das triggers, sem login.
+
+O Flyway roda como `root`. Os testes com Testcontainers usam a mesma imagem, flags e init.
+
+Um volume que já existe mantém as senhas com que foi criado, porque o init só roda na criação. Se o seu banco local foi criado com `root`/`supply_app`, mantenha esses valores no `.env`, ou recrie o volume com `docker compose down -v`. O MySQL faz commit implícito a cada DDL: uma migration que falhe no meio deixa o schema pela metade. Em desenvolvimento, recrie o volume.
+
+### 4. Rodar a API fora do Docker (debug)
+
+Para depurar na IDE ou rodar sem rebuild da imagem, suba só o banco e rode a API pelo Maven. Ela lê o mesmo `.env`:
+
+```bash
+docker compose up -d mysql
 ./mvnw spring-boot:run
 ```
 
-A API estará disponível em: **`http://localhost:8080`**
+A API fica em **`http://localhost:8080`**, e o Swagger em **`http://localhost:8080/swagger-ui.html`**. Com o front em `ng serve`, defina `APP_FRONTEND_URL=http://localhost:4200` no `.env`, para os links de convite apontarem para ele. Na IDE, rode a classe `SupplyChainVerdeApplication` com a raiz do projeto como diretório de trabalho, para ela encontrar o `.env`.
 
-A documentação interativa OpenAPI/Swagger fica disponível em:
+### 5. Testar a imagem da API
 
-- **`http://localhost:8080/swagger-ui.html`**
-- **`http://localhost:8080/v3/api-docs`**
+Rodando pela IDE, a API usa o seu JDK e a compilação do IntelliJ. A imagem Docker usa o JRE da imagem, o `./mvnw package` dentro do build e só os arquivos que o [`.dockerignore`](.dockerignore) deixa entrar. É essa imagem que vai para produção. Antes de abrir um PR que mexa em dependências, configuração, `Dockerfile` ou compose, suba a API pela imagem:
+
+```bash
+docker compose up -d --build api   # sobe o mysql antes, pelo depends_on
+docker compose logs -f api         # espere "Started SupplyChainVerdeApplication"
+docker compose stop api
+```
+
+A API em Docker não publica porta (RN-05). Na sua máquina, ela só é acessível pelo web, em `https://localhost`. Ela pode rodar ao mesmo tempo que a API da IDE, mas o front em `ng serve` e o Swagger em `localhost:8080` falam com a da IDE.
 
 ### Usuários Seed
 
@@ -482,9 +511,32 @@ Depois da V11, o seed fica assim:
 - **Lotes**: além dos lotes ativos do seed original, a V11 cria três lotes por fornecedor, cada um num mercado: um `PENDING`, um `ACTIVE` e um `REJECTED` (com motivo). Esses lotes não têm etapas, então não entram nos relatórios.
 - O Mercado Verde Demonstração, criado na V8, continua existindo, mas sem usuários, lotes nem relatórios.
 
-Essa credencial é exclusiva para o ambiente local/demonstrativo e deve ser substituída antes de qualquer uso em ambiente compartilhado ou de produção.
+Essas contas também existem em produção, como contas de demonstração, e qualquer um que tenha a senha pode alterar os dados delas. Isolar o que elas fazem (sandbox) fica para uma feature futura.
 
 O seed ampliado de demonstração é carregado pelas migrations padrão em `src/main/resources/db/migration`.
+
+---
+
+## 🚀 Deploy
+
+Funciona em qualquer VM Linux com Docker (Hostinger, DigitalOcean, AWS, GCP...). Na VM roda o mesmo `docker-compose.yml` do desenvolvimento, com a imagem publicada pelo CI em `ghcr.io/matheusnascimentods/supply-chain-verde-api` a cada push na `main`.
+
+1. **VM:** Ubuntu com Docker. No firewall, libere só as portas 22, 80 e 443.
+2. **DNS:** crie um registro `A` do domínio apontando para o IP da VM **antes** de subir a stack. O Caddy precisa dele para emitir o certificado.
+3. **Código:** `git clone` deste repositório na VM. Do repositório, o compose usa só o `docker-compose.yml` e o `docker/mysql/init`.
+4. **`.env`:** rode `cp .env.example .env` e preencha:
+   - `MYSQL_ROOT_PASSWORD` e `MYSQL_APP_PASSWORD`: gere cada uma com `openssl rand -hex 24`.
+   - `JWT_SECRET`: gere com `openssl rand -hex 32`.
+   - `SENDGRID_API_KEY` e `SENDGRID_FROM`: a chave e o remetente de produção.
+   - `SITE_ADDRESS`: o domínio, sem `https://`.
+5. **Subir:** `docker compose pull && docker compose up -d`. Na VM, não use `--build`: ela roda a imagem publicada.
+6. **Atualizar:** `git pull` (caso o compose ou o init tenham mudado) e repetir o passo 5. Para voltar a uma versão anterior, troque `:latest` por `:<sha do commit>` na imagem da API.
+
+Cuidados:
+
+- **Senhas:** o `.env` de produção fica só na VM. As senhas do MySQL valem a partir da criação do volume `mysql_data`. Perder esse volume apaga os dados, então faça um `mysqldump` antes de mexer na VM.
+- **Certificados:** o volume `caddy_data` guarda os certificados. Sem ele, cada restart pediria um certificado novo ao Let's Encrypt.
+- **Imagens:** os pacotes do GHCR precisam estar públicos. Se forem privados, a VM precisa de `docker login ghcr.io` com um token `read:packages`.
 
 ---
 
@@ -503,10 +555,10 @@ O seed ampliado de demonstração é carregado pelas migrations padrão em `src/
 # Empacotar artefato JAR final
 ./mvnw clean package
 
-# Parar o banco de dados Docker
+# Parar a stack
 docker compose down
 
-# Parar o banco de dados Docker removendo volumes de dados
+# Parar a stack removendo os volumes (banco e certificados)
 docker compose down -v
 ```
 
@@ -620,23 +672,25 @@ Cada item da página traz `batchId`, `productId`, `productName`, `supplierId`, `
 
 ## 🗂️ Variáveis de Ambiente & Configuração
 
-O projeto dispensa arquivos `.env` versionados. As configurações são centralizadas em [`application.properties`](src/main/resources/application.properties) e podem ser customizadas via variáveis de ambiente:
+As configurações ficam em [`application.properties`](src/main/resources/application.properties) e podem ser definidas no `.env` da raiz, que o compose e o `spring-boot:run` leem (veja o [`.env.example`](.env.example)), ou como variáveis de ambiente:
 
 | Variável de Ambiente | Descrição | Valor Default (Local) |
 | :--- | :--- | :--- |
-| `SERVER_PORT` | Porta de execução da API | `8080` |
-| `SPRING_DATASOURCE_URL` | URL JDBC do MySQL | `jdbc:mysql://localhost:3306/supply_chain_verde?connectionTimeZone=SERVER` |
-| `SPRING_DATASOURCE_USERNAME` | Usuário da API no banco; também recebe os grants da V6 | `supply_app` |
-| `SPRING_DATASOURCE_PASSWORD` | Senha do banco de dados | Configurar localmente; nunca usar default em ambientes compartilhados |
-| `FLYWAY_ENABLED` | Execução automática de migrations Flyway | `true` |
-| `FLYWAY_USER` / `FLYWAY_PASSWORD` | Admin que aplica as migrations (cria triggers com outro DEFINER e dá grants) | `root` / `root` |
+| `MYSQL_ROOT_PASSWORD` | Senha do `root` do MySQL. O init e o Flyway usam essa senha | `root` |
+| `MYSQL_APP_PASSWORD` | Senha do `supply_app`, o usuário da API no banco | `supply_app` |
 | `JWT_SECRET` | Chave HMAC de 256 bits para assinatura do token | Obrigatória, sem padrão: a API não sobe sem ela |
+| `SENDGRID_API_KEY` / `SENDGRID_FROM` | Chave e remetente do SendGrid | Obrigatórias, sem padrão |
+| `SITE_ADDRESS` | Domínio público. O Caddy emite o certificado para ele, e o link do convite usa `https://<SITE_ADDRESS>` | Obrigatória no compose; `localhost` no `.env.example` |
+| `APP_FRONTEND_URL` | URL do front no link do convite, no lugar de `https://<SITE_ADDRESS>` | Opcional |
+| `SERVER_PORT` | Porta de execução da API | `8080` |
+| `SPRING_DATASOURCE_URL` | URL JDBC do MySQL. O compose aponta para o serviço `mysql` | `jdbc:mysql://localhost:3306/supply_chain_verde?connectionTimeZone=SERVER` |
+| `SPRING_DATASOURCE_USERNAME` | Usuário da API no banco; também recebe os grants da V6 | `supply_app` |
+| `FLYWAY_ENABLED` | Execução automática de migrations Flyway | `true` |
+| `FLYWAY_USER` | Admin que aplica as migrations (cria triggers com outro DEFINER e dá grants) | `root` |
 | `JWT_EXPIRATION_MS` | Tempo de expiração do token em milissegundos | `3600000` (1 hora) |
-| `CORS_ALLOWED_ORIGINS` | Origem permitida para o frontend cliente | `http://localhost:4200` |
+| `CORS_ALLOWED_ORIGINS` | Origem permitida para o frontend cliente. Em produção, front e API ficam na mesma origem | `http://localhost:4200` |
 
----
-
-Em desenvolvimento local, exporte `JWT_SECRET` (passo 4 do Quick Start) e, se mudar a senha do `supply_app`, `SPRING_DATASOURCE_PASSWORD`. Em ambientes compartilhados ou de produção, esses valores devem ser obrigatoriamente fornecidos por secrets da plataforma e nunca devem ser credenciais previsíveis ou versionadas.
+Os padrões de senha só valem para desenvolvimento. Em produção, cada segredo é gerado com `openssl rand -hex` e fica só no `.env` da VM (veja [Deploy](#-deploy)).
 
 ## 🔒 Segurança & Boas Práticas
 

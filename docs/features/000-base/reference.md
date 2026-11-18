@@ -153,16 +153,18 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 | `SERVER_PORT` | Porta HTTP |
 | `SPRING_DATASOURCE_URL` | URL JDBC |
 | `SPRING_DATASOURCE_USERNAME` | Usuário MySQL da API |
-| `SPRING_DATASOURCE_PASSWORD` | Senha MySQL da API |
+| `MYSQL_APP_PASSWORD` | Senha MySQL da API (`supply_app`). Também é lida pelo init do MySQL |
+| `MYSQL_ROOT_PASSWORD` | Senha do `root` do MySQL, usada pelo Flyway e pelo init |
 | `JWT_SECRET` | Chave de assinatura JWT; obrigatória, sem padrão |
 | `JWT_EXPIRATION_MS` | Expiração do token |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas |
 | `FLYWAY_ENABLED` | Ativação do Flyway |
 | `SENDGRID_API_KEY` | Chave da API do Twilio SendGrid (permissão Mail Send). Obrigatória: a API não sobe sem ela |
 | `SENDGRID_FROM` | Remetente dos emails, verificado no SendGrid. Obrigatória |
-| `APP_FRONTEND_URL` | URL do front usada no link do convite (ex.: `http://localhost:4200`), nunca o `Host` da requisição. Obrigatória |
+| `SITE_ADDRESS` | Domínio público, servido pelo Caddy. Sem `APP_FRONTEND_URL`, o link do convite usa `https://<SITE_ADDRESS>` |
+| `APP_FRONTEND_URL` | URL do front usada no link do convite (ex.: `http://localhost:4200`), nunca o `Host` da requisição. Opcional: sem ela, vale `https://<SITE_ADDRESS>` |
 
-Segredos não devem ter valores reais, previsíveis ou versionados.
+Segredos não devem ter valores reais, previsíveis ou versionados. Eles ficam no `.env` da raiz, que não é versionado e é lido pelo compose e pelo `spring-boot:run` (feature 012).
 
 ## 8. Modelo de dados
 
