@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** Tasks 1 e 2 concluídas. Task 3 implementada, com o compose único (RN-11). Falta o teste de fumaça do front door, que depende da Web Task 2.
+**Status:** Tasks 1, 2 e 3 concluídas.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. Cada task mexe em até 15 arquivos. Specs contam, e apagar ou mover conta como um arquivo. A lista de arquivos é uma estimativa. As dependências "Web Task N" apontam para `supply-chain-verde-web/docs/features/011-deploy/tasks.md`.
 
@@ -49,7 +49,7 @@ Depende da Task 2 e da Web Task 2 (imagem do web com o Caddy). Sem a imagem do w
   - seção **Deploy** com o passo a passo da VM (plan §7) e as contas de demonstração
   - tabela de variáveis com os nomes novos
 - [x] `docs/features/000-base/reference.md`: tabela de variáveis com os nomes novos
-- [ ] Teste de fumaça local (plan §9). Já validado sem o web: stack com senhas geradas, login, MySQL só no loopback, `spring-boot:run` sem `export` e `verify` com `.env` divergente. Também validado na máquina de quem desenvolve, com o volume que já existia: a API pela IDE, com login pelo front em `ng serve`, e a API pela imagem. Falta o front door em `https://localhost`, que depende da Web Task 2
+- [x] Teste de fumaça local (plan §9). Validado sem o web: stack com senhas geradas, login, MySQL só no loopback, `spring-boot:run` sem `export` e `verify` com `.env` divergente. Também validado na máquina de quem desenvolve, com o volume que já existia: a API pela IDE, com login pelo front em `ng serve`, e a API pela imagem. O front door foi validado com a imagem do web buildada da Web Task 2, na rede do compose e com `SITE_ADDRESS=localhost`: SPA e F5 em `/dashboard`, login, Swagger e `/v3/api-docs` em HTTPS, com o certificado da CA local do Caddy, e redirecionamento de `http` para `https`. A 80 do host estava ocupada, então o teste usou as portas 8443 e 8081 no lugar da 443 e da 80
 
 **Arquivos (~8):** `docker-compose.yml`, `.env.example`, `.gitignore`, `application.properties`, `TestcontainersConfiguration`, `README.md`, `reference.md`, `tasks.md`.
 
