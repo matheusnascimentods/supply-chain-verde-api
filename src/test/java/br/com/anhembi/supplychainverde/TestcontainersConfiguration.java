@@ -29,6 +29,8 @@ public class TestcontainersConfiguration {
 	DynamicPropertyRegistrar mysqlProperties(MySQLContainer mysql) {
 		return registry -> {
 			registry.add("spring.datasource.url", mysql::getJdbcUrl);
+			// Fixa a senha do init: rodando da raiz, o .env local também é importado e poderia trocá-la.
+			registry.add("spring.datasource.password", () -> "supply_app");
 			registry.add("spring.flyway.user", mysql::getUsername);
 			registry.add("spring.flyway.password", mysql::getPassword);
 		};

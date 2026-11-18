@@ -1,24 +1,49 @@
+# Mesmo compose na máquina de quem desenvolve e na VM: o que muda é o .env (docs/features/012-deploy/plan.md §5).
+# Desenvolvimento: docker compose up -d --build. VM: docker compose pull && docker compose up -d.
 services:
   mysql:
     image: mysql:8.4
-    container_name: supply-chain-verde-db
     restart: unless-stopped
     command: --default-time-zone=America/Sao_Paulo --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_as_cs
     environment:
       MYSQL_DATABASE: supply_chain_verde
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_APP_PASSWORD: supply_app
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina no .env}
+      MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD:?defina no .env}
+    # Só no loopback: a IDE alcança, e de fora da máquina não responde (RN-05).
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+
+  api:
+    image: ghcr.io/matheusnascimentods/supply-chain-verde-api:latest
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql: { condition: service_healthy }
+    # Os nomes do .env são os que o application.properties lê; só a URL do banco muda dentro da rede.
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/supply_chain_verde?connectionTimeZone=SERVER
+
+  web:
+    image: ghcr.io/matheusnascimentods/supply-chain-verde-web:latest
+    restart: unless-stopped
+    depends_on: [api]
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?defina no .env}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   mysql_data:
-    driver: local
+  caddy_data:
+  caddy_config:
