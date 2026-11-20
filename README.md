@@ -402,6 +402,11 @@ Os Pull Requests executam automaticamente:
 
 O CodeQL usa Java 25 explicitamente e não exige token externo. O Dependency Review depende do Dependency Graph habilitado nas configurações de segurança do repositório.
 
+Em push na `main`, depois dos testes, o CI também:
+
+- publica a imagem no GHCR (job `publish`);
+- atualiza a VM de produção (job `deploy`). Veja [Deploy automático](#deploy-automático).
+
 ---
 
 ## ⚡ Quick Start (com Docker Compose)
@@ -537,6 +542,47 @@ Cuidados:
 - **Senhas:** o `.env` de produção fica só na VM. As senhas do MySQL valem a partir da criação do volume `mysql_data`. Perder esse volume apaga os dados, então faça um `mysqldump` antes de mexer na VM.
 - **Certificados:** o volume `caddy_data` guarda os certificados. Sem ele, cada restart pediria um certificado novo ao Let's Encrypt.
 - **Imagens:** os pacotes do GHCR precisam estar públicos. Se forem privados, a VM precisa de `docker login ghcr.io` com um token `read:packages`.
+
+### Produção na AWS
+
+Produção roda numa EC2 `t3.small` com Ubuntu 24.04 em `us-east-2`, com Elastic IP e domínio `<ip-com-hífens>.sslip.io`. O custo é de cerca de US$ 20,50/mês. As escolhas da VM, da rede e do deploy estão na [ADR 0005](docs/adr/0005-deploy-na-aws-com-ssm.md).
+
+| Peça | Configuração |
+|---|---|
+| Security group | SSH (22) só do IP de quem administra; HTTP (80) e HTTPS (443) abertos |
+| User data | Instala o Docker e cria 2 GiB de swap no primeiro boot |
+| Proteção | Termination protection ligada; shutdown faz *stop*, nunca *terminate* |
+| Role da instância | `supply-chain-verde-ec2-ssm`, com `AmazonSSMManagedInstanceCore` |
+| Usuário do CI | `github-deploy`, com a policy `supply-chain-verde-deploy` |
+
+### Deploy automático
+
+Todo merge na `main` chega sozinho à VM:
+
+```
+merge → testes → publish (imagem no GHCR) → deploy:
+  aws ssm send-command → a VM roda, como ubuntu:
+    cd ~/supply-chain-verde-api && git pull -q
+    docker compose pull <serviço> && docker compose up -d <serviço>
+```
+
+- **SSM em vez de SSH:** o agente do SSM, que já vem no Ubuntu da AWS, mantém uma conexão de saída com a AWS e executa o comando. Nenhuma porta de entrada é aberta para o CI.
+- **Credencial:** a chave do usuário IAM `github-deploy`, nos secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` deste repositório e do web. A policy dele só permite mandar comando para esta instância.
+- **Um serviço por repositório:** este repositório recria o `api`, e o web recria o `web`. O MySQL não reinicia, e um container só é recriado se a imagem mudou.
+- **Resultado no GitHub:** o job espera o comando (até 10 min), mostra a saída do `docker compose` no passo *Update the VM* e falha se o status não for `Success`.
+
+Cuidados:
+
+- **Migrations:** rodam sozinhas quando a API reinicia com uma imagem nova, e o Flyway não as desfaz. Faça um backup antes de mergear uma:
+
+  ```bash
+  docker compose exec mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" supply_chain_verde' > ~/backup.sql
+  ```
+
+- **Indisponibilidade:** a cada deploy, a API fica fora por cerca de 30-60 s, e o web por 1-2 s.
+- **Rollback:** reverta o PR (o revert passa pelo mesmo fluxo), ou troque `:latest` por `:<sha>` no compose da VM e rode `docker compose up -d <serviço>`.
+- **Rotação da chave:** se a chave do `github-deploy` vazar, desative-a no IAM, gere outra e atualize os secrets nos dois repositórios.
+- **Histórico:** cada execução fica em *Systems Manager → Run Command → Command history*.
 
 ---
 
