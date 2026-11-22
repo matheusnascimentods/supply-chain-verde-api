@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** não iniciada.
+**Status:** Task 1 concluída; Task 2 pendente.
 
 As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. A task do frontend (`supply-chain-verde-web/docs/features/012-rate-limit/tasks.md`) não depende destas para o merge, porque testa com `cy.intercept`. Mas só tem efeito em produção depois da Task 1.
 
@@ -10,11 +10,11 @@ As tasks são sequenciais, e cada uma deixa o `./mvnw verify` verde. A task do f
 
 ## Task 1 — `feat/rate-limit`
 
-- [ ] `RateLimitFilter` com janela fixa, chave por usuário ou IP e limites estritos (plan §2)
-- [ ] Registro no `SecurityConfig` depois do `JwtAuthenticationFilter`, condicionado a `rate-limit.enabled` (plan §3)
-- [ ] `rate-limit.enabled=true` no `application.properties` e `false` na configuração de testes (plan §5)
-- [ ] `RateLimitFilterTest` com o relógio controlado (plan §6)
-- [ ] `RateLimitIT` com `rate-limit.enabled=true` (plan §6)
+- [x] `RateLimitFilter` com janela fixa, chave por usuário ou IP e limites estritos (plan §2)
+- [x] Registro no `SecurityConfig` depois do `JwtAuthenticationFilter`, condicionado a `rate-limit.enabled` (plan §3)
+- [x] `rate-limit.enabled=true` no `application.properties` e `false` na configuração de testes (plan §5)
+- [x] `RateLimitFilterTest` com o relógio controlado (plan §6)
+- [x] `RateLimitIT` com `rate-limit.enabled=true` (plan §6)
 
 **Arquivos (~6):** `RateLimitFilter`, `SecurityConfig`, `application.properties`, `src/test/resources/config/application.properties`, `RateLimitFilterTest`, `RateLimitIT`.
 
