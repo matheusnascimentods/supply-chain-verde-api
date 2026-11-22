@@ -47,7 +47,7 @@ dashboard: GetSummary, GetMonthlyEmissions
 
 ## 4. Rotas
 
-Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companhia do usuário (RN-12 a RN-14) e toda escrita fora do escopo dele retorna 403 (RN-15). O `PLATFORM_ADMIN` herda as regras de `ADMIN` e vê todas as companhias.
+Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companhia do usuário (RN-12 a RN-14) e toda escrita fora do escopo dele retorna 403 (RN-15). O `PLATFORM_ADMIN` herda as regras de `ADMIN` e vê todas as companhias. Desde a feature 013, qualquer rota pode responder `429` (veja [Segurança](#6-segurança)).
 
 | Recurso | Rotas principais | Acesso e escopo |
 |---|---|---|
@@ -142,8 +142,15 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 - `JWT_SECRET` é obrigatório, sem valor padrão (a API não sobe sem ele), e deve ter pelo menos 256 bits.
 - Rotas públicas: login, `GET /plans`, `POST /companies`, `GET /invites/{token}`, `POST /invites/accept`, rastreabilidade e pegada de carbono.
 - Token de convite: 32 bytes de `SecureRandom` em base64url no link `<APP_FRONTEND_URL>/convites/<token>`; o banco guarda só o SHA-256. Vale 24h e uma vez. Veja a [ADR 0004](../../adr/0004-token-de-convite-opaco-com-hash.md).
-- Risco conhecido: `POST /companies` é público e não tem confirmação de email, captcha nem rate limit (fora de escopo da feature 010).
-- Risco conhecido: `batchId` sequencial exposto publicamente pode permitir enumeração; avaliar rate limiting ou UUID público.
+- Rate limit (feature 013), em memória e com janela fixa de 1 minuto:
+  - **Global:** 120 requisições por minuto em todas as rotas, contadas por `userId` quando há JWT válido e por IP quando não há.
+  - **Estrito por IP**, somado ao global: `POST /auth/login` 5, `POST /invites/accept` 5, `GET /invites/{token}` 10 e `POST /companies` 3.
+  - **Bloqueio:** passou do limite, a resposta é `429` com `Retry-After` (segundos até o fim da janela) e `{ "message": "Muitas requisições. Tente novamente em instantes." }`.
+  - **IP:** é o do `X-Forwarded-For` gravado pelo Caddy, que descarta o header vindo do cliente.
+  - **Limites:** os contadores zeram num restart e valem para uma instância só. Desligado na configuração de testes (`rate-limit.enabled=false`).
+  - Detalhes em [`docs/features/013-rate-limit`](../013-rate-limit/spec.md).
+- Risco conhecido: `POST /companies` é público e não tem confirmação de email nem captcha. O rate limit (3 por minuto por IP) reduz o cadastro em massa, mas não impede o que vem de muitos IPs.
+- Risco conhecido: `batchId` sequencial exposto publicamente pode permitir enumeração. O limite global (120 por minuto por IP) torna a enumeração lenta, mas não a impede; um UUID público resolveria.
 
 ## 7. Variáveis de ambiente
 
