@@ -1,0 +1,103 @@
+package br.com.anhembi.supplychainverde.infrastructure.web;
+
+import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
+import br.com.anhembi.supplychainverde.domain.entity.User;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
+import br.com.anhembi.supplychainverde.domain.enums.UserRole;
+import br.com.anhembi.supplychainverde.infrastructure.security.JwtTokenProvider;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Feature 013 com a cadeia real do Spring Security: prova que o RateLimitFilter roda depois do JwtAuthenticationFilter.
+ * A lógica de contagem fica no RateLimitFilterTest. O limite é ligado só aqui, num contexto próprio, e cada teste usa
+ * um IP diferente para não consumir o limite do outro.
+ */
+@Import(TestcontainersConfiguration.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(properties = "rate-limit.enabled=true")
+class RateLimitIT {
+    private static final int GLOBAL_LIMIT = 120;
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    @Test
+    void twoUsersBehindTheSameIpHaveSeparateLimits() throws Exception {
+        String ana = token(1001L);
+        String bruno = token(1002L);
+
+        for (int i = 0; i < GLOBAL_LIMIT; i++) {
+            mockMvc.perform(plans("10.1.0.1", ana)).andExpect(status().isOk());
+        }
+
+        mockMvc.perform(plans("10.1.0.1", ana))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
+        mockMvc.perform(plans("10.1.0.1", bruno)).andExpect(status().isOk());
+    }
+
+    @Test
+    void theSixthLoginFromTheSameIpIsRejected() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(login("10.1.0.2")).andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(login("10.1.0.2"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER))
+                .andExpect(jsonPath("$.message").value("Muitas requisições. Tente novamente em instantes."));
+    }
+
+    // Um JWT inválido não autentica: a requisição conta pelo IP, junto com as que vêm sem token.
+    @Test
+    void anInvalidTokenCountsByIp() throws Exception {
+        for (int i = 0; i < GLOBAL_LIMIT; i++) {
+            mockMvc.perform(plans("10.1.0.3", "invalido")).andExpect(status().isOk());
+        }
+
+        mockMvc.perform(get("/api/v1/plans").with(ip("10.1.0.3"))).andExpect(status().isTooManyRequests());
+    }
+
+    private MockHttpServletRequestBuilder plans(String ip, String token) {
+        return get("/api/v1/plans").with(ip(ip)).header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+    }
+
+    private MockHttpServletRequestBuilder login(String ip) {
+        return post("/api/v1/auth/login").with(ip(ip))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"ninguem@rate.test\",\"password\":\"errada\"}");
+    }
+
+    // GET /plans não lê o usuário do banco, então o token não precisa de linha em users.
+    private String token(long userId) {
+        User user = User.builder().userId(userId).email("u" + userId + "@rate.test").role(UserRole.ADMIN).companyId(1L).build();
+        return jwtTokenProvider.generateToken(user, CompanyType.MARKET);
+    }
+
+    private static RequestPostProcessor ip(String address) {
+        return request -> {
+            request.setRemoteAddr(address);
+            return request;
+        };
+    }
+}

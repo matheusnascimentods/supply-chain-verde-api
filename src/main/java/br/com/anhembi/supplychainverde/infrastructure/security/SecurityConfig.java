@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -28,6 +29,10 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
+
+    // Feature 013, plan §5: desligado só nos testes, em que todos os ITs dividem o IP 127.0.0.1.
+    @Value("${rate-limit.enabled}")
+    private boolean rateLimitEnabled;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -89,6 +94,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/audit-logs/**").hasAnyRole("ADMIN", "AUDITOR")
                         .anyRequest().authenticated());
 
+        // Depois do JWT, para contar por usuário (RN-02); só depois dele registrado a ordem é conhecida.
+        // O CorsFilter vem antes: preflight não conta (RN-06).
+        if (rateLimitEnabled) {
+            http.addFilterAfter(new RateLimitFilter(System::currentTimeMillis), JwtAuthenticationFilter.class);
+        }
         return http.build();
     }
 
