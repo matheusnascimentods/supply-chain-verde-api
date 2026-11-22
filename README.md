@@ -595,8 +595,8 @@ Cuidados:
 # Rodar os testes unitários (*Test)
 ./mvnw test
 
-# Rodar também os testes de integração com Testcontainers (*IT); exige Docker
-./mvnw test -Dtest='*IT,*Test,*Tests'
+# Rodar também os testes de integração com Testcontainers (*IT, pelo failsafe); exige Docker
+./mvnw verify
 
 # Empacotar artefato JAR final
 ./mvnw clean package
@@ -746,6 +746,30 @@ Os padrões de senha só valem para desenvolvimento. Em produção, cada segredo
 - **Criptografia Segura de Senhas**: Hashes gerados via `BCryptPasswordEncoder` através da abstração `PasswordHasher`.
 - **Proteção de Integridade & Auditoria**: Triggers MySQL registram usuário, ação, tabela/entidade e snapshots. A aplicação define `@app_user_id` antes de cada escrita, limpa ao fim da transação, e só tem `SELECT` em `audit_log`.
 - **Clean Architecture & DDD**: Desacoplamento completo entre modelo relacional de banco e entidades de negócio.
+- **Rate limit**: 120 requisições por minuto em todas as rotas, por usuário (ou por IP, sem login). O login e o aceite de convite aceitam 5 por minuto por IP, a consulta de convite 10 e o cadastro de empresa 3. Quem passa do limite recebe `429` com `Retry-After`. Os contadores ficam em memória, então valem para uma instância só. Detalhes em [`docs/features/013-rate-limit`](docs/features/013-rate-limit/spec.md).
+
+### Testando o rate limit
+
+Com a stack no ar (`docker compose up -d`), pelo Caddy. Troque `https://localhost` pelo endereço do `SITE_ADDRESS`.
+
+```bash
+# 1. Login: 5 respostas 401 e depois 429
+for i in $(seq 1 7); do
+  curl -sk -o /dev/null -w '%{http_code}\n' -X POST https://localhost/api/v1/auth/login \
+    -H 'Content-Type: application/json' -d '{"email":"x@x.com","password":"errada"}'
+done
+
+# 2. X-Forwarded-For forjado não escapa: continua 429, porque o Caddy descarta o header
+curl -sk -o /dev/null -w '%{http_code}\n' -X POST https://localhost/api/v1/auth/login \
+  -H 'X-Forwarded-For: 203.0.113.9' -H 'Content-Type: application/json' -d '{"email":"x@x.com","password":"errada"}'
+
+# 3. Limite global por usuário: com um token válido (TOKEN), 120 respostas 200 e depois 429
+for i in $(seq 1 125); do
+  curl -sk -o /dev/null -w '%{http_code}\n' https://localhost/api/v1/users/me -H "Authorization: Bearer $TOKEN"
+done | sort | uniq -c
+```
+
+Gere o `TOKEN` (pelo login de um usuário seed) antes do cenário 1. Depois dele, o login desse IP fica bloqueado até o minuto virar.
 
 ---
 
