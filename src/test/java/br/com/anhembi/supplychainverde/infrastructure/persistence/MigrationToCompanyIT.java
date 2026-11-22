@@ -52,8 +52,8 @@ class MigrationToCompanyIT {
     void usersMovedToTheirCompaniesWithOnePlatformAdmin() {
         assertThat(jdbcTemplate.queryForList("SELECT email FROM users WHERE role = 'PLATFORM_ADMIN'", String.class))
                 .containsExactly("m.neuer@bayern.com");
-        // Os 6 usuários SUPPLIER do seed viraram ADMIN do próprio fornecedor.
-        assertThat(count("SELECT COUNT(*) FROM users WHERE role = 'SUPPLIER'")).isZero();
+        // Os 6 usuários SUPPLIER do seed viraram ADMIN do próprio fornecedor. Os SUPPLIER da V11 são criados depois.
+        assertThat(count("SELECT COUNT(*) FROM users WHERE role = 'SUPPLIER' AND created_at < '2026-10-30'")).isZero();
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT CONCAT(role, ':', company_id) FROM users WHERE email = 'd.upamecano@bayern.com'", String.class))
                 .isEqualTo("ADMIN:3");
@@ -84,11 +84,14 @@ class MigrationToCompanyIT {
                 WHERE c.cnpj IN ('20202020000152', '30303030000138', '40404040000113')
                 GROUP BY c.id, c.name, p.code
                 """, String.class))
-                .containsExactlyInAnyOrder("Mercado Bom Preço:PRO:8:1", "Supermercado Vale Verde:PRO:8:1", "Rede Feira Viva:PRO:8:1");
-        // Os lotes e os relatórios de um fornecedor ficam no mesmo mercado.
+                // 8 da V10 + um MANAGER e um AUDITOR da V11, que completam os 10 do plano PRO.
+                .containsExactlyInAnyOrder("Mercado Bom Preço:PRO:10:1", "Supermercado Vale Verde:PRO:10:1", "Rede Feira Viva:PRO:10:1");
+        // Os lotes com etapas e os relatórios de um fornecedor ficam no mesmo mercado. Os lotes da V11 não têm etapas
+        // e ficam um em cada mercado.
         assertThat(count("""
                 SELECT COUNT(*) FROM report r
-                WHERE EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = r.supplier_id AND b.market_id <> r.market_id)
+                WHERE EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = r.supplier_id AND b.market_id <> r.market_id
+                              AND EXISTS (SELECT 1 FROM chain c WHERE c.batch_id = b.id))
                 """)).isZero();
         assertThat(count("SELECT COUNT(*) FROM audit_log WHERE affected_table = 'users' AND affected_entity_id > 22")).isZero();
     }
@@ -97,9 +100,13 @@ class MigrationToCompanyIT {
     void batchesAndReportsBelongToTheMarketAndProductsToTheirSupplier() {
         assertThat(count("SELECT COUNT(*) FROM batch b JOIN product p ON p.id = b.product_id WHERE p.supplier_id <> b.supplier_id"))
                 .isZero();
+        assertThat(count("SELECT COUNT(*) FROM batch b JOIN company m ON m.id = b.market_id WHERE m.type <> 'MARKET'"))
+                .isZero();
+        // Os lotes do seed (com etapas) ficaram ACTIVE. A V11 cria PENDING e REJECTED sem etapas, com datas anteriores.
         assertThat(count("""
-                SELECT COUNT(*) FROM batch b JOIN company m ON m.id = b.market_id
-                WHERE b.created_at < '2026-10-30' AND (b.status <> 'ACTIVE' OR m.type <> 'MARKET')
+                SELECT COUNT(*) FROM batch b
+                WHERE b.created_at < '2026-10-30' AND b.status <> 'ACTIVE'
+                  AND EXISTS (SELECT 1 FROM chain c WHERE c.batch_id = b.id)
                 """)).isZero();
         // RN-28: os 52 produtos do seed continuam existindo, com cópias para os fornecedores extras.
         assertThat(count("SELECT COUNT(*) FROM product WHERE id <= 52")).isEqualTo(52);

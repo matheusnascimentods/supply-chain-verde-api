@@ -93,8 +93,9 @@ class ReportDetailIT {
                 BigDecimal.class, supplierId, day);
     }
 
-    // V10: os lotes de cada fornecedor ficam num mercado só; o relatório e o leitor são desse mercado.
-    private static final String MARKET_OF_SUPPLIER = "(SELECT MIN(market_id) FROM batch WHERE supplier_id = ?)";
+    // O mercado dos lotes com emissão do fornecedor; o relatório e o leitor são desse mercado. Desde a V11 o fornecedor
+    // também tem lotes sem etapas nos outros mercados, então o menor market_id de batch pode não ter emissão nenhuma.
+    private static final String MARKET_OF_SUPPLIER = "(SELECT MIN(market_id) FROM vw_stage_emission WHERE supplier_id = ?)";
 
     private UsernamePasswordAuthenticationToken asMarketOf(Long supplierId) {
         Long marketId = jdbcTemplate.queryForObject("SELECT " + MARKET_OF_SUPPLIER, Long.class, supplierId);
