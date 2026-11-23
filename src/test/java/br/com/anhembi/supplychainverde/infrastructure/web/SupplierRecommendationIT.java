@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.web;
 
 import br.com.anhembi.supplychainverde.TestcontainersConfiguration;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +10,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import br.com.anhembi.supplychainverde.TestPrincipals;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,10 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
 class SupplierRecommendationIT {
     // Todos os fornecedores do teste têm este termo no nome e esta raiz de CNPJ. O FULLTEXT do InnoDB só vê
-    // linhas commitadas, então os testes transacionais isolam pelo CNPJ; o de busca por nome faz commit.
+    // linhas commitadas, então os testes fazem commit e o @AfterEach apaga o que criaram.
     private static final String SEARCH = "Zpkrecomenda";
     private static final String CNPJ_ROOT = "98765432";
 
@@ -44,9 +41,6 @@ class SupplierRecommendationIT {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
 
     private long addressId;
     private long userId;
@@ -58,6 +52,18 @@ class SupplierRecommendationIT {
                 VALUES ('Rua Teste', '1', 'Centro', '01000000', 'São Paulo', 'SP')
                 """);
         userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users", Long.class);
+    }
+
+    @AfterEach
+    void tearDown() {
+        String supplierIds = "SELECT id FROM company WHERE cnpj LIKE '" + CNPJ_ROOT + "%'";
+        jdbcTemplate.update("DELETE FROM carbon_emission WHERE chain_id IN (SELECT c.id FROM chain c JOIN batch b ON b.id = c.batch_id"
+                + " WHERE b.supplier_id IN (" + supplierIds + "))");
+        jdbcTemplate.update("DELETE FROM chain WHERE batch_id IN (SELECT id FROM batch WHERE supplier_id IN (" + supplierIds + "))");
+        jdbcTemplate.update("DELETE FROM batch WHERE supplier_id IN (" + supplierIds + ")");
+        jdbcTemplate.update("DELETE FROM product WHERE supplier_id IN (" + supplierIds + ")");
+        jdbcTemplate.update("DELETE FROM company WHERE cnpj LIKE ?", CNPJ_ROOT + "%");
+        jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
     }
 
     @Test
@@ -97,21 +103,16 @@ class SupplierRecommendationIT {
 
     // Cada palavra é obrigatória e casa por prefixo, sem diferenciar maiúsculas.
     @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void searchesNameByEveryTermAsPrefix() throws Exception {
-        long supplierId = transactionTemplate.execute(status -> supplier("Cooperativa Sustentável", "98765432000198"));
-        try {
-            mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", "zpkrecom sustent"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.items", hasSize(1)))
-                    .andExpect(jsonPath("$.items[0].supplierId").value(supplierId));
-            mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", SEARCH + " inexistente"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.items", hasSize(0)));
-        } finally {
-            jdbcTemplate.update("DELETE FROM company WHERE id = ?", supplierId);
-            jdbcTemplate.update("DELETE FROM address WHERE id = ?", addressId);
-        }
+        long supplierId = supplier("Cooperativa Sustentável", "98765432000198");
+
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", "zpkrecom sustent"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].supplierId").value(supplierId));
+        mockMvc.perform(get("/api/v1/suppliers").with(asMarket()).param("ranked", "true").param("search", SEARCH + " inexistente"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test

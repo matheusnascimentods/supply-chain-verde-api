@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Task 1 concluída).
+**Status:** em andamento (Tasks 1 e 2 concluídas).
 
 Esta feature vem **antes** da `015-gestao-produtos`, que usa o `FullTextSearch` e a collation daqui. As tasks são sequenciais, cada uma mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A task do frontend (`supply-chain-verde-web/docs/features/013-busca-full-text/tasks.md`) é a verificação manual das searchbars depois da Task 3.
 
@@ -24,10 +24,10 @@ Esta feature vem **antes** da `015-gestao-produtos`, que usa o `FullTextSearch` 
 
 Depende da Task 1 (`ft_company_cnpj` e `cnpjQuery`).
 
-- [ ] `CompanyJpaRepository`: nas 4 queries, `cnpj LIKE` vira `MATCH(s.cnpj)` e o `:search = ''` vira a guarda do plan §4
-- [ ] `CompanyRepositoryImpl`: passa `cnpjQuery(search)` no lugar dos dígitos crus e para de passar o `search` cru
-- [ ] `FullTextSearchIT`: CNPJ com e sem máscara, e "--" listando tudo
-- [ ] Ajustar `SupplierRecommendationIT`, se ele contar com o `LIKE` no meio do CNPJ
+- [x] `CompanyJpaRepository`: nas 4 queries, `cnpj LIKE` vira `MATCH(s.cnpj)` e o `:search = ''` vira a guarda do plan §4
+- [x] `CompanyRepositoryImpl`: passa `cnpjQuery(search)` no lugar dos dígitos crus e para de passar o `search` cru
+- [x] `FullTextSearchIT`: CNPJ com e sem máscara, e "--" listando tudo
+- [x] Ajustar `SupplierRecommendationIT`, se ele contar com o `LIKE` no meio do CNPJ
 
 **Arquivos (~4):** `CompanyJpaRepository`, `CompanyRepositoryImpl`, `FullTextSearchIT`, `SupplierRecommendationIT`.
 

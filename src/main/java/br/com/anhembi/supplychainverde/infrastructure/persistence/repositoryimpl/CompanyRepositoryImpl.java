@@ -54,8 +54,7 @@ public class CompanyRepositoryImpl implements CompanyRepository {
     @Override
     @Transactional(readOnly = true)
     public List<Company> findBySearch(String search) {
-        String cnpjSearch = search.replaceAll("\\D", "");
-        return jpaRepository.findBySearch(FullTextSearch.booleanQuery(search), cnpjSearch).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findBySearch(FullTextSearch.booleanQuery(search), FullTextSearch.cnpjQuery(search)).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -75,9 +74,8 @@ public class CompanyRepositoryImpl implements CompanyRepository {
         return jpaRepository.findRankedByEmission(
                 category == null ? null : category.name(),
                 unit == null ? null : unit.name(),
-                search,
                 FullTextSearch.booleanQuery(search),
-                search.replaceAll("\\D", ""),
+                FullTextSearch.cnpjQuery(search),
                 workedWithOnly,
                 marketId,
                 limit,
@@ -86,13 +84,13 @@ public class CompanyRepositoryImpl implements CompanyRepository {
 
     @Override
     public long countBySearch(String search, boolean workedWithOnly, Long marketId) {
-        return jpaRepository.countBySearch(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""),
+        return jpaRepository.countBySearch(FullTextSearch.booleanQuery(search), FullTextSearch.cnpjQuery(search),
                 workedWithOnly, marketId);
     }
 
     @Override
     public List<Long> findIdsRankedByScore(String search, boolean workedWithOnly, Long marketId, int limit, int offset) {
-        return jpaRepository.findIdsRankedByScore(search, FullTextSearch.booleanQuery(search), search.replaceAll("\\D", ""),
+        return jpaRepository.findIdsRankedByScore(FullTextSearch.booleanQuery(search), FullTextSearch.cnpjQuery(search),
                 workedWithOnly, marketId, limit, offset);
     }
 
