@@ -122,6 +122,6 @@ class FullTextSearchIT {
     }
 
     private List<Long> productIds(String search) {
-        return listProducts.execute(1000, 0, search, null).items().stream().map(ProductResponseDTO::productId).toList();
+        return listProducts.execute(1000, 0, search, null, null, null, null, false).items().stream().map(ProductResponseDTO::productId).toList();
     }
 }
