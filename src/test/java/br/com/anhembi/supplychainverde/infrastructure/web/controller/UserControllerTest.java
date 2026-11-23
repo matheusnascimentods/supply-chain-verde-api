@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.usecase.user.ListUsersUseCase;
+import br.com.anhembi.supplychainverde.application.usecase.user.SetUserStatusUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.UpdateUserRoleUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.user.UpdateOwnUserUseCase;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
@@ -18,7 +19,7 @@ import static org.mockito.Mockito.verify;
 class UserControllerTest {
     private final ListUsersUseCase listUsers = mock(ListUsersUseCase.class);
     private final UpdateUserRoleUseCase updateRole = mock(UpdateUserRoleUseCase.class);
-    private final UserController controller = new UserController(updateRole, listUsers, mock(UpdateOwnUserUseCase.class),
+    private final UserController controller = new UserController(updateRole, mock(SetUserStatusUseCase.class), listUsers, mock(UpdateOwnUserUseCase.class),
             mock(UserRepository.class), mock(CompanyRepository.class), DtoMappers.USER);
     private final CustomUserPrincipal admin = TestPrincipals.market(1L, "ADMIN", 40L);
 

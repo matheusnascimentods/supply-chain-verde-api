@@ -34,14 +34,16 @@ public class UpdateUserRoleUseCase {
             throw new AccessDeniedException("Usuário de outra companhia.");
         }
         if (companyId == null) throw new ValidationException("O perfil do PLATFORM_ADMIN não muda por endpoint.");
+        if (!user.isActive()) throw new ConflictException("Usuário desativado: reative-o antes de trocar o perfil.");
         Company company = companyRepository.findById(companyId).orElseThrow(() -> new CompanyNotFoundException(companyId));
         if (!request.role().allowedFor(company.getType())) {
             throw new ValidationException("Perfil " + request.role() + " não é permitido em companhia " + company.getType() + ".");
         }
-        // RN-08: com o lock, duas trocas simultâneas não deixam a companhia sem ADMIN.
+        // RN-08 (010), contando só os ativos (RN-07 da 016): com o lock, duas trocas simultâneas não deixam a companhia
+        // sem ADMIN.
         companyRepository.lockById(companyId);
         if (user.getRole() == UserRole.ADMIN && request.role() != UserRole.ADMIN
-                && userRepository.countByCompanyIdAndRole(companyId, UserRole.ADMIN) <= 1) {
+                && userRepository.countActiveByCompanyIdAndRole(companyId, UserRole.ADMIN) <= 1) {
             throw new ConflictException("A companhia precisa de pelo menos um ADMIN.");
         }
         user.updateRole(request.role());

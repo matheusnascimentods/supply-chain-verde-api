@@ -19,9 +19,14 @@ public interface UserRepository {
 
     long countPage(String email, Long companyId);
 
-    long countByCompanyId(Long companyId);
+    /** Usuários ativos: ocupam assento (RN-02 da 016). */
+    long countActiveByCompanyId(Long companyId);
 
-    long countByCompanyIdAndRole(Long companyId, UserRole role);
+    /** RN-07 (016): a companhia sempre tem um ADMIN ativo. */
+    long countActiveByCompanyIdAndRole(Long companyId, UserRole role);
+
+    /** RN-11 (016): usuário inexistente conta como inativo. */
+    boolean isActive(Long userId);
 
     boolean existsByEmail(String email);
 

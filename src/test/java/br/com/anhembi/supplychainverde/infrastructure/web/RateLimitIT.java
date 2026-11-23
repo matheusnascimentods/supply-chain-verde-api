@@ -12,10 +12,13 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,10 +44,16 @@ class RateLimitIT {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void twoUsersBehindTheSameIpHaveSeparateLimits() throws Exception {
-        String ana = token(1001L);
-        String bruno = token(1002L);
+        // Usuários reais do seed: o filtro JWT só autentica quem existe e está ativo (RN-11 da 016).
+        List<Long> ids = jdbcTemplate.queryForList(
+                "SELECT id FROM users WHERE company_id IS NOT NULL ORDER BY id LIMIT 2", Long.class);
+        String ana = token(ids.get(0));
+        String bruno = token(ids.get(1));
 
         for (int i = 0; i < GLOBAL_LIMIT; i++) {
             mockMvc.perform(plans("10.1.0.1", ana)).andExpect(status().isOk());

@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** planejada.
+**Status:** em andamento (Tasks 1 e 2 concluídas).
 
 Cada task mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A dependência "web Task N" aponta para `supply-chain-verde-web/docs/features/015-assinatura-assentos/tasks.md`.
 
@@ -14,13 +14,15 @@ Ordem entre os repositórios: **API Task 1 → web Task 1 → web Task 2 → API
 
 Só acrescenta: `GET /plans` e `plan` continuam, para o web atual não quebrar.
 
-- [ ] `V16__company_max_users.sql`: coluna, check e os triggers de `company` (plan §1)
-- [ ] `Company`, `CompanyJpaEntity` e o mapper com `maxUsers`
-- [ ] `SeatPolicy` com `requireFreeSeat` e `seatsUsed` (plan §2)
-- [ ] `SendInviteUseCase` e `AcceptInviteUseCase` passam a usar o `SeatPolicy` e `company.maxUsers`, sem `PlanRepository`
-- [ ] `RegisterCompanyUseCase`/`RegisterCompanyRequestDTO`: sem `planCode` e sem `subscribe`
-- [ ] `GetOwnCompanyUseCase`/`CompanyResponseDTO`: `maxUsers` e `seatsUsed` (o `plan` fica)
-- [ ] Testes: `UserPlanLimitIT` → `SeatLimitIT` (teto de 10), `SendInviteUseCaseTest`, `AcceptInviteUseCaseTest` e `CompanySignupIT` sem `planCode`
+- [x] `V16__company_max_users.sql`: coluna, check e os triggers de `company` (plan §1)
+- [x] `Company`, `CompanyJpaEntity` e o mapper com `maxUsers`
+- [x] `SeatPolicy` com `requireFreeSeat` e `seatsUsed` (plan §2)
+- [x] `SendInviteUseCase` e `AcceptInviteUseCase` passam a usar o `SeatPolicy` e `company.maxUsers`, sem `PlanRepository`
+- [x] `RegisterCompanyUseCase`/`RegisterCompanyRequestDTO`: sem `planCode` e sem `subscribe`
+- [x] `GetOwnCompanyUseCase`/`CompanyResponseDTO`: `maxUsers` e `seatsUsed` (o `plan` fica)
+- [x] Testes: `UserPlanLimitIT` → `SeatLimitIT` (teto de 10), `SendInviteUseCaseTest`, `AcceptInviteUseCaseTest` e `CompanySignupIT` sem `planCode`
+
+**Concluída** no #110, com 19 arquivos (11 de código e 8 de teste).
 
 **Arquivos (~10):** `V16`, `Company`, `CompanyJpaEntity`(+mapper), `SeatPolicy`, `SendInviteUseCase`, `AcceptInviteUseCase`, `RegisterCompanyUseCase`, `CompanyResponseDTO`/`GetOwnCompanyUseCase`, testes.
 
@@ -30,16 +32,16 @@ Só acrescenta: `GET /plans` e `plan` continuam, para o web atual não quebrar.
 
 Depende da Task 1.
 
-- [ ] `V17__users_is_active.sql`: coluna, índice e os triggers de `users` (plan §1)
-- [ ] `User`, `UserJpaEntity`, `UserJpaMapper`, `UserRepository`(+impl/JPA): `active`, `countActiveByCompanyId`, `countActiveByCompanyIdAndRole` e `isActive` (plan §3)
-- [ ] `SetUserStatusUseCase`, `UpdateUserStatusRequestDTO` e `PATCH /users/{id}/status` no `UserController`
-- [ ] `JwtAuthenticationFilter`, `AuthenticateUserUseCase` e `CustomUserDetailsService`: corte do inativo (RN-11)
-- [ ] `UpdateUserRoleUseCase`: 409 em inativo e contagem só dos `ADMIN` ativos
-- [ ] `SendInviteUseCase`: mensagem do email de inativo (RN-14)
-- [ ] `UserResponseDTO`/`UserDtoMapper` com `active`
-- [ ] `UserStatusIT` e `AuditLogTriggerIT`, com os casos do plan §6
+- [x] `V17__users_is_active.sql`: coluna, índice e os triggers de `users` (plan §1)
+- [x] `User`, `UserJpaEntity`, `UserJpaMapper`, `UserRepository`(+impl/JPA): `active`, `countActiveByCompanyId`, `countActiveByCompanyIdAndRole` e `isActive` (plan §3)
+- [x] `SetUserStatusUseCase`, `UpdateUserStatusRequestDTO` e `PATCH /users/{id}/status` no `UserController`
+- [x] `JwtAuthenticationFilter` e `AuthenticateUserUseCase`: corte do inativo (RN-11). O `CustomUserDetailsService` ficou como está, porque o Spring não o usa (há um `AuthenticationProvider` próprio)
+- [x] `UpdateUserRoleUseCase`: 409 em inativo e contagem só dos `ADMIN` ativos
+- [x] `SendInviteUseCase`: mensagem do email de inativo (RN-14)
+- [x] `UserResponseDTO`/`UserDtoMapper` com `active`
+- [x] `UserStatusIT` (com a auditoria de `is_active`), mais `JwtAuthenticationFilterTest`, `UpdateUserRoleUseCaseTest` e `SendInviteUseCaseTest`. O `RateLimitIT` passou a usar usuários reais do seed, porque o filtro descarta token de usuário inexistente. O teste de concorrência ficou de fora: o lock é o mesmo `lockById` já usado nos convites
 
-Se passar de 10 arquivos, quebrar em 2a (dados + `PATCH /status` + DTO) e 2b (filtro JWT, login, role e convite).
+**Concluída** em `feat/ativacao-usuarios`, numa task só: a quebra em 2a/2b deixaria o build vermelho entre as duas.
 
 **Pronto:** `./mvnw verify` verde. Desativar `j.tah@bayern.com` derruba a sessão dele na próxima chamada.
 

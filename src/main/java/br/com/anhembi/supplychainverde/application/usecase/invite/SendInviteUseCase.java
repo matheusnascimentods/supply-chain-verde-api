@@ -56,7 +56,11 @@ public class SendInviteUseCase {
         if (!request.role().allowedFor(company.getType())) {
             throw new ValidationException("Perfil " + request.role() + " não é permitido em companhia " + company.getType() + ".");
         }
-        if (userRepository.existsByEmail(email)) throw new ConflictException("Email já cadastrado: " + email);
+        userRepository.findByEmail(email).ifPresent(existing -> {
+            // RN-14 (016): convite não reativa conta; quem reativa é o admin, na lista.
+            throw new ConflictException(existing.isActive() ? "Email já cadastrado: " + email
+                    : "Email pertence a um usuário desativado. Reative-o na lista de usuários.");
+        });
 
         // RN-04 e RN-05: o lock serializa convites e aceites da companhia.
         companyRepository.lockById(companyId);

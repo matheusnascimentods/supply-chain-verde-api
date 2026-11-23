@@ -2,6 +2,7 @@ package br.com.anhembi.supplychainverde.infrastructure.security;
 
 import org.junit.jupiter.api.AfterEach;
 import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
+import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -14,7 +15,8 @@ import static org.mockito.Mockito.when;
 
 class JwtAuthenticationFilterTest {
     private final JwtTokenProvider jwt = mock(JwtTokenProvider.class);
-    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwt);
+    private final UserRepository users = mock(UserRepository.class);
+    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwt, users);
 
     @AfterEach
     void clearContext() {
@@ -51,7 +53,19 @@ class JwtAuthenticationFilterTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
     }
 
+    // RN-11 (016): token válido de usuário desativado (ou apagado) não autentica.
+    @Test
+    void shouldNotAuthenticateAnInactiveUser() throws Exception {
+        givenToken("ADMIN", 5L, CompanyType.MARKET);
+        when(users.isActive(3L)).thenReturn(false);
+
+        filter.doFilter(requestWithToken(), new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
     private void givenToken(String role, Long companyId, CompanyType companyType) {
+        when(users.isActive(3L)).thenReturn(true);
         when(jwt.validateToken("token")).thenReturn(true);
         when(jwt.getUserIdFromToken("token")).thenReturn(3L);
         when(jwt.getEmailFromToken("token")).thenReturn("user@example.com");

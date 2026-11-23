@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.application.exception.ValidationException
 import br.com.anhembi.supplychainverde.application.usecase.user.SeatPolicy;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.Invite;
+import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
@@ -56,7 +57,7 @@ class SendInviteUseCaseTest {
     @Test
     void activeInvitesOccupySeats() {
         givenCompany(CompanyType.MARKET, "Mercado", 3);
-        when(users.countByCompanyId(7L)).thenReturn(2L);
+        when(users.countActiveByCompanyId(7L)).thenReturn(2L);
         when(invites.countActiveByCompanyId(7L)).thenReturn(1L);
 
         assertThatThrownBy(() -> useCase.execute(new SendInviteRequestDTO("ana@it.test", UserRole.MANAGER), 1L, 7L))
@@ -66,15 +67,18 @@ class SendInviteUseCaseTest {
     }
 
     @Test
-    void rejectsAnEmailWithAnActiveInviteOrAnExistingUser() {
+    void rejectsAnEmailWithAnActiveInviteOrAnExistingActiveOrInactiveUser() {
         givenCompany(CompanyType.MARKET, "Mercado", 3);
         when(invites.existsActiveByEmail("ana@it.test")).thenReturn(true);
-        when(users.existsByEmail("bia@it.test")).thenReturn(true);
+        when(users.findByEmail("bia@it.test")).thenReturn(Optional.of(User.builder().email("bia@it.test").build()));
+        when(users.findByEmail("caio@it.test")).thenReturn(Optional.of(User.builder().email("caio@it.test").active(false).build()));
 
         assertThatThrownBy(() -> useCase.execute(new SendInviteRequestDTO("ana@it.test", UserRole.MANAGER), 1L, 7L))
                 .isInstanceOf(ConflictException.class).hasMessageContaining("convite ativo");
         assertThatThrownBy(() -> useCase.execute(new SendInviteRequestDTO("bia@it.test", UserRole.MANAGER), 1L, 7L))
                 .isInstanceOf(ConflictException.class).hasMessageContaining("já cadastrado");
+        assertThatThrownBy(() -> useCase.execute(new SendInviteRequestDTO("caio@it.test", UserRole.MANAGER), 1L, 7L))
+                .isInstanceOf(ConflictException.class).hasMessageContaining("Reative-o");
         verifyNoInteractions(emailSender);
     }
 
