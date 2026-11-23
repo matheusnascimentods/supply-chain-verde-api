@@ -35,16 +35,13 @@ class MigrationToCompanyIT {
     }
 
     @Test
-    void everyCompanyHasOneActivePlanAndTheMarketIsProMax() {
+    // Feature 016 (V16/V18): os planos saíram, e toda companhia do seed ficou com o teto padrão de 10 assentos.
+    void everyCompanyHasTenSeatsAndThePlansAreGone() {
+        assertThat(count("SELECT COUNT(*) FROM company c WHERE c.max_users <> 10 AND" + SEEDED)).isZero();
         assertThat(count("""
-                SELECT COUNT(*) FROM company c
-                WHERE (SELECT COUNT(*) FROM company_plan cp WHERE cp.company_id = c.id AND cp.ended_at IS NULL) <> 1
-                  AND""" + SEEDED)).isZero();
-        assertThat(jdbcTemplate.queryForList("""
-                SELECT DISTINCT CONCAT(c.type, ':', p.code) FROM company c
-                JOIN company_plan cp ON cp.company_id = c.id JOIN plan p ON p.id = cp.plan_id
-                WHERE""" + SEEDED, String.class))
-                .containsExactlyInAnyOrder("SUPPLIER:BASIC", "MARKET:PRO_MAX");
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = DATABASE() AND table_name IN ('plan', 'company_plan')
+                """)).isZero();
         assertThat(count("SELECT COUNT(*) FROM company c WHERE c.type = 'MARKET' AND" + SEEDED)).isEqualTo(1);
     }
 
@@ -76,16 +73,14 @@ class MigrationToCompanyIT {
         assertThat(count("SELECT COUNT(*) FROM batch WHERE market_id = " + DEMO_MARKET)).isZero();
         assertThat(count("SELECT COUNT(*) FROM report WHERE market_id = " + DEMO_MARKET)).isZero();
         assertThat(jdbcTemplate.queryForList("""
-                SELECT CONCAT(c.name, ':', p.code, ':', COUNT(u.id), ':', SUM(u.role = 'ADMIN'))
+                SELECT CONCAT(c.name, ':', c.max_users, ':', COUNT(u.id), ':', SUM(u.role = 'ADMIN'))
                 FROM company c
-                JOIN company_plan cp ON cp.company_id = c.id AND cp.ended_at IS NULL
-                JOIN plan p ON p.id = cp.plan_id
                 LEFT JOIN users u ON u.company_id = c.id
                 WHERE c.cnpj IN ('20202020000152', '30303030000138', '40404040000113')
-                GROUP BY c.id, c.name, p.code
+                GROUP BY c.id, c.name, c.max_users
                 """, String.class))
-                // 8 da V10 + um MANAGER e um AUDITOR da V11, que completam os 10 do plano PRO.
-                .containsExactlyInAnyOrder("Mercado Bom Preço:PRO:10:1", "Supermercado Vale Verde:PRO:10:1", "Rede Feira Viva:PRO:10:1");
+                // 8 da V10 + um MANAGER e um AUDITOR da V11, que ocupam os 10 assentos.
+                .containsExactlyInAnyOrder("Mercado Bom Preço:10:10:1", "Supermercado Vale Verde:10:10:1", "Rede Feira Viva:10:10:1");
         // Os lotes com etapas e os relatórios de um fornecedor ficam no mesmo mercado. Os lotes da V11 não têm etapas
         // e ficam um em cada mercado.
         assertThat(count("""

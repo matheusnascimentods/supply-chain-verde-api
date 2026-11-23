@@ -37,6 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = "rate-limit.enabled=true")
 class RateLimitIT {
     private static final int GLOBAL_LIMIT = 120;
+    // Rota pública fora dos limites estritos (GET /invites/ tem o seu). Um lote inexistente devolve 400; o que o
+    // teste confere é só que a requisição passa (não é 429).
+    private static final String PUBLIC_GET = "/api/v1/batches/999999999/traceability";
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,13 +59,13 @@ class RateLimitIT {
         String bruno = token(ids.get(1));
 
         for (int i = 0; i < GLOBAL_LIMIT; i++) {
-            mockMvc.perform(plans("10.1.0.1", ana)).andExpect(status().isOk());
+            mockMvc.perform(publicGet("10.1.0.1", ana)).andExpect(status().isBadRequest());
         }
 
-        mockMvc.perform(plans("10.1.0.1", ana))
+        mockMvc.perform(publicGet("10.1.0.1", ana))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
-        mockMvc.perform(plans("10.1.0.1", bruno)).andExpect(status().isOk());
+        mockMvc.perform(publicGet("10.1.0.1", bruno)).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -81,14 +84,14 @@ class RateLimitIT {
     @Test
     void anInvalidTokenCountsByIp() throws Exception {
         for (int i = 0; i < GLOBAL_LIMIT; i++) {
-            mockMvc.perform(plans("10.1.0.3", "invalido")).andExpect(status().isOk());
+            mockMvc.perform(publicGet("10.1.0.3", "invalido")).andExpect(status().isBadRequest());
         }
 
-        mockMvc.perform(get("/api/v1/plans").with(ip("10.1.0.3"))).andExpect(status().isTooManyRequests());
+        mockMvc.perform(get(PUBLIC_GET).with(ip("10.1.0.3"))).andExpect(status().isTooManyRequests());
     }
 
-    private MockHttpServletRequestBuilder plans(String ip, String token) {
-        return get("/api/v1/plans").with(ip(ip)).header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+    private MockHttpServletRequestBuilder publicGet(String ip, String token) {
+        return get(PUBLIC_GET).with(ip(ip)).header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
     }
 
     private MockHttpServletRequestBuilder login(String ip) {
@@ -97,7 +100,6 @@ class RateLimitIT {
                 .content("{\"email\":\"ninguem@rate.test\",\"password\":\"errada\"}");
     }
 
-    // GET /plans não lê o usuário do banco, então o token não precisa de linha em users.
     private String token(long userId) {
         User user = User.builder().userId(userId).email("u" + userId + "@rate.test").role(UserRole.ADMIN).companyId(1L).build();
         return jwtTokenProvider.generateToken(user, CompanyType.MARKET);

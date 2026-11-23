@@ -45,11 +45,6 @@ public class CompanyRepositoryImpl implements CompanyRepository {
     }
 
     @Override
-    public void subscribe(Long companyId, Long planId) {
-        jdbcTemplate.update("INSERT INTO company_plan (company_id, plan_id) VALUES (?, ?)", companyId, planId);
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<Company> findBySearch(String search) {
         return jpaRepository.findBySearch(FullTextSearch.booleanQuery(search), FullTextSearch.cnpjQuery(search)).stream().map(mapper::toDomain).toList();

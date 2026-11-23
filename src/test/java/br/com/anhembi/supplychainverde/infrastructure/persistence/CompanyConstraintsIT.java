@@ -53,9 +53,9 @@ class CompanyConstraintsIT {
     }
 
     @Test
-    void companyHasOnlyOneActivePlan() {
-        assertViolates("uq_company_plan_active", () -> jdbcTemplate.update(
-                "INSERT INTO company_plan (company_id, plan_id) SELECT ?, id FROM plan WHERE code = 'PRO'", supplierId));
+    void companySeatsArePositive() {
+        assertViolates("chk_company_max_users_positive", () -> jdbcTemplate.update(
+                "UPDATE company SET max_users = 0 WHERE id = ?", supplierId));
     }
 
     @Test

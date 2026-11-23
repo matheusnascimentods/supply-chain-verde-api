@@ -24,7 +24,6 @@ public interface CompanyRepository {
     void lockById(Long companyId);
 
     /** Abre a assinatura ativa da companhia (RN-03). */
-    void subscribe(Long companyId, Long planId);
 
     List<Company> findBySearch(String search);
 
