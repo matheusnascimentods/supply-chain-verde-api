@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.application.usecase.user.*;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.application.mapper.UserDtoMapper;
 import br.com.anhembi.supplychainverde.domain.entity.User;
+import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.infrastructure.security.CustomUserPrincipal;
@@ -18,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -34,14 +36,16 @@ public class UserController {
     private final UserDtoMapper mapper;
 
     @GetMapping
-    @Operation(summary = "Listar usuários", description = "Qualquer usuário autenticado lista os usuários da própria companhia (RN-13b), paginados e com filtro opcional de email parcial, sem diferenciar maiúsculas de minúsculas. O PLATFORM_ADMIN lista todos. Cada item traz companyId, companyType e companyName; supplierId e supplierName repetem a companhia quando ela é fornecedora.")
+    @Operation(summary = "Listar usuários", description = "Qualquer usuário autenticado lista os usuários da própria companhia (RN-13b), paginados e com filtros opcionais: email parcial (sem diferenciar maiúsculas de minúsculas), role repetível (role=MANAGER&role=AUDITOR traz um ou outro) e active (true/false). Os filtros se combinam por E; sem o parâmetro, ele não filtra. Perfil inexistente retorna 400. O PLATFORM_ADMIN lista todos. Cada item traz companyId, companyType e companyName; supplierId e supplierName repetem a companhia quando ela é fornecedora.")
     public OffsetPageResponseDTO<UserResponseDTO> list(
             @RequestParam(required = false) String email,
+            @RequestParam(required = false) List<UserRole> role,
+            @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return list.execute(email, principal.companyId(), limit, offset);
+        return list.execute(email, role, active, principal.companyId(), limit, offset);
     }
 
     @GetMapping("/me")
