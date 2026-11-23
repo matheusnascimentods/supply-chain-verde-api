@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** Task 1 implementada (aguardando commit/PR).
+**Status:** Tasks 1 e 2 implementadas; falta a Task 3 (docs).
 
 Depende da `014-busca-full-text` concluída. Cada task mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A dependência "web Task N" aponta para `supply-chain-verde-web/docs/features/014-gestao-produtos/tasks.md`.
 
@@ -29,11 +29,11 @@ Ordem entre os repositórios: **API Task 1 → web Task 1 → web Task 2 → web
 
 Depende da web Task 3 em produção: o front não chama mais `ranked=true&category=...&unit=...`.
 
-- [ ] `grep` de confirmação (plan §4)
-- [ ] `SupplierController`: saem `category`/`unit` e a validação do par
-- [ ] `RankSuppliersBySustainabilityUseCase`: sai o ramo da recomendação
-- [ ] `CompanyRepository`, `CompanyRepositoryImpl` e `CompanyJpaRepository`: saem `findRankedByEmission` e `SupplierEmissionRank`
-- [ ] `SupplierRecommendationIT`: apagar, conferindo se os casos de ordem estão no `ProductControllerIT`
+- [x] `grep` de confirmação (plan §4)
+- [x] `SupplierController`: saem `category`/`unit` e a validação do par
+- [x] `RankSuppliersBySustainabilityUseCase`: sai o ramo da recomendação
+- [x] `CompanyRepository`, `CompanyRepositoryImpl` e `CompanyJpaRepository`: saem `findRankedByEmission` e `SupplierEmissionRank`
+- [x] `SupplierRecommendationIT`: apagar, conferindo se os casos de ordem estão no `ProductControllerIT`
 
 **Arquivos (~6):** `SupplierController`, `RankSuppliersBySustainabilityUseCase`, `CompanyRepository`, `CompanyRepositoryImpl`, `CompanyJpaRepository`, `SupplierRecommendationIT`.
 

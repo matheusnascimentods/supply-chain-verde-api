@@ -1,8 +1,6 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl;
 
 import br.com.anhembi.supplychainverde.domain.entity.Company;
-import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
-import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.CompanyJpaMapper;
@@ -66,20 +64,6 @@ public class CompanyRepositoryImpl implements CompanyRepository {
     @Transactional(readOnly = true)
     public List<Company> findAllById(Collection<Long> supplierIds) {
         return jpaRepository.findAllById(supplierIds).stream().map(mapper::toDomain).toList();
-    }
-
-    @Override
-    public List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, String search,
-            boolean workedWithOnly, Long marketId, int limit, int offset) {
-        return jpaRepository.findRankedByEmission(
-                category == null ? null : category.name(),
-                unit == null ? null : unit.name(),
-                FullTextSearch.booleanQuery(search),
-                FullTextSearch.cnpjQuery(search),
-                workedWithOnly,
-                marketId,
-                limit,
-                offset);
     }
 
     @Override

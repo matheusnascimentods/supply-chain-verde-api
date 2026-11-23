@@ -1,6 +1,5 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repository;
 
-import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierEmissionRank;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierScore;
 import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.CompanyJpaEntity;
@@ -38,33 +37,6 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
     );
 
     boolean existsByCnpj(String cnpj);
-
-    @Query(value = """
-            SELECT s.id AS supplierId,
-                   ROUND(SUM(v.total_co2_kg) / NULLIF(SUM(v.total_quantity), 0), 4) AS co2KgPerUnit
-            FROM company s
-            LEFT JOIN vw_supplier_product_emission v
-                   ON v.supplier_id = s.id
-                  AND v.category = :category AND v.unit = :unit
-            WHERE s.type = 'SUPPLIER'
-              AND ((:booleanSearch = '' AND :cnpjSearch = '')
-               OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
-               OR MATCH(s.cnpj) AGAINST (:cnpjSearch IN BOOLEAN MODE))
-              AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
-            GROUP BY s.id
-            ORDER BY co2KgPerUnit IS NULL, co2KgPerUnit, s.id
-            LIMIT :limit OFFSET :offset
-            """, nativeQuery = true)
-    List<SupplierEmissionRank> findRankedByEmission(
-            @Param("category") String category,
-            @Param("unit") String unit,
-            @Param("booleanSearch") String booleanSearch,
-            @Param("cnpjSearch") String cnpjSearch,
-            @Param("workedWithOnly") boolean workedWithOnly,
-            @Param("marketId") Long marketId,
-            @Param("limit") int limit,
-            @Param("offset") int offset
-    );
 
     @Query(value = """
             SELECT COUNT(*)
