@@ -7,9 +7,8 @@
 | Entidade | Relações e responsabilidade |
 |---|---|
 | `Address` | Endereço reutilizado por companhia e etapas |
-| `Company` | Companhia (`MARKET` ou `SUPPLIER`) com razão social, CNPJ único, email, telefone e endereço. Substitui `Supplier` desde a feature 010 |
-| `Plan` | Catálogo de planos (`BASIC`, `PRO`, `PRO_MAX`) com o limite de usuários (`maxUsers`) |
-| `User` | Usuário, email, hash de senha, perfil e companhia; só o `PLATFORM_ADMIN` não tem companhia |
+| `Company` | Companhia (`MARKET` ou `SUPPLIER`) com razão social, CNPJ único, email, telefone, endereço e `maxUsers` (teto de assentos, 10 por padrão; feature 016). Substitui `Supplier` desde a feature 010 |
+| `User` | Usuário, email, hash de senha, perfil, companhia e `active`; só o `PLATFORM_ADMIN` não tem companhia. Inativo não entra e não ocupa assento (feature 016) |
 | `Invite` | Convite por email (feature 011): quem convidou, email e perfil do convidado, hash SHA-256 do token, `accepted` e `expiresAt` (`createdAt` + 24h, gerado pelo banco). A companhia é a de quem convidou |
 | `Certification` | Certificação ambiental de um fornecedor, emissor, validade e status |
 | `Product` | Produto de um fornecedor, com categoria, unidade e descrição |
@@ -20,7 +19,7 @@
 | `Report` | Consolidação por fornecedor, mercado e período |
 | `AuditLog` | Evento criado por trigger MySQL, com ator, operação, tabela/ID afetado, snapshots JSON e timestamp; somente leitura pela API |
 
-A assinatura (`company_plan`) não tem entidade de domínio: `CompanyRepository.subscribe` abre a assinatura ativa e `PlanRepository.findActiveByCompanyId` lê o plano dela. As entidades de domínio referenciam objetos relacionados. A infraestrutura resolve essas relações ao reconstruir o domínio a partir das entidades JPA.
+Os planos e as assinaturas (`plan`, `company_plan`) saíram na feature 016. Os assentos usados (ativos + convites ativos) são calculados pelo `SeatPolicy`, sem coluna própria. As entidades de domínio referenciam objetos relacionados. A infraestrutura resolve essas relações ao reconstruir o domínio a partir das entidades JPA.
 
 ## 2. Enums
 
@@ -30,7 +29,6 @@ O domínio possui `CompanyType`, `BatchStatus`, `CertificationStatus`, `ProductC
 
 ```text
 company: Register, GetOwn, UpdateOwn
-plan: List
 supplier: Get, List, RankBySustainability (catálogo)
 certification: Register, UpdateStatus, ListPage with optional status filter
 product: Register, Update, List (catálogo do pedido de lote para o mercado)
@@ -52,10 +50,9 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | Recurso | Rotas principais | Acesso e escopo |
 |---|---|---|
 | Auth | `POST /auth/login` | Público. O email não diferencia maiúscula nem acento. Resposta: `token`, `expiresAt`, `role`, `supplierId`, `companyId`, `companyType`, `companyName` |
-| Plans | `GET /plans` | Público. Catálogo com `code`, `name` e `maxUsers` |
-| Companies | `POST /companies` (cadastro público de companhia, endereço, assinatura e `ADMIN`; resposta igual à do login), `GET /companies/me`, `PATCH /companies/me` (razão social, email, telefone e endereço) | Cadastro: público. `GET /me`: usuário com companhia. `PATCH /me`: `ADMIN`. Sem companhia: 403 |
-| Users | `GET /users?email={termo}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role` | Troca de perfil: `ADMIN`, só na própria companhia; o último admin (RN-08) retorna 409. Listagem: qualquer autenticado, só a própria companhia. Usuários novos só entram por convite |
-| Invites | `POST /invites` (`email`, `role`; 201 sem corpo), `GET /invites/{token}` (`email`, `role`, `companyName`, `expiresAt`), `POST /invites/accept` (`token`, `name`, `password`; resposta igual à do login) | Envio: `ADMIN`, na própria companhia; perfil não permitido para o tipo → 400, `PLATFORM_ADMIN` → 403, email já cadastrado, convite ativo para o email ou limite do plano (usuários + convites ativos) → 409, falha no SendGrid → 502 sem gravar nada. Consulta e aceite: públicos; token desconhecido, expirado ou aceito → 404 "Convite inválido ou expirado." sem dizer qual. O `GET` não consome o token. No aceite, nome ou senha vazios → 400, e plano cheio ou email já cadastrado → 409 |
+| Companies | `POST /companies` (cadastro público de companhia, endereço e `ADMIN`; um `planCode` enviado é ignorado; resposta igual à do login), `GET /companies/me` (com `maxUsers` e `seatsUsed`), `PATCH /companies/me` (razão social, email, telefone e endereço) | Cadastro: público. `GET /me`: usuário com companhia. `PATCH /me`: `ADMIN`. Sem companhia: 403 |
+| Users | `GET /users?email={termo}&role={ROLE}&role={ROLE}&active={true\|false}&limit=20&offset=0` (`role` repetido é OU; os filtros se combinam por E; cada item traz `active`), `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role`, `PATCH /users/{userId}/status` (`{ "active": boolean }`) | Troca de perfil e de situação: `ADMIN`, só na própria companhia, e `PLATFORM_ADMIN` em qualquer uma. Perfil: o último admin ativo (RN-08) e usuário inativo retornam 409. Situação: desativar a si mesmo, desativar o último `ADMIN` ativo e reativar sem assento livre retornam 409; alvo `PLATFORM_ADMIN` retorna 400; a situação que o usuário já tem retorna 200 sem mudar nada. O inativo perde o acesso na próxima requisição. Listagem: qualquer autenticado, só a própria companhia. Usuários novos só entram por convite |
+| Invites | `POST /invites` (`email`, `role`; 201 sem corpo), `GET /invites/{token}` (`email`, `role`, `companyName`, `expiresAt`), `POST /invites/accept` (`token`, `name`, `password`; resposta igual à do login) | Envio: `ADMIN`, na própria companhia; perfil não permitido para o tipo → 400, `PLATFORM_ADMIN` → 403, email já cadastrado (inclusive de usuário inativo, com a orientação de reativá-lo), convite ativo para o email ou companhia sem assento livre (ativos + convites ativos = `maxUsers`) → 409, falha no SendGrid → 502 sem gravar nada. Consulta e aceite: públicos; token desconhecido, expirado ou aceito → 404 "Convite inválido ou expirado." sem dizer qual. O `GET` não consome o token. No aceite, nome ou senha vazios → 400, e companhia sem assento livre ou email já cadastrado → 409 |
 | Suppliers | `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}&workedWith=true`. Cada item traz dados cadastrais, métricas de sustentabilidade, `reportCount` (do mercado logado), `certifications` e `workedWith` | Catálogo global para o mercado (RN-13). Companhia fornecedora: 403, exceto no próprio detalhe |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE`, `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status` | Consulta: `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER`; o fornecedor vê só as próprias. Cadastro e status: o fornecedor dono (RN-22) |
 | Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}&category={c}&unit={u}&supplierId={id}` | Cadastro e edição: o fornecedor dono (RN-16). Listagem: catálogo ordenado para o mercado (feature 015), só os próprios para o fornecedor |
@@ -108,7 +105,7 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 }
 ```
 
-Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos updates, os dois objetos contêm somente valores de colunas que mudaram. FKs são armazenadas como IDs; a trigger omite colunas sensíveis conhecidas e colunas geradas, como os `*_type` das FKs compostas e `company_plan.active_company_id`. `STATUS_CHANGE` é usado somente quando um dos campos de estado configurados para a entidade realmente mudou. Veja a [ADR de auditoria no PostgreSQL](../../adr/0001-auditoria-no-postgresql.md) e a [ADR 0002](../../adr/0002-migracao-para-mysql.md) para propagação do ator e detalhe da persistência. A mudança de `batch.status`, como a de `certification.status`, é registrada como `STATUS_CHANGE`.
+Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos updates, os dois objetos contêm somente valores de colunas que mudaram. FKs são armazenadas como IDs; a trigger omite colunas sensíveis conhecidas e colunas geradas, como os `*_type` das FKs compostas. `STATUS_CHANGE` é usado somente quando um dos campos de estado configurados para a entidade realmente mudou. Veja a [ADR de auditoria no PostgreSQL](../../adr/0001-auditoria-no-postgresql.md) e a [ADR 0002](../../adr/0002-migracao-para-mysql.md) para propagação do ator e detalhe da persistência. A mudança de `batch.status`, como a de `certification.status`, é registrada como `STATUS_CHANGE`.
 
 ## 5. DTOs e regras de entrada
 
@@ -168,7 +165,7 @@ O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisiç
 - `RoleHierarchy` com `ROLE_PLATFORM_ADMIN > ROLE_ADMIN`, nas rotas e nos `@PreAuthorize`.
 - Senhas armazenadas somente como hash BCrypt.
 - `JWT_SECRET` é obrigatório, sem valor padrão (a API não sobe sem ele), e deve ter pelo menos 256 bits.
-- Rotas públicas: login, `GET /plans`, `POST /companies`, `GET /invites/{token}`, `POST /invites/accept`, rastreabilidade e pegada de carbono.
+- Rotas públicas: login, `POST /companies`, `GET /invites/{token}`, `POST /invites/accept`, rastreabilidade e pegada de carbono.
 - Token de convite: 32 bytes de `SecureRandom` em base64url no link `<APP_FRONTEND_URL>/convites/<token>`; o banco guarda só o SHA-256. Vale 24h e uma vez. Veja a [ADR 0004](../../adr/0004-token-de-convite-opaco-com-hash.md).
 - Rate limit (feature 013), em memória e com janela fixa de 1 minuto:
   - **Global:** 120 requisições por minuto em todas as rotas, contadas por `userId` quando há JWT válido e por IP quando não há.

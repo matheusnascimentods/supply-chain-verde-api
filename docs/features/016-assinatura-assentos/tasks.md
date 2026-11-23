@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 a 4 concluídas).
+**Status:** concluída.
 
 Cada task mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A dependência "web Task N" aponta para `supply-chain-verde-web/docs/features/015-assinatura-assentos/tasks.md`.
 
@@ -81,8 +81,9 @@ Depende das web Tasks 1 e 2 em produção: o front não chama `GET /plans` nem l
 
 Depende das Tasks 1 a 4.
 
-- [ ] `docs/features/000-base/reference.md`: `PATCH /users/{id}/status`, filtros de `GET /users`, `/companies/me` com `maxUsers`/`seatsUsed`, sem `/plans`
-- [ ] `docs/features/010-empresas-planos/spec.md`: RN-03, RN-04 e RF-01 marcadas como substituídas por esta feature
-- [ ] Status desta feature: concluída
+- [x] `docs/features/000-base/reference.md`: `PATCH /users/{id}/status`, filtros de `GET /users`, `/companies/me` com `maxUsers`/`seatsUsed`, sem `/plans`
+- [x] `docs/features/010-empresas-planos/spec.md`: RN-03, RN-04 e RF-01 marcadas como substituídas por esta feature
+- [x] `README.md`: entidades, regras de assentos, a feature 016 na lista, as rotas de companhias, usuários e convites, e o seed sem plano
+- [x] Status desta feature: concluída
 
 **Pronto:** a documentação bate com a API.

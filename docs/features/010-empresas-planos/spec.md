@@ -35,8 +35,8 @@ Transformar a plataforma em multiempresa:
 |---|---|
 | RN-01 | `company` substitui `supplier` e tem os mesmos dados (razão social, CNPJ, endereço, telefone), mais `email` e `type`. O CNPJ é único na plataforma. |
 | RN-02 | Toda referência que hoje aponta para fornecedor (`batch`, `certification`, `report`, e agora `product`) só aceita uma companhia com `type = SUPPLIER`. O banco garante isso. |
-| RN-03 | Toda companhia tem exatamente uma assinatura ativa. O cadastro cria a primeira. Troca de plano não faz parte desta feature. |
-| RN-04 | O número de usuários de uma companhia nunca passa do `max_users` do plano ativo. Criar um usuário além do limite devolve 409. |
+| RN-03 | ~~Toda companhia tem exatamente uma assinatura ativa. O cadastro cria a primeira. Troca de plano não faz parte desta feature.~~ **Substituída pela feature 016** ([RN-01](../016-assinatura-assentos/spec.md#4-regras-de-negócio)): não há mais plano nem assinatura; a companhia tem `max_users`, 10 por padrão. |
+| RN-04 | ~~O número de usuários de uma companhia nunca passa do `max_users` do plano ativo. Criar um usuário além do limite devolve 409.~~ **Substituída pela feature 016** ([RN-02](../016-assinatura-assentos/spec.md#4-regras-de-negócio)): ativos + convites ativos nunca passam do `max_users` da companhia, ao convidar, aceitar convite e reativar. |
 | RN-05 | `type` e CNPJ não mudam depois do cadastro. |
 
 ### Usuários e perfis
@@ -94,7 +94,7 @@ Transformar a plataforma em multiempresa:
 
 | ID | Requisito |
 |---|---|
-| RF-01 | `GET /plans`, público: catálogo com `code`, `name` e `maxUsers`. |
+| RF-01 | ~~`GET /plans`, público: catálogo com `code`, `name` e `maxUsers`.~~ **Removido pela feature 016** ([RF-05](../016-assinatura-assentos/spec.md#5-requisitos)): `GET /plans` devolve 404. |
 | RF-02 | `POST /companies`, público: cria companhia, endereço, assinatura e usuário `ADMIN` numa transação. A resposta é igual à do `POST /auth/login`, então o usuário já entra logado. |
 | RF-03 | `GET /companies/me` (qualquer usuário com companhia) e `PATCH /companies/me` (só `ADMIN`): dados da companhia, endereço e plano ativo. `PATCH` altera razão social, email, telefone e endereço. |
 | RF-04 | Login, token e `GET /users/me` passam a expor `companyId`, `companyType` e `companyName`. `supplierId` continua no token e no `GET /users/me`, igual a `companyId` quando a companhia é `SUPPLIER`, para não quebrar o front. |
@@ -109,7 +109,7 @@ Transformar a plataforma em multiempresa:
 | RF-11 | Registrar a primeira etapa muda o lote para `ACTIVE` (RN-18). Registrar etapa em lote `REJECTED` devolve 409. |
 | RF-12 | `PATCH /certifications/{id}` (status) é liberado para `SUPPLIER` e `ADMIN` do fornecedor dono, e deixa de ser liberado para `AUDITOR`. |
 | RF-13 | Dashboard (`/summary`, `/emissions`), ranking, relatórios, certificações e auditoria respeitam RN-12 a RN-14. |
-| RNF-01 | Os vínculos de tipo (RN-02, RN-17) e "uma assinatura ativa" (RN-03) são garantidos por constraint no banco, não só no código. |
+| RNF-01 | Os vínculos de tipo (RN-02, RN-17) e "uma assinatura ativa" (RN-03, substituída pela feature 016) são garantidos por constraint no banco, não só no código. |
 | RNF-02 | `company`, `company_plan` e as colunas novas de `users`, `batch` e `product` entram na auditoria por trigger, seguindo o padrão da V5. A mudança de `batch.status` é registrada como `STATUS_CHANGE`. |
 | RNF-03 | Erros seguem o formato atual: 400 para dado inválido, 403 para fora do escopo, 404 para inexistente, 409 para conflito (CNPJ ou email duplicado, limite do plano, último admin, status do lote). |
 
