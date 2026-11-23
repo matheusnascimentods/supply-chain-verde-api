@@ -40,7 +40,7 @@ class CompanySignupIT {
 
     @Test
     void marketSignsUpAndUsesTheApiWithTheReturnedToken() throws Exception {
-        String body = mockMvc.perform(signup("MARKET", "PRO", "98765432000198", "ana@bompreco.test"))
+        String body = mockMvc.perform(signup("MARKET", null, "98765432000198", "ana@bompreco.test"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.companyType").value("MARKET"))
@@ -58,7 +58,8 @@ class CompanySignupIT {
                 .andExpect(jsonPath("$.type").value("MARKET"))
                 .andExpect(jsonPath("$.cnpj").value("98765432000198"))
                 .andExpect(jsonPath("$.address.city").value("São Paulo"))
-                .andExpect(jsonPath("$.plan.code").value("PRO"));
+                .andExpect(jsonPath("$.maxUsers").value(10))
+                .andExpect(jsonPath("$.seatsUsed").value(1));
         mockMvc.perform(patch("/api/v1/companies/me").header("Authorization", bearer)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": \"Mercado Bom Preço S.A.\", \"phone\": \"1133334444\"}"))
@@ -70,7 +71,7 @@ class CompanySignupIT {
 
     @Test
     void supplierTokenCarriesTheCompanyAsSupplierId() throws Exception {
-        String body = mockMvc.perform(signup("SUPPLIER", "BASIC", "98765432000279", "joao@fornecedor.test"))
+        String body = mockMvc.perform(signup("SUPPLIER", null, "98765432000279", "joao@fornecedor.test"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.companyType").value("SUPPLIER"))
                 .andReturn().getResponse().getContentAsString();
@@ -84,12 +85,13 @@ class CompanySignupIT {
     }
 
     @Test
-    void rejectsDuplicatedCnpjAndEmailAndUnknownPlan() throws Exception {
-        mockMvc.perform(signup("MARKET", "PRO", "98765432000350", "maria@mercado.test")).andExpect(status().isCreated());
+    void rejectsDuplicatedCnpjAndEmailAndIgnoresALegacyPlanCode() throws Exception {
+        mockMvc.perform(signup("MARKET", null, "98765432000350", "maria@mercado.test")).andExpect(status().isCreated());
 
-        mockMvc.perform(signup("MARKET", "PRO", "98765432000350", "outra@mercado.test")).andExpect(status().isConflict());
-        mockMvc.perform(signup("MARKET", "PRO", "98765432000430", "maria@mercado.test")).andExpect(status().isConflict());
-        mockMvc.perform(signup("MARKET", "GOLD", "98765432000430", "nova@mercado.test")).andExpect(status().isBadRequest());
+        mockMvc.perform(signup("MARKET", null, "98765432000350", "outra@mercado.test")).andExpect(status().isConflict());
+        mockMvc.perform(signup("MARKET", null, "98765432000430", "maria@mercado.test")).andExpect(status().isConflict());
+        // RF-04 (016): o front antigo ainda manda planCode; o campo é ignorado.
+        mockMvc.perform(signup("MARKET", "GOLD", "98765432000430", "nova@mercado.test")).andExpect(status().isCreated());
     }
 
     @Test
@@ -97,12 +99,12 @@ class CompanySignupIT {
         mockMvc.perform(get("/api/v1/companies/me")).andExpect(status().isUnauthorized());
     }
 
+    /** planCode nulo omite o campo, como o front novo. */
     private RequestBuilder signup(String type, String planCode, String cnpj,
             String adminEmail) {
         return post("/api/v1/companies").contentType(MediaType.APPLICATION_JSON).content("""
                 {
-                  "planCode": "%s",
-                  "type": "%s",
+                  %s"type": "%s",
                   "company": {
                     "name": "Empresa Teste",
                     "cnpj": "%s",
@@ -113,6 +115,6 @@ class CompanySignupIT {
                   },
                   "admin": {"name": "Admin Teste", "email": "%s", "password": "segredo123"}
                 }
-                """.formatted(planCode, type, cnpj, adminEmail));
+                """.formatted(planCode == null ? "" : "\"planCode\": \"" + planCode + "\", ", type, cnpj, adminEmail));
     }
 }

@@ -20,4 +20,6 @@ public class Company {
     private String email;
     private CompanyType type;
     private LocalDate registeredAt;
+    /** RN-01 (016): teto de assentos; muda só por SQL. */
+    private Integer maxUsers;
 }

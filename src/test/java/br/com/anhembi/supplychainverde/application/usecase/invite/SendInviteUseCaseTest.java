@@ -3,14 +3,13 @@ package br.com.anhembi.supplychainverde.application.usecase.invite;
 import br.com.anhembi.supplychainverde.application.dto.invite.SendInviteRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.usecase.user.SeatPolicy;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.Invite;
-import br.com.anhembi.supplychainverde.domain.entity.Plan;
 import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.InviteRepository;
-import br.com.anhembi.supplychainverde.domain.repository.PlanRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.EmailSender;
 import org.junit.jupiter.api.Test;
@@ -31,10 +30,9 @@ class SendInviteUseCaseTest {
     private final InviteRepository invites = mock(InviteRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final CompanyRepository companies = mock(CompanyRepository.class);
-    private final PlanRepository plans = mock(PlanRepository.class);
     private final EmailSender emailSender = mock(EmailSender.class);
     private final SendInviteUseCase useCase =
-            new SendInviteUseCase(invites, users, companies, plans, emailSender, "http://front.test");
+            new SendInviteUseCase(invites, users, companies, new SeatPolicy(users, invites), emailSender, "http://front.test");
 
     @Test
     void savesOnlyTheTokenHashAndMailsTheLinkWithTheToken() {
@@ -56,13 +54,13 @@ class SendInviteUseCaseTest {
     }
 
     @Test
-    void activeInvitesCountTowardsThePlanLimit() {
+    void activeInvitesOccupySeats() {
         givenCompany(CompanyType.MARKET, "Mercado", 3);
         when(users.countByCompanyId(7L)).thenReturn(2L);
         when(invites.countActiveByCompanyId(7L)).thenReturn(1L);
 
         assertThatThrownBy(() -> useCase.execute(new SendInviteRequestDTO("ana@it.test", UserRole.MANAGER), 1L, 7L))
-                .isInstanceOf(ConflictException.class).hasMessageContaining("Limite");
+                .isInstanceOf(ConflictException.class).hasMessageContaining("Sem assentos livres: 3 de 3");
         verifyNoInteractions(emailSender);
         verify(invites, never()).save(any());
     }
@@ -99,7 +97,6 @@ class SendInviteUseCaseTest {
     }
 
     private void givenCompany(CompanyType type, String name, int maxUsers) {
-        when(companies.findById(7L)).thenReturn(Optional.of(Company.builder().companyId(7L).name(name).type(type).build()));
-        when(plans.findActiveByCompanyId(7L)).thenReturn(Optional.of(new Plan(1L, "BASIC", "Basic", maxUsers)));
+        when(companies.findById(7L)).thenReturn(Optional.of(Company.builder().companyId(7L).name(name).type(type).maxUsers(maxUsers).build()));
     }
 }

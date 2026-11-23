@@ -2,15 +2,17 @@ package br.com.anhembi.supplychainverde.application.usecase.invite;
 
 import br.com.anhembi.supplychainverde.application.dto.auth.LoginResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.invite.AcceptInviteRequestDTO;
+import br.com.anhembi.supplychainverde.application.exception.CompanyNotFoundException;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.application.usecase.user.AuthenticateUserUseCase;
+import br.com.anhembi.supplychainverde.application.usecase.user.SeatPolicy;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.Invite;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.InviteRepository;
-import br.com.anhembi.supplychainverde.domain.repository.PlanRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +34,7 @@ public class AcceptInviteUseCase {
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
-    private final PlanRepository planRepository;
+    private final SeatPolicy seatPolicy;
     private final PasswordHasher passwordHasher;
     private final AuthenticateUserUseCase authenticate;
 
@@ -52,12 +54,11 @@ public class AcceptInviteUseCase {
         if (userRepository.existsByEmail(invite.getInvitedFor())) {
             throw new ConflictException("Email já cadastrado: " + invite.getInvitedFor());
         }
-        int maxUsers = planRepository.findActiveByCompanyId(companyId)
-                .orElseThrow(() -> new ConflictException("Companhia sem assinatura ativa."))
-                .maxUsers();
-        if (userRepository.countByCompanyId(companyId) >= maxUsers) {
-            throw new ConflictException("Limite de " + maxUsers + " usuários do plano atingido.");
-        }
+        // RN-02 (016): o convite aceito já ocupa o próprio assento, então só barra se a companhia passou do teto
+        // depois do convite (o teto baixou por SQL, por exemplo).
+        Company company = companyRepository.findById(companyId).orElseThrow(() -> new CompanyNotFoundException(companyId));
+        long used = seatPolicy.seatsUsed(companyId);
+        if (used > company.getMaxUsers()) throw SeatPolicy.full(used, company.getMaxUsers());
 
         User user = userRepository.save(User.builder()
                 .name(request.name().trim())

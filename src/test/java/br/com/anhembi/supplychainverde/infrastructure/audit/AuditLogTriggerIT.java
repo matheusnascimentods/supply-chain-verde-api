@@ -169,7 +169,7 @@ class AuditLogTriggerIT {
                 INSERT INTO company (name, cnpj, address_id, email, type)
                 VALUES ('Mercado Auditado', '98765432000198', ?, 'auditado@it.test', 'MARKET')
                 """, addressId);
-        jdbcTemplate.update("UPDATE company SET phone = '(11) 3000-0001' WHERE id = ?", marketId);
+        jdbcTemplate.update("UPDATE company SET phone = '(11) 3000-0001', max_users = 12 WHERE id = ?", marketId);
         Long subscriptionId = insert(jdbcTemplate,
                 "INSERT INTO company_plan (company_id, plan_id) SELECT ?, id FROM plan WHERE code = 'BASIC'", marketId);
         Long batchId = insert(jdbcTemplate, """
@@ -183,7 +183,10 @@ class AuditLogTriggerIT {
         JsonNode insertedCompany = objectMapper.readTree(company.getFirst().afterData());
         assertThat(insertedCompany.path("type").asText()).isEqualTo("MARKET");
         assertThat(insertedCompany.path("email").asText()).isEqualTo("auditado@it.test");
+        assertThat(insertedCompany.path("max_users").asInt()).isEqualTo(10);
         assertThat(objectMapper.readTree(company.get(1).afterData()).path("phone").asText()).isEqualTo("(11) 3000-0001");
+        assertThat(objectMapper.readTree(company.get(1).beforeData()).path("max_users").asInt()).isEqualTo(10);
+        assertThat(objectMapper.readTree(company.get(1).afterData()).path("max_users").asInt()).isEqualTo(12);
 
         List<AuditEvent> subscription = events("company_plan", subscriptionId);
         assertThat(subscription).extracting(AuditEvent::action).containsExactly("INSERT");
