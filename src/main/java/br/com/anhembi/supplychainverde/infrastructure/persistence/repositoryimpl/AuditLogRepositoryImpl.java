@@ -5,6 +5,7 @@ import br.com.anhembi.supplychainverde.domain.enums.AuditAction;
 import br.com.anhembi.supplychainverde.domain.repository.AuditLogRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.jpa.AuditLogJpaEntity;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.AuditLogJpaMapper;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.UserJpaRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
@@ -13,13 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Locale;
 
 @Repository
 @RequiredArgsConstructor
 public class AuditLogRepositoryImpl implements AuditLogRepository {
     private final EntityManager entityManager;
     private final AuditLogJpaMapper mapper;
+    private final UserJpaRepository userJpaRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -32,6 +33,10 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
             int limit,
             int offset
     ) {
+        List<Long> emailUserIds = userJpaRepository.findIdsByEmailFilter(userEmail);
+        if (emailUserIds != null && emailUserIds.isEmpty()) {
+            return List.of();
+        }
         StringBuilder jpql = new StringBuilder("""
                 SELECT auditLog
                 FROM AuditLogJpaEntity auditLog
@@ -42,8 +47,8 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (action != null) {
             jpql.append(" AND auditLog.action = :action");
         }
-        if (userEmail != null && !userEmail.isBlank()) {
-            jpql.append(" AND LOWER(auditUser.email) LIKE :userEmailPattern");
+        if (emailUserIds != null) {
+            jpql.append(" AND auditUser.userId IN :emailUserIds");
         }
         // RN-14: a companhia vê as ações dos próprios usuários; sem companhia (PLATFORM_ADMIN), tudo.
         if (companyId != null) {
@@ -59,8 +64,8 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (action != null) {
             query.setParameter("action", action);
         }
-        if (userEmail != null && !userEmail.isBlank()) {
-            query.setParameter("userEmailPattern", "%" + userEmail.toLowerCase(Locale.ROOT) + "%");
+        if (emailUserIds != null) {
+            query.setParameter("emailUserIds", emailUserIds);
         }
         if (companyId != null) {
             query.setParameter("companyId", companyId);
@@ -72,6 +77,10 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
     @Override
     @Transactional(readOnly = true)
     public long countByFilters(LocalDate from, LocalDate to, AuditAction action, String userEmail, Long companyId) {
+        List<Long> emailUserIds = userJpaRepository.findIdsByEmailFilter(userEmail);
+        if (emailUserIds != null && emailUserIds.isEmpty()) {
+            return 0;
+        }
         StringBuilder jpql = new StringBuilder("""
                 SELECT COUNT(auditLog)
                 FROM AuditLogJpaEntity auditLog
@@ -82,8 +91,8 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (action != null) {
             jpql.append(" AND auditLog.action = :action");
         }
-        if (userEmail != null && !userEmail.isBlank()) {
-            jpql.append(" AND LOWER(auditUser.email) LIKE :userEmailPattern");
+        if (emailUserIds != null) {
+            jpql.append(" AND auditUser.userId IN :emailUserIds");
         }
         // RN-14: a companhia vê as ações dos próprios usuários; sem companhia (PLATFORM_ADMIN), tudo.
         if (companyId != null) {
@@ -96,8 +105,8 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         if (action != null) {
             query.setParameter("action", action);
         }
-        if (userEmail != null && !userEmail.isBlank()) {
-            query.setParameter("userEmailPattern", "%" + userEmail.toLowerCase(Locale.ROOT) + "%");
+        if (emailUserIds != null) {
+            query.setParameter("emailUserIds", emailUserIds);
         }
         if (companyId != null) {
             query.setParameter("companyId", companyId);

@@ -9,20 +9,28 @@ class FullTextSearchTest {
     @Test
     void shouldRequireEveryTermAsPrefix() {
         assertThat(FullTextSearch.booleanQuery("  Café   orgânico ")).isEqualTo("+Café* +orgânico*");
-        assertThat(FullTextSearch.booleanQuery("Grãos da")).isEqualTo("+Grãos* +da*");
     }
 
     @Test
     void shouldDropBooleanOperatorsInsteadOfApplyingThem() {
         assertThat(FullTextSearch.booleanQuery("\"agro-floresta\" -soja (milho) ~trigo@ <x> soja*"))
-                .isEqualTo("+agro* +floresta* +soja* +milho* +trigo* +x* +soja*");
+                .isEqualTo("+agro* +floresta* +soja* +milho* +trigo* x* +soja*");
     }
 
     @Test
-    void shouldKeepShortTermsAndStopwords() {
+    void shouldRequireShortTermsAndStopwordsWhenAlone() {
         assertThat(FullTextSearch.booleanQuery("c")).isEqualTo("+c*");
         assertThat(FullTextSearch.booleanQuery("ca")).isEqualTo("+ca*");
-        assertThat(FullTextSearch.booleanQuery("com")).isEqualTo("+com*");
+        assertThat(FullTextSearch.booleanQuery("COM")).isEqualTo("+COM*");
+        assertThat(FullTextSearch.booleanQuery("de la")).isEqualTo("+de* +la*");
+    }
+
+    // O índice não guarda essas palavras inteiras: obrigatórias, zerariam a busca.
+    @Test
+    void shouldMakeShortTermsAndStopwordsOptionalNextToAnIndexableTerm() {
+        assertThat(FullTextSearch.booleanQuery("Grãos da")).isEqualTo("+Grãos* da*");
+        assertThat(FullTextSearch.booleanQuery("café com leite")).isEqualTo("+café* com* +leite*");
+        assertThat(FullTextSearch.booleanQuery("h.kane@bayern.com")).isEqualTo("h* +kane* +bayern* com*");
     }
 
     @Test

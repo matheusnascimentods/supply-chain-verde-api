@@ -29,7 +29,7 @@ Toda searchbar do front acha o termo desde a 1ª letra, sem depender de acento n
 | ID | Regra |
 |---|---|
 | RN-01 | Cada palavra digitada é obrigatória e casa pelo **início** de uma palavra indexada (`+termo*`). "ara" acha "Arábica"; "rábica" não. |
-| RN-02 | Nenhuma palavra é descartada pelo tamanho ou por ser stopword. "c" já filtra. |
+| RN-02 | Nenhuma palavra é descartada pelo tamanho ou por ser stopword. "c" já filtra. Ao lado de outra palavra, uma palavra que o índice não guarda inteira (menos de 3 letras ou stopword) vira opcional: "café de montanha" e "h.kane@bayern.com" acham, em vez de zerar. |
 | RN-03 | Acento e maiúscula não importam: as colunas buscadas passam a `utf8mb4_0900_ai_ci`. |
 | RN-04 | CNPJ casa pelo início dos dígitos, com ou sem máscara: "12.345" e "12345" acham `12345678000199`. |
 | RN-05 | Email é quebrado em palavras por `.`, `@` e `-`. `_` faz parte da palavra. "kane", "bayern" e "h.kane@bayern.com" acham `h.kane@bayern.com`; "silva" **não** acha `joao_silva@x.com`, e "joao_s" acha. |

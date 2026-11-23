@@ -51,7 +51,7 @@ public static String cnpjQuery(String search) {
 }
 ```
 
-- Saem `MIN_TOKEN_SIZE` e `STOPWORDS`.
+- `MIN_TOKEN_SIZE` e `STOPWORDS` deixam de descartar: a palavra com menos de 3 letras ou stopword vira **opcional** (sem `+`) quando há outra palavra obrigatória, e continua obrigatória sozinha. Obrigatória, ela zerava a busca quando aparece só inteira no dado (o `h` e o `com` de `h.kane@bayern.com`, o `de` de "café de montanha"). Achado na Task 3.
 - `_` sai da lista de separadores (RN-05). Sem isso, "joao_silva" virava `+joao* +silva*`, e `silva` não existe no índice.
 - Os operadores do modo booleano (`+ - < > ( ) ~ * " @`) continuam sendo removidos pelo regex, então o usuário não consegue injetar operador.
 
@@ -109,7 +109,7 @@ Isso só vale a pena se alguém precisar achar "SP" ou "de" como palavra inteira
 
 - **`FullTextSearchTest`** (unitário):
   - "ca" → `+ca*`; "c" → `+c*`; "com" → `+com*`.
-  - "joao_silva" → `+joao_silva*`; "--" → `""`; "Grãos da" → `+Grãos* +da*`.
+  - "joao_silva" → `+joao_silva*`; "--" → `""`; "Grãos da" → `+Grãos* da*`; "h.kane@bayern.com" → `h* +kane* +bayern* com*`.
   - `cnpjQuery("12.345")` → `+12345*`; `cnpjQuery("abc")` → `""`.
 - **`FullTextSearchIT`** (novo, Testcontainers, sobre o seed):
   - produtos `graos`/`organico` com o mesmo resultado que `grãos`/`orgânico`;

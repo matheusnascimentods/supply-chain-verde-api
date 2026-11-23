@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 e 2 concluídas).
+**Status:** em andamento (Tasks 1 a 3 concluídas).
 
 Esta feature vem **antes** da `015-gestao-produtos`, que usa o `FullTextSearch` e a collation daqui. As tasks são sequenciais, cada uma mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A task do frontend (`supply-chain-verde-web/docs/features/013-busca-full-text/tasks.md`) é a verificação manual das searchbars depois da Task 3.
 
@@ -37,12 +37,12 @@ Depende da Task 1 (`ft_company_cnpj` e `cnpjQuery`).
 
 Depende da Task 1.
 
-- [ ] `V14__full_text_email.sql`: `users.email` em `ai_ci`, mais o `ft_users_email` (plan §5)
-- [ ] `UserJpaRepository.findIdsByEmailSearch` (native)
-- [ ] `UserRepositoryImpl`: filtro por `user.userId IN :emailUserIds`, e página vazia sem ids
-- [ ] `AuditLogRepositoryImpl`: idem na listagem e na contagem
-- [ ] `FullTextSearchIT`: usuários e auditoria por `KANE` e por `h.kane@bayern.com`
-- [ ] Ajustar os ITs que contam com o email por trecho (`UpdateOwnUserIT`, `UserPlanLimitIT`, `AuditLogTriggerIT`), se algum quebrar
+- [x] `V14__full_text_email.sql`: `users.email` em `ai_ci`, mais o `ft_users_email` (plan §5)
+- [x] `UserJpaRepository.findIdsByEmailSearch` (native)
+- [x] `UserRepositoryImpl`: filtro por `user.userId IN :emailUserIds`, e página vazia sem ids
+- [x] `AuditLogRepositoryImpl`: idem na listagem e na contagem
+- [x] `FullTextSearchIT`: usuários e auditoria por `KANE` e por `h.kane@bayern.com`
+- [x] Ajustar os ITs que contam com o email por trecho (`UpdateOwnUserIT`, `UserPlanLimitIT`, `AuditLogTriggerIT`), se algum quebrar
 
 **Arquivos (~8):** `V14__full_text_email.sql`, `UserJpaRepository`, `UserRepositoryImpl`, `AuditLogRepositoryImpl`, `FullTextSearchIT`, até 3 ITs.
 
