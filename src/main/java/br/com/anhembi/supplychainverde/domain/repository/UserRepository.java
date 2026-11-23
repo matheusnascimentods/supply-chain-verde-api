@@ -15,9 +15,10 @@ public interface UserRepository {
 
     List<User> findAll();
 
-    List<User> findPage(String email, Long companyId, int limit, int offset);
+    /** RN-15 (016): roles vazia ou nula e active nulo não filtram; os filtros se combinam por E. */
+    List<User> findPage(String email, List<UserRole> roles, Boolean active, Long companyId, int limit, int offset);
 
-    long countPage(String email, Long companyId);
+    long countPage(String email, List<UserRole> roles, Boolean active, Long companyId);
 
     /** Usuários ativos: ocupam assento (RN-02 da 016). */
     long countActiveByCompanyId(Long companyId);

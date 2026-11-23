@@ -25,9 +25,9 @@ class UserControllerTest {
 
     @Test
     void shouldListOnlyTheCompanyUsers() {
-        controller.list(null, 20, 0, TestPrincipals.market(2L, "AUDITOR", 40L));
+        controller.list(null, null, null, 20, 0, TestPrincipals.market(2L, "AUDITOR", 40L));
 
-        verify(listUsers).execute(null, 40L, 20, 0);
+        verify(listUsers).execute(null, null, null, 40L, 20, 0);
     }
 
     @Test

@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 e 2 concluídas).
+**Status:** em andamento (Tasks 1 a 3 concluídas).
 
 Cada task mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A dependência "web Task N" aponta para `supply-chain-verde-web/docs/features/015-assinatura-assentos/tasks.md`.
 
@@ -49,11 +49,13 @@ Depende da Task 1.
 
 Depende da Task 2.
 
-- [ ] `UserController.list`: `role` (lista) e `active`
-- [ ] `ListUsersUseCase`, `UserRepository` e `UserRepositoryImpl` (`where`/`bindFilters`, plan §4)
-- [ ] `UserListIT` (ou o IT de listagem atual): combinações `role` × `active` × `email`
+- [x] `UserController.list`: `role` (lista) e `active`
+- [x] `ListUsersUseCase`, `UserRepository` e `UserRepositoryImpl` (`where`/`bindFilters`, plan §4)
+- [x] `UserListIT` (novo, sobre o seed do Mercado Bom Preço): `role` repetido como OU, `active`, combinação com `email`, total paginado e perfil inexistente (400). `ListUsersUseCaseTest`, `UserControllerTest` e `FullTextSearchIT` passam a usar a nova assinatura
 
 **Arquivos (~5).**
+
+**Concluída** em `feat/filtros-usuarios`.
 
 **Pronto:** `./mvnw verify` verde, e `GET /users?role=MANAGER&role=AUDITOR&active=true` filtra.
 

@@ -24,16 +24,16 @@ class ListUsersUseCaseTest {
 
     @Test
     void bringsTheCompanyAndRepeatsItAsSupplierOnlyForSupplierCompanies() {
-        when(users.findPage(null, null, 20, 0)).thenReturn(List.of(
+        when(users.findPage(null, null, null, null, 20, 0)).thenReturn(List.of(
                 User.builder().userId(1L).role(UserRole.PLATFORM_ADMIN).build(),
                 User.builder().userId(2L).role(UserRole.MANAGER).companyId(40L).build(),
                 User.builder().userId(3L).role(UserRole.ADMIN).companyId(7L).build()));
-        when(users.countPage(null, null)).thenReturn(3L);
+        when(users.countPage(null, null, null, null)).thenReturn(3L);
         when(companies.findAllById(any())).thenReturn(List.of(
                 Company.builder().companyId(40L).name("Mercado").type(CompanyType.MARKET).build(),
                 Company.builder().companyId(7L).name("Fazenda Verde").type(CompanyType.SUPPLIER).build()));
 
-        List<UserResponseDTO> items = useCase.execute(null, null, 20, 0).items();
+        List<UserResponseDTO> items = useCase.execute(null, null, null, null, 20, 0).items();
 
         assertThat(items.get(0).companyId()).isNull();
         assertThat(items.get(1).companyName()).isEqualTo("Mercado");

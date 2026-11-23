@@ -90,10 +90,10 @@ class FullTextSearchIT {
         assertThat(userEmails("KANE")).containsExactly(KANE);
         assertThat(userEmails("bayern kane")).containsExactly(KANE);
         assertThat(userEmails(KANE)).containsExactly(KANE);
-        assertThat(userRepository.countPage("KANE", null)).isEqualTo(1);
-        assertThat(userRepository.findPage("zpkninguem", null, 100, 0)).isEmpty();
-        assertThat(userRepository.countPage("zpkninguem", null)).isZero();
-        assertThat(userRepository.countPage("--", null)).isEqualTo(userRepository.countPage(null, null));
+        assertThat(userRepository.countPage("KANE", null, null, null)).isEqualTo(1);
+        assertThat(userRepository.findPage("zpkninguem", null, null, null, 100, 0)).isEmpty();
+        assertThat(userRepository.countPage("zpkninguem", null, null, null)).isZero();
+        assertThat(userRepository.countPage("--", null, null, null)).isEqualTo(userRepository.countPage(null, null, null, null));
     }
 
     @Test
@@ -118,7 +118,7 @@ class FullTextSearchIT {
     }
 
     private List<String> userEmails(String search) {
-        return userRepository.findPage(search, null, 100, 0).stream().map(User::getEmail).toList();
+        return userRepository.findPage(search, null, null, null, 100, 0).stream().map(User::getEmail).toList();
     }
 
     private List<Long> productIds(String search) {

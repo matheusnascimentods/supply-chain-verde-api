@@ -46,24 +46,24 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<User> findPage(String email, Long companyId, int limit, int offset) {
+    public List<User> findPage(String email, List<UserRole> roles, Boolean active, Long companyId, int limit, int offset) {
         List<Long> emailUserIds = jpaRepository.findIdsByEmailFilter(email);
         if (emailUserIds != null && emailUserIds.isEmpty()) return List.of();
         TypedQuery<UserJpaEntity> query = entityManager
-                .createQuery("SELECT user FROM UserJpaEntity user" + where(emailUserIds, companyId) + " ORDER BY user.userId ASC", UserJpaEntity.class)
+                .createQuery("SELECT user FROM UserJpaEntity user" + where(emailUserIds, roles, active, companyId) + " ORDER BY user.userId ASC", UserJpaEntity.class)
                 .setFirstResult(offset)
                 .setMaxResults(limit);
-        bindFilters(query, emailUserIds, companyId);
+        bindFilters(query, emailUserIds, roles, active, companyId);
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countPage(String email, Long companyId) {
+    public long countPage(String email, List<UserRole> roles, Boolean active, Long companyId) {
         List<Long> emailUserIds = jpaRepository.findIdsByEmailFilter(email);
         if (emailUserIds != null && emailUserIds.isEmpty()) return 0;
-        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(emailUserIds, companyId), Long.class);
-        bindFilters(query, emailUserIds, companyId);
+        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(emailUserIds, roles, active, companyId), Long.class);
+        bindFilters(query, emailUserIds, roles, active, companyId);
         return query.getSingleResult();
     }
 
@@ -82,15 +82,19 @@ public class UserRepositoryImpl implements UserRepository {
         return jpaRepository.findActiveById(userId).orElse(false);
     }
 
-    private String where(List<Long> emailUserIds, Long companyId) {
+    private String where(List<Long> emailUserIds, List<UserRole> roles, Boolean active, Long companyId) {
         List<String> conditions = new ArrayList<>();
         if (emailUserIds != null) conditions.add("user.userId IN :emailUserIds");
+        if (roles != null && !roles.isEmpty()) conditions.add("user.role IN :roles");
+        if (active != null) conditions.add("user.active = :active");
         if (companyId != null) conditions.add("user.companyId = :companyId");
         return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
     }
 
-    private void bindFilters(Query query, List<Long> emailUserIds, Long companyId) {
+    private void bindFilters(Query query, List<Long> emailUserIds, List<UserRole> roles, Boolean active, Long companyId) {
         if (emailUserIds != null) query.setParameter("emailUserIds", emailUserIds);
+        if (roles != null && !roles.isEmpty()) query.setParameter("roles", roles);
+        if (active != null) query.setParameter("active", active);
         if (companyId != null) query.setParameter("companyId", companyId);
     }
 
