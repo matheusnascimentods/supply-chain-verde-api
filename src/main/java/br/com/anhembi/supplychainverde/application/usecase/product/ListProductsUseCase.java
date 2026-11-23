@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.application.mapper.ProductDtoMapper;
+import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.FullTextSearch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,10 +27,12 @@ public class ListProductsUseCase {
     public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search, Long supplierId) {
         String term = search == null ? "" : search.trim();
         String categoryCode = categoryCode(term);
-        List<Product> products = term.isEmpty()
+        // RN-06: termo sem letras nem dígitos (ex.: "--") vale como busca vazia.
+        boolean listAll = FullTextSearch.booleanQuery(term).isEmpty() && categoryCode.isEmpty();
+        List<Product> products = listAll
                 ? productRepository.findAll(supplierId, limit, offset)
                 : productRepository.findBySearch(supplierId, term, categoryCode, limit, offset);
-        long totalElements = term.isEmpty()
+        long totalElements = listAll
                 ? productRepository.countAll(supplierId)
                 : productRepository.countBySearch(supplierId, term, categoryCode);
         List<ProductResponseDTO> items = products.stream()
