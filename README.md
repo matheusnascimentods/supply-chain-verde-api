@@ -110,12 +110,12 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - **Multiempresa (feature 010)**: mercados e fornecedores se cadastram sozinhos com um plano, cada companhia só vê os próprios dados e o mercado pede lotes ao fornecedor (V7–V9). Especificação em [`docs/features/010-empresas-planos`](docs/features/010-empresas-planos/spec.md); integridade por tipo de companhia na [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 - **Convites (feature 011)**: o `ADMIN` convida usuários por email (Twilio SendGrid), e o convidado aceita pelo link e entra logado; o `POST /users` deixou de existir (V12). Especificação em [`docs/features/011-convites`](docs/features/011-convites/spec.md); token do link na [ADR 0004](docs/adr/0004-token-de-convite-opaco-com-hash.md).
+- **Assinatura e assentos (feature 016)**: os planos saíram (V18). Toda companhia tem até 10 usuários ativos (`max_users`, V16), o `ADMIN` desativa e reativa usuários (V17), e a lista de usuários filtra por perfil e situação. Especificação em [`docs/features/016-assinatura-assentos`](docs/features/016-assinatura-assentos/spec.md).
 - Validação local realizada com `./mvnw --batch-mode verify`.
 
 ### Principais Entidades de Domínio
-- **`Company`**: Companhia `MARKET` (varejista) ou `SUPPLIER` (fornecedor), com CNPJ validado e único, email, telefone e sede em `Address`.
-- **`Plan`**: Catálogo de planos (`BASIC` com 3 usuários, `PRO` com 10, `PRO_MAX` com 15). Cada companhia tem uma assinatura ativa por vez.
-- **`User`**: Usuário de uma companhia, com perfil compatível com o tipo dela; só o `PLATFORM_ADMIN` não tem companhia.
+- **`Company`**: Companhia `MARKET` (varejista) ou `SUPPLIER` (fornecedor), com CNPJ validado e único, email, telefone, sede em `Address` e o teto de assentos `maxUsers` (10 por padrão).
+- **`User`**: Usuário de uma companhia, com perfil compatível com o tipo dela e situação `active`; só o `PLATFORM_ADMIN` não tem companhia. O inativo não entra e não ocupa assento.
 - **`Certification`**: Certificações ambientais de um fornecedor, gerenciadas por ele, com ciclo de validade.
 - **`Product` & `Batch`**: Produto de um fornecedor e o lote que um mercado pede a ele, com status `PENDING`, `ACTIVE` ou `REJECTED`.
 - **`Chain`**: Etapas da cadeia (produção, armazenagem, transporte, distribuição, varejo) com `User` responsável obrigatório.
@@ -135,9 +135,9 @@ Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora 
 | `AUDITOR` | `MARKET` | Consulta lotes, relatórios, certificações e auditoria da companhia |
 | `SUPPLIER` | `SUPPLIER` | Cadastra os próprios produtos e certificações, recusa lotes ou inicia a produção |
 
-- **Cadastro**: `POST /api/v1/companies` é público e cria companhia, endereço, assinatura e o `ADMIN` numa transação; a resposta já traz o token.
+- **Cadastro**: `POST /api/v1/companies` é público e cria companhia, endereço e o `ADMIN` numa transação; a resposta já traz o token.
 - **Convites**: os demais usuários entram só por convite. O `ADMIN` convida por email com o perfil escolhido, e o convidado abre o link, define nome e senha e já entra logado. O link vale 24h e uma vez.
-- **Limites**: usuários mais convites ativos nunca passam do plano ativo, e toda companhia mantém pelo menos um `ADMIN` (409 nos dois casos).
+- **Assentos**: usuários ativos mais convites ativos nunca passam do `maxUsers` da companhia, ao convidar, aceitar convite e reativar. Desativar um usuário libera o assento na hora. Toda companhia mantém pelo menos um `ADMIN` ativo (409 nos dois casos).
 - **Catálogo**: o mercado vê todos os fornecedores, produtos e certificações para encontrar fornecedores novos. Cada fornecedor traz `workedWith`, que indica se ele tem ou teve lote com o mercado logado.
 - **Ciclo do lote**: o mercado pede o lote (`PENDING`) com um produto do fornecedor. O fornecedor recusa com motivo (`REJECTED`, final) ou registra a etapa `PRODUCTION`, que ativa o lote (`ACTIVE`) e preenche `producedAt`.
 
@@ -154,8 +154,6 @@ Todas as tabelas têm `created_at` e `updated_at` (`DATETIME(6)` no horário de 
 ```mermaid
 erDiagram
     address ||--o{ company : "sede de"
-    plan ||--o{ company_plan : "assinado em"
-    company ||--o{ company_plan : assina
     company |o--o{ users : emprega
     company ||--o{ product : "fornecedor de"
     company ||--o{ certification : "fornecedor possui"
@@ -171,28 +169,15 @@ erDiagram
     users |o--o{ audit_log : executa
     users ||--o{ invite : convida
 
-    plan {
-        bigint id PK
-        plan_code code UK
-        varchar name
-        int max_users
-    }
     company {
         bigint id PK
         varchar name
         char cnpj UK
         varchar email
         company_type type
+        int max_users "teto de assentos, 10 por padrão"
         bigint address_id FK
         varchar phone
-    }
-    company_plan {
-        bigint id PK
-        bigint company_id FK
-        bigint plan_id FK
-        datetime started_at
-        datetime ended_at
-        bigint active_company_id UK "gerada; NULL quando encerrada"
     }
     users {
         bigint id PK
@@ -201,6 +186,7 @@ erDiagram
         varchar password "hash BCrypt"
         user_role role
         bigint company_id FK "NULL só no PLATFORM_ADMIN"
+        boolean is_active "inativo não entra nem ocupa assento"
     }
     invite {
         bigint id PK
@@ -296,11 +282,11 @@ erDiagram
     }
 ```
 
-Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `UNIQUE` em `company_plan.active_company_id` deixa uma única assinatura ativa por companhia. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
+Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `CHECK` `chk_company_max_users_positive` garante um teto de assentos positivo. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 
 Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
-Os tipos `company_type`, `plan_code`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
+Os tipos `company_type`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
 
 ### Views
 
@@ -504,7 +490,7 @@ rolocompressor06
 Depois da V11, o seed fica assim:
 
 - **`PLATFORM_ADMIN`**: `m.neuer@bayern.com`, sem companhia.
-- **Mercados** (plano `PRO`, 10 usuários cada). Cada um tem os lotes e relatórios de um terço dos fornecedores do seed, divididos pelo resto de `supplier_id` por 3:
+- **Mercados** (10 usuários cada, o teto de assentos). Cada um tem os lotes e relatórios de um terço dos fornecedores do seed, divididos pelo resto de `supplier_id` por 3:
 
 | Mercado | Fornecedores (`supplier_id`) | `ADMIN` | Demais usuários |
 | :--- | :--- | :--- | :--- |
@@ -512,7 +498,7 @@ Depois da V11, o seed fica assim:
 | Supermercado Vale Verde | resto 1 | `warren.zaire-emery@psg.example.com` | `j.musiala`, `ousmane.dembele` (`MANAGER`), `m.olise`, `desire.doue` (`AUDITOR`), `m.caicedo@chelsea.com` (`MANAGER`), `r.lavia` e `c.palmer@chelsea.com` (`AUDITOR`), `n.barella@inter.com` (`MANAGER`) e `h.calhanoglu@inter.com` (`AUDITOR`) |
 | Rede Feira Viva | resto 2 | `matvey.safonov@psg.example.com` | `fabian.ruiz`, `nuno.mendes` (`MANAGER`), `joao.neves`, `marquinhos` (`AUDITOR`), `b.fernandes@manutd.com` (`MANAGER`), `m.cunha` e `b.mbeumo@manutd.com` (`AUDITOR`), `g.dilorenzo@napoli.com` (`MANAGER`) e `k.debruyne@napoli.com` (`AUDITOR`) |
 
-- **Fornecedores** (plano `BASIC`): todos os 41 têm um `ADMIN`. Os seis que já tinham usuário mantêm o antigo `SUPPLIER`, promovido na V8 (por exemplo, `d.upamecano@bayern.com` no fornecedor 3). Os outros 35 recebem, em ordem de id, um jogador da V10 (`alisson@liverpool.com` no fornecedor 1, `m.kerkez@liverpool.com` no 2, e assim por diante). A V11 adiciona um `SUPPLIER` nos fornecedores 1 a 38, também em ordem de id (`m.gila@milan.com` no 1, `k.dewinter@milan.com` no 2, e assim por diante, com jogadores de Milan, Inter, Juventus e Napoli).
+- **Fornecedores**: todos os 41 têm um `ADMIN`. Os seis que já tinham usuário mantêm o antigo `SUPPLIER`, promovido na V8 (por exemplo, `d.upamecano@bayern.com` no fornecedor 3). Os outros 35 recebem, em ordem de id, um jogador da V10 (`alisson@liverpool.com` no fornecedor 1, `m.kerkez@liverpool.com` no 2, e assim por diante). A V11 adiciona um `SUPPLIER` nos fornecedores 1 a 38, também em ordem de id (`m.gila@milan.com` no 1, `k.dewinter@milan.com` no 2, e assim por diante, com jogadores de Milan, Inter, Juventus e Napoli).
 - **Lotes**: além dos lotes ativos do seed original, a V11 cria três lotes por fornecedor, cada um num mercado: um `PENDING`, um `ACTIVE` e um `REJECTED` (com motivo). Esses lotes não têm etapas, então não entram nos relatórios.
 - O Mercado Verde Demonstração, criado na V8, continua existindo, mas sem usuários, lotes nem relatórios.
 
@@ -627,29 +613,29 @@ Todas as rotas abaixo respeitam o escopo da companhia do usuário (veja [Perfis 
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/auth/login` | Autenticação e emissão do token JWT; a resposta traz `role`, `companyId`, `companyType`, `companyName` e `supplierId` | Público |
 
-### 🏢 Companhias & Planos (`/api/v1/companies`, `/api/v1/plans`)
+### 🏢 Companhias (`/api/v1/companies`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/plans` | Catálogo de planos com `code`, `name` e `maxUsers` | **Público** |
-| `POST` | `/api/v1/companies` | Cadastro de mercado ou fornecedor com plano e administrador; resposta igual à do login. CNPJ ou email repetido → 409; plano inexistente → 400 | **Público** |
-| `GET` | `/api/v1/companies/me` | Dados da companhia, endereço e plano ativo | Usuário com companhia |
+| `POST` | `/api/v1/companies` | Cadastro de mercado ou fornecedor com o administrador; resposta igual à do login. CNPJ ou email repetido → 409; um `planCode` enviado é ignorado | **Público** |
+| `GET` | `/api/v1/companies/me` | Dados da companhia, endereço, `maxUsers` e `seatsUsed` (ativos + convites ativos) | Usuário com companhia |
 | `PATCH` | `/api/v1/companies/me` | Altera razão social, email, telefone e endereço (CNPJ e tipo não mudam) | `ADMIN` |
 
 ### 👤 Usuários (`/api/v1/users`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/users?email={termo}&limit=20&offset=0` | Usuários da própria companhia, com busca por palavra do email; o `PLATFORM_ADMIN` vê todos | Autenticado |
+| `GET` | `/api/v1/users?email={termo}&role={ROLE}&active={true\|false}&limit=20&offset=0` | Usuários da própria companhia, com busca por palavra do email, `role` repetível (`role=MANAGER&role=AUDITOR` traz um ou outro) e `active`. Os filtros se combinam por E, e cada item traz `active`. O `PLATFORM_ADMIN` vê todos | Autenticado |
 | `GET`/`PATCH` | `/api/v1/users/me` | Dados do usuário logado, com a companhia; o `PATCH` altera nome e senha | Autenticado |
-| `PATCH` | `/api/v1/users/{userId}/role` | Troca de perfil na própria companhia; deixar a companhia sem `ADMIN` → 409 | `ADMIN` |
+| `PATCH` | `/api/v1/users/{userId}/role` | Troca de perfil na própria companhia; deixar a companhia sem `ADMIN` ativo ou mudar um inativo → 409 | `ADMIN` |
+| `PATCH` | `/api/v1/users/{userId}/status` | Com `{ "active": boolean }`, desativa ou reativa na própria companhia (o `PLATFORM_ADMIN`, em qualquer uma). Desativar a si mesmo ou o último `ADMIN` ativo, ou reativar sem assento livre → 409; alvo `PLATFORM_ADMIN` → 400. O inativo perde o acesso na próxima requisição | `ADMIN` |
 
 Não existe `POST /api/v1/users`: usuários novos entram por convite.
 
 ### ✉️ Convites (`/api/v1/invites`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/invites` | Envia por email o link `<APP_FRONTEND_URL>/convites/<token>`, válido por 24h, com `email` e `role`. Perfil não permitido → 400; email já cadastrado, convite ativo ou plano cheio (usuários + convites ativos) → 409; falha no SendGrid → 502 | `ADMIN` |
+| `POST` | `/api/v1/invites` | Envia por email o link `<APP_FRONTEND_URL>/convites/<token>`, válido por 24h, com `email` e `role`. Perfil não permitido → 400; email já cadastrado (inclusive de inativo), convite ativo ou companhia sem assento livre (ativos + convites ativos) → 409; falha no SendGrid → 502 | `ADMIN` |
 | `GET` | `/api/v1/invites/{token}` | Email, perfil, companhia e validade do convite, sem consumi-lo. Token desconhecido, expirado ou aceito → 404 | **Público** |
-| `POST` | `/api/v1/invites/accept` | Com `token`, `name` e `password`, cria o usuário na companhia de quem convidou e responde igual ao login. Plano cheio ou email já cadastrado → 409 | **Público** |
+| `POST` | `/api/v1/invites/accept` | Com `token`, `name` e `password`, cria o usuário na companhia de quem convidou e responde igual ao login. Companhia sem assento livre ou email já cadastrado → 409 | **Público** |
 
 As buscas (`search`, `email`, `userEmail`) casam cada palavra pelo início, sem diferenciar acento nem maiúscula, desde a 1ª letra. Detalhes em [`reference.md`](docs/features/000-base/reference.md#busca-textual).
 

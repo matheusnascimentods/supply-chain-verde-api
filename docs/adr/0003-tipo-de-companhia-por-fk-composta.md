@@ -16,6 +16,8 @@ A feature 010 troca `supplier` por `company`, com `type` `MARKET` ou `SUPPLIER`.
 
 Aceita e implementada nas migrations V7–V9 (feature 010). Coberta por `CompanyConstraintsIT`.
 
+**O item 3 deixou de valer na feature 016** ([spec](../features/016-assinatura-assentos/spec.md)): `plan` e `company_plan` saíram na V18, e a companhia passou a ter `max_users` (V16). Os itens 1 e 2 continuam valendo.
+
 ## Group
 
 Dados e integridade.
