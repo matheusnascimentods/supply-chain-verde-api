@@ -4,6 +4,7 @@ import br.com.anhembi.supplychainverde.application.dto.product.ProductResponseDT
 import br.com.anhembi.supplychainverde.application.dto.pagination.OffsetPageResponseDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Product;
 import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
+import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.application.mapper.ProductDtoMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.FullTextSearch;
@@ -24,9 +25,19 @@ public class ListProductsUseCase {
         return productRepository.findAll().stream().map(mapper::toResponse).toList();
     }
 
-    public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search, Long supplierId) {
+    /** RN-07: a companhia fornecedora vê só os próprios produtos, por productId; o mercado e o admin veem o catálogo (RN-01). */
+    public OffsetPageResponseDTO<ProductResponseDTO> execute(int limit, int offset, String search, Long supplierId, Long marketId,
+            ProductCategory category, ProductUnit unit, boolean isSupplierCompany) {
         String term = search == null ? "" : search.trim();
         String categoryCode = categoryCode(term);
+        if (!isSupplierCompany) {
+            List<ProductResponseDTO> items = productRepository
+                    .findCatalog(supplierId, marketId, category, unit, term, categoryCode, limit, offset).stream()
+                    .map(mapper::toResponse)
+                    .toList();
+            return OffsetPageResponseDTO.of(items, limit, offset,
+                    productRepository.countCatalog(supplierId, category, unit, term, categoryCode));
+        }
         // RN-06: termo sem letras nem dígitos (ex.: "--") vale como busca vazia.
         boolean listAll = FullTextSearch.booleanQuery(term).isEmpty() && categoryCode.isEmpty();
         List<Product> products = listAll

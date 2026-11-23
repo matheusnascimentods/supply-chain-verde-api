@@ -1,6 +1,8 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.repositoryimpl;
 
 import br.com.anhembi.supplychainverde.domain.entity.Product;
+import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
+import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.ProductRepository;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.ProductJpaMapper;
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.FullTextSearch;
@@ -55,5 +57,21 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public void deleteById(Long productId) {
         jpaRepository.deleteById(productId);
+    }
+
+    @Override
+    public List<CatalogItem> findCatalog(Long supplierId, Long marketId, ProductCategory category, ProductUnit unit,
+            String search, String categoryCode, int limit, int offset) {
+        return jpaRepository.findCatalog(supplierId, marketId, name(category), name(unit),
+                FullTextSearch.booleanQuery(search), categoryCode, limit, offset);
+    }
+
+    @Override
+    public long countCatalog(Long supplierId, ProductCategory category, ProductUnit unit, String search, String categoryCode) {
+        return jpaRepository.countCatalog(supplierId, name(category), name(unit), FullTextSearch.booleanQuery(search), categoryCode);
+    }
+
+    private static String name(Enum<?> value) {
+        return value == null ? null : value.name();
     }
 }
