@@ -3,9 +3,6 @@ package br.com.anhembi.supplychainverde.domain.repository;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
 
-import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
-import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
-
 import java.math.BigDecimal;
 import java.util.Collection;
 
@@ -35,16 +32,11 @@ public interface CompanyRepository {
 
     List<Company> findAllById(Collection<Long> supplierIds);
 
-    List<SupplierEmissionRank> findRankedByEmission(ProductCategory category, ProductUnit unit, String search,
-            boolean workedWithOnly, Long marketId, int limit, int offset);
-
     /** workedWithOnly restringe aos fornecedores que têm ou tiveram lote com marketId (RN-13). */
     long countBySearch(String search, boolean workedWithOnly, Long marketId);
     List<Long> findIdsRankedByScore(String search, boolean workedWithOnly, Long marketId, int limit, int offset);
     Set<Long> findWorkedWithIds(Long marketId, Collection<Long> supplierIds);
     List<SupplierScore> findScoresByIds(Collection<Long> supplierIds);
     record SupplierScore(Long supplierId, BigDecimal sustainabilityScore, Long activeCertificationCount, BigDecimal totalCo2Kg) {}
-
-    record SupplierEmissionRank(Long supplierId, BigDecimal co2KgPerUnit) {};
 
 }

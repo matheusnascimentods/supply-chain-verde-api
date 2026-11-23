@@ -63,7 +63,7 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
             """;
 
     // RN-03: a data do aceite não é gravada, então vale created_at (fuso do servidor, America/Sao_Paulo).
-    // RN-04: mesma conta de findRankedByEmission.
+    // RN-04: CO2 médio do fornecedor na categoria e unidade, ponderado pela quantidade (a antiga recomendação RN-21).
     // ponytail: agrega a view inteira por página; materializar por (supplier, category, unit) se o catálogo passar de alguns milhares de produtos.
     @Query(value = """
             SELECT p.id AS productId, p.supplier_id AS supplierId, p.name AS name, p.category AS category,

@@ -3,12 +3,9 @@ package br.com.anhembi.supplychainverde.application.usecase.supplier;
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.application.dto.supplier.SupplierRankingDTO;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
-import br.com.anhembi.supplychainverde.domain.enums.ProductCategory;
-import br.com.anhembi.supplychainverde.domain.enums.ProductUnit;
 import br.com.anhembi.supplychainverde.domain.repository.CertificationRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ReportRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
-import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierEmissionRank;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository.SupplierScore;
 import org.junit.jupiter.api.Test;
 
@@ -36,34 +33,14 @@ class RankSuppliersBySustainabilityUseCaseTest {
                     DtoMappers.SUPPLIER, DtoMappers.CERTIFICATION);
 
     @Test
-    void ordersRecommendedPageByCo2PerUnitWithSuppliersWithoutHistoryLast() {
-        when(suppliers.findRankedByEmission(ProductCategory.AGRICULTURE, ProductUnit.KG, "", false, 40L, 20, 0))
-                .thenReturn(List.of(
-                        new SupplierEmissionRank(3L, new BigDecimal("0.4000")),
-                        new SupplierEmissionRank(8L, new BigDecimal("0.6000")),
-                        new SupplierEmissionRank(5L, null)));
-        when(suppliers.findAllById(any())).thenReturn(List.of(supplier(5L), supplier(8L), supplier(3L)));
-        when(suppliers.countBySearch("", false, 40L)).thenReturn(3L);
-        stubScores();
-        when(reports.countBySupplierIds(any(), any())).thenReturn(Map.of());
-
-        var response = useCase.executeRecommended(ProductCategory.AGRICULTURE, ProductUnit.KG, 20, 0, null, false, 40L);
-
-        assertThat(response.items()).extracting(SupplierRankingDTO::supplierId).containsExactly(3L, 8L, 5L);
-        assertThat(response.items()).extracting(SupplierRankingDTO::co2KgPerUnit)
-                .containsExactly(new BigDecimal("0.4000"), new BigDecimal("0.6000"), null);
-        assertThat(response.hasNext()).isFalse();
-    }
-
-    @Test
     void trimsSearchBeforeQueryingAndCounting() {
-        when(suppliers.findRankedByEmission(ProductCategory.OTHER, ProductUnit.KG, "verde", false, null, 10, 0)).thenReturn(List.of());
+        when(suppliers.findIdsRankedByScore("verde", false, null, 10, 0)).thenReturn(List.of());
         when(suppliers.findAllById(any())).thenReturn(List.of());
         when(reports.countBySupplierIds(any(), any())).thenReturn(Map.of());
 
-        useCase.executeRecommended(ProductCategory.OTHER, ProductUnit.KG, 10, 0, "  verde ", false, null);
+        useCase.execute(10, 0, "  verde ", false, null);
 
-        verify(suppliers).findRankedByEmission(ProductCategory.OTHER, ProductUnit.KG, "verde", false, null, 10, 0);
+        verify(suppliers).findIdsRankedByScore("verde", false, null, 10, 0);
         verify(suppliers).countBySearch("verde", false, null);
     }
 
