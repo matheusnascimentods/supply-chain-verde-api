@@ -9,12 +9,10 @@ import br.com.anhembi.supplychainverde.application.exception.ValidationException
 import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
 import br.com.anhembi.supplychainverde.application.usecase.user.AuthenticateUserUseCase;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
-import br.com.anhembi.supplychainverde.domain.entity.Plan;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
-import br.com.anhembi.supplychainverde.domain.repository.PlanRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import br.com.anhembi.supplychainverde.domain.valueobject.Cnpj;
@@ -24,12 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/** RF-02: endereço, companhia, assinatura e o ADMIN numa transação; a resposta é a mesma do login. */
+/** RF-02: endereço, companhia (com o teto padrão de assentos, 016) e o ADMIN numa transação; a resposta é a mesma do login. */
 @Service
 @RequiredArgsConstructor
 public class RegisterCompanyUseCase {
     private final CompanyRepository companyRepository;
-    private final PlanRepository planRepository;
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
@@ -51,8 +48,6 @@ public class RegisterCompanyUseCase {
         if (!CompanyEmails.isValid(admin.email())) throw new ValidationException("Email do administrador inválido.");
         if (isBlank(admin.password())) throw new ValidationException("Senha do administrador é obrigatória.");
         Cnpj cnpj = new Cnpj(data.cnpj() == null ? "" : data.cnpj());
-        Plan plan = planRepository.findByCode(request.planCode())
-                .orElseThrow(() -> new ValidationException("Plano inexistente: " + request.planCode()));
         if (companyRepository.existsByCnpj(cnpj)) throw new ConflictException("CNPJ já cadastrado: " + cnpj.value());
         if (userRepository.existsByEmail(admin.email())) throw new ConflictException("Email já cadastrado: " + admin.email());
 
@@ -64,7 +59,6 @@ public class RegisterCompanyUseCase {
                 .type(request.type())
                 .address(addressRepository.save(addressMapper.toDomain(data.address())))
                 .build());
-        companyRepository.subscribe(company.getCompanyId(), plan.planId());
         User user = userRepository.save(User.builder()
                 .name(admin.name())
                 .email(admin.email())

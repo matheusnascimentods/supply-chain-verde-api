@@ -28,12 +28,12 @@ public class CompanyController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
             summary = "Cadastrar companhia",
-            description = "Público. Cria numa transação a companhia (type MARKET ou SUPPLIER), o endereço, a assinatura do plano planCode e o usuário ADMIN. A resposta é a mesma do POST /auth/login, então o administrador já entra logado. CNPJ ou email do administrador já cadastrados retornam 409; plano inexistente, CNPJ ou email inválidos retornam 400."
+            description = "Público. Cria numa transação a companhia (type MARKET ou SUPPLIER), o endereço e o usuário ADMIN. A companhia nasce com o teto padrão de 10 assentos (maxUsers); planCode, se vier, é ignorado. A resposta é a mesma do POST /auth/login, então o administrador já entra logado. CNPJ ou email do administrador já cadastrados retornam 409; CNPJ ou email inválidos retornam 400."
     )
     public LoginResponseDTO register(@RequestBody RegisterCompanyRequestDTO request) { return register.execute(request); }
 
     @GetMapping("/me")
-    @Operation(summary = "Consultar a própria companhia", description = "Qualquer usuário com companhia. Retorna os dados da companhia, o endereço e o plano ativo. Usuário sem companhia (PLATFORM_ADMIN) recebe 403.")
+    @Operation(summary = "Consultar a própria companhia", description = "Qualquer usuário com companhia. Retorna os dados da companhia, o endereço, o teto de assentos (maxUsers) e os assentos em uso (seatsUsed: usuários + convites ativos). O campo plan é legado e sai quando os planos forem removidos. Usuário sem companhia (PLATFORM_ADMIN) recebe 403.")
     public CompanyResponseDTO me(@AuthenticationPrincipal CustomUserPrincipal principal) { return getOwn.execute(principal.userId()); }
 
     @PatchMapping("/me")

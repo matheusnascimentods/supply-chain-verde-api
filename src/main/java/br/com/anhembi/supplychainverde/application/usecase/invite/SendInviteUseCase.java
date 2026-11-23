@@ -4,11 +4,11 @@ import br.com.anhembi.supplychainverde.application.dto.invite.SendInviteRequestD
 import br.com.anhembi.supplychainverde.application.exception.CompanyNotFoundException;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
+import br.com.anhembi.supplychainverde.application.usecase.user.SeatPolicy;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.Invite;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.InviteRepository;
-import br.com.anhembi.supplychainverde.domain.repository.PlanRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.EmailSender;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,17 +25,17 @@ public class SendInviteUseCase {
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
-    private final PlanRepository planRepository;
+    private final SeatPolicy seatPolicy;
     private final EmailSender emailSender;
     private final String frontendUrl;
 
     public SendInviteUseCase(InviteRepository inviteRepository, UserRepository userRepository,
-                             CompanyRepository companyRepository, PlanRepository planRepository,
+                             CompanyRepository companyRepository, SeatPolicy seatPolicy,
                              EmailSender emailSender, @Value("${app.frontend-url}") String frontendUrl) {
         this.inviteRepository = inviteRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
-        this.planRepository = planRepository;
+        this.seatPolicy = seatPolicy;
         this.emailSender = emailSender;
         this.frontendUrl = frontendUrl;
     }
@@ -63,12 +63,7 @@ public class SendInviteUseCase {
         if (inviteRepository.existsActiveByEmail(email)) {
             throw new ConflictException("Já existe um convite ativo para " + email + ".");
         }
-        int maxUsers = planRepository.findActiveByCompanyId(companyId)
-                .orElseThrow(() -> new ConflictException("Companhia sem assinatura ativa."))
-                .maxUsers();
-        if (userRepository.countByCompanyId(companyId) + inviteRepository.countActiveByCompanyId(companyId) >= maxUsers) {
-            throw new ConflictException("Limite de " + maxUsers + " usuários do plano atingido.");
-        }
+        seatPolicy.requireFreeSeat(company);
 
         String token = InviteToken.generate();
         inviteRepository.save(Invite.builder()

@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Feature 011 de ponta a ponta (plan §8), num mercado BASIC (3 usuários) com um único ADMIN. */
+/** Feature 011 de ponta a ponta (plan §8), num mercado com teto de 3 assentos (016) e um único ADMIN. */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -64,10 +64,9 @@ class InviteFlowIT {
                 VALUES ('Rua do Convite', '1', 'Centro', '01000000', 'São Paulo', 'SP')
                 """);
         companyId = insert(jdbcTemplate, """
-                INSERT INTO company (name, cnpj, address_id, email, type)
-                VALUES ('Mercado Convite', '98765432000198', ?, 'convite@it.test', 'MARKET')
+                INSERT INTO company (name, cnpj, address_id, email, type, max_users)
+                VALUES ('Mercado Convite', '98765432000198', ?, 'convite@it.test', 'MARKET', 3)
                 """, address);
-        jdbcTemplate.update("INSERT INTO company_plan (company_id, plan_id) SELECT ?, id FROM plan WHERE code = 'BASIC'", companyId);
         adminId = insert(jdbcTemplate,
                 "INSERT INTO users (name, email, password, role, company_id) VALUES ('Admin', 'admin@convite.test', 'x', 'ADMIN', ?)",
                 companyId);
@@ -124,7 +123,7 @@ class InviteFlowIT {
     }
 
     @Test
-    void activeInvitesFillThePlan() throws Exception {
+    void activeInvitesFillTheSeats() throws Exception {
         sendAndCaptureToken("um@convite.test", "AUDITOR");
         sendAndCaptureToken("dois@convite.test", "MANAGER");
 
@@ -144,7 +143,6 @@ class InviteFlowIT {
         } finally {
             long address = jdbcTemplate.queryForObject("SELECT address_id FROM company WHERE id = ?", Long.class, companyId);
             jdbcTemplate.update("DELETE FROM users WHERE id = ?", adminId);
-            jdbcTemplate.update("DELETE FROM company_plan WHERE company_id = ?", companyId);
             jdbcTemplate.update("DELETE FROM company WHERE id = ?", companyId);
             jdbcTemplate.update("DELETE FROM address WHERE id = ?", address);
         }

@@ -7,12 +7,12 @@ import br.com.anhembi.supplychainverde.application.exception.ResourceNotFoundExc
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.application.usecase.user.AuthenticateUserUseCase;
 import br.com.anhembi.supplychainverde.domain.entity.Invite;
-import br.com.anhembi.supplychainverde.domain.entity.Plan;
+import br.com.anhembi.supplychainverde.application.usecase.user.SeatPolicy;
+import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.UserRole;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.InviteRepository;
-import br.com.anhembi.supplychainverde.domain.repository.PlanRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import br.com.anhembi.supplychainverde.domain.service.PasswordHasher;
 import org.junit.jupiter.api.Test;
@@ -31,18 +31,18 @@ class AcceptInviteUseCaseTest {
     private final InviteRepository invites = mock(InviteRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final CompanyRepository companies = mock(CompanyRepository.class);
-    private final PlanRepository plans = mock(PlanRepository.class);
     private final PasswordHasher hasher = mock(PasswordHasher.class);
     private final AuthenticateUserUseCase authenticate = mock(AuthenticateUserUseCase.class);
     private final AcceptInviteUseCase useCase =
-            new AcceptInviteUseCase(invites, users, companies, plans, hasher, authenticate);
+            new AcceptInviteUseCase(invites, users, companies, new SeatPolicy(users, invites), hasher, authenticate);
 
     private final Invite invite = Invite.builder()
             .inviteId(5L).invitedBy(1L).invitedFor("ana@it.test").role(UserRole.AUDITOR).tokenHash(InviteToken.hash(TOKEN)).build();
 
     @Test
     void createsTheUserFromTheInviteInTheInvitersCompanyAndMarksItAccepted() {
-        givenInviteFromCompany(7L, 3, 1);
+        // 2 usuários + este convite = 3 de 3: o convite já tinha reservado o assento.
+        givenInviteFromCompany(7L, 3, 2);
         when(hasher.hash("segredo")).thenReturn("hash");
         when(users.save(any())).thenAnswer(call -> call.getArgument(0));
         LoginResponseDTO login = mock(LoginResponseDTO.class);
@@ -78,11 +78,11 @@ class AcceptInviteUseCaseTest {
     }
 
     @Test
-    void aFullPlanAtAcceptanceIsAConflict() {
+    void aCompanyAboveItsSeatsAtAcceptanceIsAConflict() {
         givenInviteFromCompany(7L, 3, 3);
 
         assertThatThrownBy(() -> useCase.execute(new AcceptInviteRequestDTO(TOKEN, "Ana", "segredo")))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(ConflictException.class).hasMessageContaining("Sem assentos livres: 4 de 3");
         verify(users, never()).save(any());
         assertThat(invite.isAccepted()).isFalse();
     }
@@ -100,7 +100,8 @@ class AcceptInviteUseCaseTest {
     private void givenInviteFromCompany(Long companyId, int maxUsers, long users) {
         when(invites.findActiveByTokenHash(InviteToken.hash(TOKEN))).thenReturn(Optional.of(invite));
         when(this.users.findById(1L)).thenReturn(Optional.of(User.builder().userId(1L).companyId(companyId).build()));
-        when(plans.findActiveByCompanyId(companyId)).thenReturn(Optional.of(new Plan(1L, "BASIC", "Basic", maxUsers)));
+        when(companies.findById(companyId)).thenReturn(Optional.of(Company.builder().companyId(companyId).maxUsers(maxUsers).build()));
         when(this.users.countByCompanyId(companyId)).thenReturn(users);
+        when(invites.countActiveByCompanyId(companyId)).thenReturn(1L);
     }
 }

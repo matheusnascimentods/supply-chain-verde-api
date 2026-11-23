@@ -21,21 +21,25 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static br.com.anhembi.supplychainverde.JdbcInserts.insert;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * RN-04 e RN-08 de ponta a ponta, num mercado BASIC (3 usuários) com um único ADMIN. Usuários só entram por convite
- * (feature 011); o limite ocupado por convites ativos fica no InviteFlowIT.
+ * RN-02 (016) e RN-08 (010) de ponta a ponta, num mercado com um único ADMIN. O teto padrão é 10; aqui ele baixa para
+ * 3 por SQL (RN-04). Usuários só entram por convite (feature 011); o assento ocupado por convite ativo fica no
+ * InviteFlowIT.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class UserPlanLimitIT {
+class SeatLimitIT {
     @Autowired
     private MockMvc mockMvc;
 
@@ -58,14 +62,33 @@ class UserPlanLimitIT {
                 INSERT INTO company (name, cnpj, address_id, email, type)
                 VALUES ('Mercado Basic', '98765432000198', ?, 'basic@plano.test', 'MARKET')
                 """, address);
-        jdbcTemplate.update("INSERT INTO company_plan (company_id, plan_id) SELECT ?, id FROM plan WHERE code = 'BASIC'", companyId);
         adminId = insert(jdbcTemplate,
                 "INSERT INTO users (name, email, password, role, company_id) VALUES ('Admin', 'admin@plano.test', 'x', 'ADMIN', ?)",
                 companyId);
     }
 
     @Test
-    void aBasicPlanWithThreeUsersCannotInviteAFourth() throws Exception {
+    void aNewCompanyHasTenSeats() {
+        assertThat(jdbcTemplate.queryForObject("SELECT max_users FROM company WHERE id = ?", Integer.class, companyId))
+                .isEqualTo(10);
+    }
+
+    @Test
+    void ownCompanyShowsSeatsInUse() throws Exception {
+        insert(jdbcTemplate, """
+                INSERT INTO invite (invited_by, invited_for, role, token_hash)
+                VALUES (?, 'pendente@plano.test', 'AUDITOR', SHA2('t', 256))
+                """, adminId);
+
+        mockMvc.perform(get("/api/v1/companies/me").with(asAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.maxUsers").value(10))
+                .andExpect(jsonPath("$.seatsUsed").value(2));
+    }
+
+    @Test
+    void aCompanyWithThreeSeatsAndThreeUsersCannotInviteAFourth() throws Exception {
+        jdbcTemplate.update("UPDATE company SET max_users = 3 WHERE id = ?", companyId);
         for (String email : List.of("um@plano.test", "dois@plano.test")) {
             insert(jdbcTemplate, "INSERT INTO users (name, email, password, role, company_id) VALUES ('U', ?, 'x', 'AUDITOR', ?)",
                     email, companyId);
