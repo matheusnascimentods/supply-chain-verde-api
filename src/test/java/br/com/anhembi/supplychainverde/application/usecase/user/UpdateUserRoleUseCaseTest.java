@@ -35,7 +35,7 @@ class UpdateUserRoleUseCaseTest {
     @Test
     void rejectsDemotingTheLastAdmin() {
         givenUser(UserRole.ADMIN);
-        when(users.countByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(1L);
+        when(users.countActiveByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(1L);
 
         assertThatThrownBy(() -> useCase.execute(3L, new UpdateUserRoleRequestDTO(UserRole.MANAGER), 5L))
                 .isInstanceOf(ConflictException.class);
@@ -46,7 +46,7 @@ class UpdateUserRoleUseCaseTest {
     @Test
     void demotesAnAdminWhenAnotherRemains() {
         givenUser(UserRole.ADMIN);
-        when(users.countByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(2L);
+        when(users.countActiveByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(2L);
 
         assertThat(useCase.execute(3L, new UpdateUserRoleRequestDTO(UserRole.MANAGER), 5L).role()).isEqualTo(UserRole.MANAGER);
     }
@@ -68,6 +68,15 @@ class UpdateUserRoleUseCaseTest {
                 .isInstanceOf(ValidationException.class);
         assertThatThrownBy(() -> useCase.execute(3L, new UpdateUserRoleRequestDTO(UserRole.SUPPLIER), 5L))
                 .isInstanceOf(ValidationException.class);
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void rejectsChangingTheRoleOfAnInactiveUser() {
+        when(users.findById(3L)).thenReturn(Optional.of(User.builder().userId(3L).role(UserRole.AUDITOR).companyId(5L).active(false).build()));
+
+        assertThatThrownBy(() -> useCase.execute(3L, new UpdateUserRoleRequestDTO(UserRole.MANAGER), 5L))
+                .isInstanceOf(ConflictException.class).hasMessageContaining("desativado");
         verify(users, never()).save(any());
     }
 

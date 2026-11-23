@@ -101,7 +101,7 @@ class AcceptInviteUseCaseTest {
         when(invites.findActiveByTokenHash(InviteToken.hash(TOKEN))).thenReturn(Optional.of(invite));
         when(this.users.findById(1L)).thenReturn(Optional.of(User.builder().userId(1L).companyId(companyId).build()));
         when(companies.findById(companyId)).thenReturn(Optional.of(Company.builder().companyId(companyId).maxUsers(maxUsers).build()));
-        when(this.users.countByCompanyId(companyId)).thenReturn(users);
+        when(this.users.countActiveByCompanyId(companyId)).thenReturn(users);
         when(invites.countActiveByCompanyId(companyId)).thenReturn(1L);
     }
 }

@@ -13,6 +13,7 @@ public interface UserDtoMapper {
                 supplier ? company.getCompanyId() : null, supplier ? company.getName() : null,
                 company == null ? null : company.getCompanyId(),
                 company == null ? null : company.getType(),
-                company == null ? null : company.getName());
+                company == null ? null : company.getName(),
+                user.isActive());
     }
 }

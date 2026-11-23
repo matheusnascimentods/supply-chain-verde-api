@@ -18,6 +18,9 @@ public class User {
     private UserRole role;
     private Long companyId;
     private LocalDateTime createdAt;
+    /** RN-05 a RN-14 (016): inativo não loga, não usa a API e não ocupa assento. */
+    @Builder.Default
+    private boolean active = true;
 
     public void updateRole(UserRole newRole) {
         if (newRole == null) {

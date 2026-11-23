@@ -18,7 +18,7 @@ public class SeatPolicy {
     private final InviteRepository inviteRepository;
 
     public long seatsUsed(Long companyId) {
-        return userRepository.countByCompanyId(companyId) + inviteRepository.countActiveByCompanyId(companyId);
+        return userRepository.countActiveByCompanyId(companyId) + inviteRepository.countActiveByCompanyId(companyId);
     }
 
     public void requireFreeSeat(Company company) {

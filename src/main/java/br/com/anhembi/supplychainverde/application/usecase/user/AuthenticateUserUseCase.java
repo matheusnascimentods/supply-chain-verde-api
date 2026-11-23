@@ -33,6 +33,8 @@ public class AuthenticateUserUseCase {
         if (!passwordHasher.matches(request.password(), user.getPassword())) {
             throw new UnauthorizedActionException("Credenciais inválidas.");
         }
+        // RN-11 (016): depois da senha, para não revelar a situação da conta a quem não a conhece.
+        if (!user.isActive()) throw new UnauthorizedActionException("Usuário desativado.");
         return issueToken(user);
     }
 

@@ -36,4 +36,8 @@ public class UserJpaEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
 }

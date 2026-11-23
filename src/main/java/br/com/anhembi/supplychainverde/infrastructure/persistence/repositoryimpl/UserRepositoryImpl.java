@@ -68,13 +68,18 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public long countByCompanyId(Long companyId) {
-        return jpaRepository.countByCompanyId(companyId);
+    public long countActiveByCompanyId(Long companyId) {
+        return jpaRepository.countByCompanyIdAndActiveTrue(companyId);
     }
 
     @Override
-    public long countByCompanyIdAndRole(Long companyId, UserRole role) {
-        return jpaRepository.countByCompanyIdAndRole(companyId, role);
+    public long countActiveByCompanyIdAndRole(Long companyId, UserRole role) {
+        return jpaRepository.countByCompanyIdAndRoleAndActiveTrue(companyId, role);
+    }
+
+    @Override
+    public boolean isActive(Long userId) {
+        return jpaRepository.findActiveById(userId).orElse(false);
     }
 
     private String where(List<Long> emailUserIds, Long companyId) {

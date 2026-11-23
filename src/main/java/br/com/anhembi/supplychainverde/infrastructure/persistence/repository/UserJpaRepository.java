@@ -11,8 +11,11 @@ import java.util.Optional;
 public interface UserJpaRepository extends JpaRepository<UserJpaEntity, Long> {
     Optional<UserJpaEntity> findByEmail(String email);
     boolean existsByEmail(String email);
-    long countByCompanyId(Long companyId);
-    long countByCompanyIdAndRole(Long companyId, UserRole role);
+    long countByCompanyIdAndActiveTrue(Long companyId);
+    long countByCompanyIdAndRoleAndActiveTrue(Long companyId, UserRole role);
+
+    @Query("SELECT user.active FROM UserJpaEntity user WHERE user.userId = :userId")
+    Optional<Boolean> findActiveById(@Param("userId") Long userId);
 
     @Query(value = "SELECT id FROM users WHERE MATCH(email) AGAINST (:booleanSearch IN BOOLEAN MODE)", nativeQuery = true)
     List<Long> findIdsByEmailSearch(@Param("booleanSearch") String booleanSearch);

@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.security;
 
 import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
+import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,7 +42,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // companyId, ficam sem autenticação em vez de enxergar tudo.
                 boolean scoped = "PLATFORM_ADMIN".equals(role) ? companyId == null : companyId != null && companyType != null;
 
-                if (userId != null && email != null && role != null && scoped) {
+                // RN-11 (016): o token de quem foi desativado deixa de valer na próxima requisição.
+                // ponytail: 1 SELECT por PK a cada request; cache curto (~30s) se aparecer no profiling.
+                if (userId != null && email != null && role != null && scoped && userRepository.isActive(userId)) {
                     CustomUserPrincipal principal = new CustomUserPrincipal(userId, email, role, companyId, companyType);
                     List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                     Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);

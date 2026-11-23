@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Usuários", description = "Administração de usuários e perfis de acesso.")
 public class UserController {
     private final UpdateUserRoleUseCase updateRole;
+    private final SetUserStatusUseCase setStatus;
     private final ListUsersUseCase list;
     private final UpdateOwnUserUseCase updateOwn;
     private final UserRepository userRepository;
@@ -67,9 +68,17 @@ public class UserController {
 
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Atualizar perfil do usuário", description = "Somente ADMIN, e só na própria companhia (outra companhia retorna 403); o PLATFORM_ADMIN altera qualquer uma. O novo perfil precisa ser permitido para o tipo da companhia (RN-07) e não pode ser PLATFORM_ADMIN (400). Deixar a companhia sem ADMIN, inclusive o único admin trocando o próprio perfil, retorna 409 (RN-08).")
+    @Operation(summary = "Atualizar perfil do usuário", description = "Somente ADMIN, e só na própria companhia (outra companhia retorna 403); o PLATFORM_ADMIN altera qualquer uma. O novo perfil precisa ser permitido para o tipo da companhia (RN-07) e não pode ser PLATFORM_ADMIN (400). Deixar a companhia sem ADMIN ativo, inclusive o único admin trocando o próprio perfil, retorna 409 (RN-08). Usuário desativado retorna 409: reative-o antes.")
     public UserResponseDTO updateRole(@PathVariable Long userId, @RequestBody UpdateUserRoleRequestDTO request,
                                       @AuthenticationPrincipal CustomUserPrincipal principal) {
         return updateRole.execute(userId, request, principal.companyId());
+    }
+
+    @PatchMapping("/{userId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Ativar ou desativar usuário", description = "Somente ADMIN, e só na própria companhia (outra companhia retorna 403); o PLATFORM_ADMIN altera qualquer uma. Corpo { active: boolean } (nulo retorna 400). Desativar corta o acesso na próxima requisição e libera um assento; reativar ocupa um assento e retorna 409 se a companhia estiver cheia (usuários ativos + convites ativos = maxUsers). Desativar a si mesmo ou o último ADMIN ativo retorna 409. Alvo PLATFORM_ADMIN retorna 400. Pedir a situação que o usuário já tem não muda nada e retorna 200.")
+    public UserResponseDTO updateStatus(@PathVariable Long userId, @RequestBody UpdateUserStatusRequestDTO request,
+                                        @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return setStatus.execute(userId, request, principal.userId(), principal.companyId());
     }
 }

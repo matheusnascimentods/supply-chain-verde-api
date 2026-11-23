@@ -217,7 +217,7 @@ class ApplicationUseCasesTest {
         when(users.save(any())).thenReturn(user);
         when(users.findByEmail("admin@example.com")).thenReturn(Optional.of(user));
         when(users.findById(11L)).thenReturn(Optional.of(user));
-        when(users.countByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(2L);
+        when(users.countActiveByCompanyIdAndRole(5L, UserRole.ADMIN)).thenReturn(2L);
         when(companies.findById(5L)).thenReturn(Optional.of(Company.builder().companyId(5L).type(CompanyType.MARKET).build()));
         when(jwt.generateToken(user, CompanyType.MARKET)).thenReturn("token");
 
