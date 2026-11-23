@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 @Repository
@@ -48,19 +47,23 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     @Transactional(readOnly = true)
     public List<User> findPage(String email, Long companyId, int limit, int offset) {
+        List<Long> emailUserIds = jpaRepository.findIdsByEmailFilter(email);
+        if (emailUserIds != null && emailUserIds.isEmpty()) return List.of();
         TypedQuery<UserJpaEntity> query = entityManager
-                .createQuery("SELECT user FROM UserJpaEntity user" + where(email, companyId) + " ORDER BY user.userId ASC", UserJpaEntity.class)
+                .createQuery("SELECT user FROM UserJpaEntity user" + where(emailUserIds, companyId) + " ORDER BY user.userId ASC", UserJpaEntity.class)
                 .setFirstResult(offset)
                 .setMaxResults(limit);
-        bindFilters(query, email, companyId);
+        bindFilters(query, emailUserIds, companyId);
         return query.getResultList().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countPage(String email, Long companyId) {
-        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(email, companyId), Long.class);
-        bindFilters(query, email, companyId);
+        List<Long> emailUserIds = jpaRepository.findIdsByEmailFilter(email);
+        if (emailUserIds != null && emailUserIds.isEmpty()) return 0;
+        var query = entityManager.createQuery("SELECT COUNT(user) FROM UserJpaEntity user" + where(emailUserIds, companyId), Long.class);
+        bindFilters(query, emailUserIds, companyId);
         return query.getSingleResult();
     }
 
@@ -74,17 +77,15 @@ public class UserRepositoryImpl implements UserRepository {
         return jpaRepository.countByCompanyIdAndRole(companyId, role);
     }
 
-    private String where(String email, Long companyId) {
+    private String where(List<Long> emailUserIds, Long companyId) {
         List<String> conditions = new ArrayList<>();
-        if (email != null && !email.isBlank()) conditions.add("LOWER(user.email) LIKE :emailPattern");
+        if (emailUserIds != null) conditions.add("user.userId IN :emailUserIds");
         if (companyId != null) conditions.add("user.companyId = :companyId");
         return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
     }
 
-    private void bindFilters(Query query, String email, Long companyId) {
-        if (email != null && !email.isBlank()) {
-            query.setParameter("emailPattern", "%" + email.trim().toLowerCase(Locale.ROOT) + "%");
-        }
+    private void bindFilters(Query query, List<Long> emailUserIds, Long companyId) {
+        if (emailUserIds != null) query.setParameter("emailUserIds", emailUserIds);
         if (companyId != null) query.setParameter("companyId", companyId);
     }
 
