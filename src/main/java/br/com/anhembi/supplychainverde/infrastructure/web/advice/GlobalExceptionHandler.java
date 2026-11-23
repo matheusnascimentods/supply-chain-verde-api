@@ -17,6 +17,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import jakarta.validation.ConstraintViolationException;
 
 import java.time.LocalDateTime;
@@ -79,6 +80,13 @@ public class GlobalExceptionHandler {
                     "Transição de etapa inválida: a etapa já existe no lote ou a anterior ainda não foi registrada."));
         }
         return handleUnexpectedException(exception);
+    }
+
+    // Rota inexistente: sem este handler, o de Exception abaixo a transformaria em 500.
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException exception) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(error(status, "Recurso não encontrado."));
     }
 
     @ExceptionHandler(Exception.class)

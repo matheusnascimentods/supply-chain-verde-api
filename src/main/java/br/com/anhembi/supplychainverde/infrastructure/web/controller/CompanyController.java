@@ -33,7 +33,7 @@ public class CompanyController {
     public LoginResponseDTO register(@RequestBody RegisterCompanyRequestDTO request) { return register.execute(request); }
 
     @GetMapping("/me")
-    @Operation(summary = "Consultar a própria companhia", description = "Qualquer usuário com companhia. Retorna os dados da companhia, o endereço, o teto de assentos (maxUsers) e os assentos em uso (seatsUsed: usuários + convites ativos). O campo plan é legado e sai quando os planos forem removidos. Usuário sem companhia (PLATFORM_ADMIN) recebe 403.")
+    @Operation(summary = "Consultar a própria companhia", description = "Qualquer usuário com companhia. Retorna os dados da companhia, o endereço, o teto de assentos (maxUsers) e os assentos em uso (seatsUsed: usuários + convites ativos). Usuário sem companhia (PLATFORM_ADMIN) recebe 403.")
     public CompanyResponseDTO me(@AuthenticationPrincipal CustomUserPrincipal principal) { return getOwn.execute(principal.userId()); }
 
     @PatchMapping("/me")

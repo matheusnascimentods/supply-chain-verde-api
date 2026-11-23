@@ -13,7 +13,6 @@ import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,15 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CompanySignupIT {
     @Autowired
     private MockMvc mockMvc;
-
-    @Test
-    void listsPlansWithoutAuthentication() throws Exception {
-        mockMvc.perform(get("/api/v1/plans"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].code").value("BASIC"))
-                .andExpect(jsonPath("$[0].maxUsers").value(3));
-    }
 
     @Test
     void marketSignsUpAndUsesTheApiWithTheReturnedToken() throws Exception {
@@ -60,6 +50,8 @@ class CompanySignupIT {
                 .andExpect(jsonPath("$.address.city").value("São Paulo"))
                 .andExpect(jsonPath("$.maxUsers").value(10))
                 .andExpect(jsonPath("$.seatsUsed").value(1));
+        // RF-05 (016): o catálogo de planos saiu.
+        mockMvc.perform(get("/api/v1/plans").header("Authorization", bearer)).andExpect(status().isNotFound());
         mockMvc.perform(patch("/api/v1/companies/me").header("Authorization", bearer)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": \"Mercado Bom Preço S.A.\", \"phone\": \"1133334444\"}"))

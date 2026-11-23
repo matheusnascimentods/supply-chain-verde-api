@@ -158,9 +158,9 @@ class AuditLogTriggerIT {
                 .andExpect(jsonPath("$.items[0].afterData.status").value("SUSPENDED"));
     }
 
-    // Feature 010: company e company_plan auditadas, sem as colunas geradas; status do lote vira STATUS_CHANGE.
+    // Feature 010: company auditada, sem as colunas geradas; status do lote vira STATUS_CHANGE.
     @Test
-    void auditsCompanyPlanAndBatchStatusChange() throws Exception {
+    void auditsCompanyAndBatchStatusChange() throws Exception {
         Long addressId = insert(jdbcTemplate, """
                 INSERT INTO address (street, number, neighborhood, zip_code, city, state)
                 VALUES ('Rua Quatro', '40', 'Centro', '01000-000', 'Santos', 'SP')
@@ -170,8 +170,6 @@ class AuditLogTriggerIT {
                 VALUES ('Mercado Auditado', '98765432000198', ?, 'auditado@it.test', 'MARKET')
                 """, addressId);
         jdbcTemplate.update("UPDATE company SET phone = '(11) 3000-0001', max_users = 12 WHERE id = ?", marketId);
-        Long subscriptionId = insert(jdbcTemplate,
-                "INSERT INTO company_plan (company_id, plan_id) SELECT ?, id FROM plan WHERE code = 'BASIC'", marketId);
         Long batchId = insert(jdbcTemplate, """
                 INSERT INTO batch (product_id, supplier_id, market_id, status, quantity)
                 SELECT id, supplier_id, ?, 'PENDING', 5 FROM product ORDER BY id LIMIT 1
@@ -187,12 +185,6 @@ class AuditLogTriggerIT {
         assertThat(objectMapper.readTree(company.get(1).afterData()).path("phone").asText()).isEqualTo("(11) 3000-0001");
         assertThat(objectMapper.readTree(company.get(1).beforeData()).path("max_users").asInt()).isEqualTo(10);
         assertThat(objectMapper.readTree(company.get(1).afterData()).path("max_users").asInt()).isEqualTo(12);
-
-        List<AuditEvent> subscription = events("company_plan", subscriptionId);
-        assertThat(subscription).extracting(AuditEvent::action).containsExactly("INSERT");
-        JsonNode insertedSubscription = objectMapper.readTree(subscription.getFirst().afterData());
-        assertThat(insertedSubscription.path("company_id").asLong()).isEqualTo(marketId);
-        assertThat(insertedSubscription.has("active_company_id")).isFalse();
 
         List<AuditEvent> batch = events("batch", batchId);
         assertThat(batch).extracting(AuditEvent::action).containsExactly("INSERT", "STATUS_CHANGE");

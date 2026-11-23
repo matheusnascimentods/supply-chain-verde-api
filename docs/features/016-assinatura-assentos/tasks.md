@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 a 3 concluídas).
+**Status:** em andamento (Tasks 1 a 4 concluídas).
 
 Cada task mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A dependência "web Task N" aponta para `supply-chain-verde-web/docs/features/015-assinatura-assentos/tasks.md`.
 
@@ -63,13 +63,17 @@ Depende da Task 2.
 
 Depende das web Tasks 1 e 2 em produção: o front não chama `GET /plans` nem lê `plan`.
 
-- [ ] `grep` de confirmação (plan §5)
-- [ ] `V18__drop_plan.sql`
-- [ ] Apagar `Plan`, `PlanRepository`(+impl), `PlanController`, `ListPlansUseCase`, `PlanResponseDTO` e `CompanyRepository.subscribe`
-- [ ] `SecurityConfig` sem `/api/v1/plans`, e `CompanyResponseDTO` sem `plan`
-- [ ] `MigrationToCompanyIT`, `CompanyConstraintsIT` e `RegisterCompanyUseCaseTest` sem `company_plan`/`PlanRepository`
+- [x] `grep` de confirmação (plan §5)
+- [x] `V18__drop_plan.sql`
+- [x] Apagar `Plan`, `PlanRepository`(+impl), `PlanController`, `ListPlansUseCase`, `PlanResponseDTO` e `CompanyRepository.subscribe`
+- [x] `SecurityConfig` sem `/api/v1/plans`, e `CompanyResponseDTO` sem `plan`
+- [x] `MigrationToCompanyIT`, `CompanyConstraintsIT`, `AuditLogTriggerIT` e `CompanySignupIT` sem `company_plan`/`plan`. O `CompanyConstraintsIT` passa a conferir `chk_company_max_users_positive`, e o `CompanySignupIT` confere o 404 de `GET /plans`
+- [x] `GlobalExceptionHandler`: rota inexistente devolve 404. Antes, o handler de `Exception` a transformava em 500, e o `GET /plans` acusou isso
+- [x] `RateLimitIT`: troca `GET /plans` por `GET /batches/{id}/traceability`, que é pública e fica fora dos limites estritos
 
 **Arquivos (~10).**
+
+**Concluída** em `refactor/remove-planos`. O grep só acha os testes que conferem a remoção, a nota de `planCode` ignorado e o `RateLimitFilterTest`, que usa `/api/v1/plans` só como texto de caminho.
 
 **Pronto:** `./mvnw verify` verde, `GET /plans` devolve 404, e o grep não acha nada fora de migrations antigas.
 

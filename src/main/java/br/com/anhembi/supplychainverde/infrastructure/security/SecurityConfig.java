@@ -60,7 +60,6 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/plans").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/companies").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/companies/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/companies/me").hasRole("ADMIN")
