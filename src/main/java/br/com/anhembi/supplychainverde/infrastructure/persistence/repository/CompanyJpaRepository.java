@@ -28,8 +28,9 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             SELECT s.*
             FROM company s
             WHERE s.type = 'SUPPLIER'
-              AND (MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
-               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
+              AND ((:booleanSearch = '' AND :cnpjSearch = '')
+               OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
+               OR MATCH(s.cnpj) AGAINST (:cnpjSearch IN BOOLEAN MODE))
             """, nativeQuery = true)
     List<CompanyJpaEntity> findBySearch(
             @Param("booleanSearch") String booleanSearch,
@@ -46,9 +47,9 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
                    ON v.supplier_id = s.id
                   AND v.category = :category AND v.unit = :unit
             WHERE s.type = 'SUPPLIER'
-              AND (:search = ''
+              AND ((:booleanSearch = '' AND :cnpjSearch = '')
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
-               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
+               OR MATCH(s.cnpj) AGAINST (:cnpjSearch IN BOOLEAN MODE))
               AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
             GROUP BY s.id
             ORDER BY co2KgPerUnit IS NULL, co2KgPerUnit, s.id
@@ -57,7 +58,6 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
     List<SupplierEmissionRank> findRankedByEmission(
             @Param("category") String category,
             @Param("unit") String unit,
-            @Param("search") String search,
             @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
             @Param("workedWithOnly") boolean workedWithOnly,
@@ -70,12 +70,12 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             SELECT COUNT(*)
             FROM company s
             WHERE s.type = 'SUPPLIER'
-              AND (:search = ''
+              AND ((:booleanSearch = '' AND :cnpjSearch = '')
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
-               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
+               OR MATCH(s.cnpj) AGAINST (:cnpjSearch IN BOOLEAN MODE))
               AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
             """, nativeQuery = true)
-    long countBySearch(@Param("search") String search, @Param("booleanSearch") String booleanSearch,
+    long countBySearch(@Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
             @Param("workedWithOnly") boolean workedWithOnly,
             @Param("marketId") Long marketId);
@@ -85,15 +85,14 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, Lo
             FROM company s
             JOIN vw_supplier_sustainability v ON v.supplier_id = s.id
             WHERE s.type = 'SUPPLIER'
-              AND (:search = ''
+              AND ((:booleanSearch = '' AND :cnpjSearch = '')
                OR MATCH(s.name) AGAINST (:booleanSearch IN BOOLEAN MODE)
-               OR (:cnpjSearch <> '' AND s.cnpj LIKE CONCAT('%', :cnpjSearch, '%')))
+               OR MATCH(s.cnpj) AGAINST (:cnpjSearch IN BOOLEAN MODE))
               AND (:workedWithOnly = false OR EXISTS (SELECT 1 FROM batch b WHERE b.supplier_id = s.id AND b.market_id = :marketId))
             ORDER BY v.sustainability_score DESC, s.id
             LIMIT :limit OFFSET :offset
             """, nativeQuery = true)
     List<Long> findIdsRankedByScore(
-            @Param("search") String search,
             @Param("booleanSearch") String booleanSearch,
             @Param("cnpjSearch") String cnpjSearch,
             @Param("workedWithOnly") boolean workedWithOnly,

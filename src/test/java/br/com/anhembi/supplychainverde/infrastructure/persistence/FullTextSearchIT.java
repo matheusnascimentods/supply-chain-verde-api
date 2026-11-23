@@ -15,7 +15,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** RN-01 a RN-03 e RN-06 sobre o seed (o FULLTEXT só vê linhas commitadas, então nada aqui é transacional). */
+/** RN-01 a RN-04 e RN-06 sobre o seed (o FULLTEXT só vê linhas commitadas, então nada aqui é transacional). */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 class FullTextSearchIT {
@@ -46,6 +46,21 @@ class FullTextSearchIT {
                 .contains("Composto Vivo Reciclagem Orgânica");
         assertThat(companyRepository.findBySearch("organica")).extracting(Company::getName)
                 .contains("Composto Vivo Reciclagem Orgânica");
+    }
+
+    @Test
+    void supplierSearchMatchesCnpjPrefixWithOrWithoutMask() {
+        assertThat(companyRepository.findBySearch("12.345")).extracting(Company::getName)
+                .containsExactly("Cooperativa Verde de Hortifruti");
+        assertThat(companyRepository.findBySearch("12345")).extracting(Company::getName)
+                .containsExactly("Cooperativa Verde de Hortifruti");
+        assertThat(companyRepository.findBySearch("78000195")).isEmpty(); // meio do CNPJ não casa
+    }
+
+    @Test
+    void supplierSearchWithoutLettersOrDigitsListsEverything() {
+        assertThat(companyRepository.findBySearch("--")).hasSameSizeAs(companyRepository.findAllSuppliers());
+        assertThat(companyRepository.countBySearch("--", false, null)).isEqualTo(companyRepository.countBySearch("", false, null));
     }
 
     private List<Long> productIds(String search) {
