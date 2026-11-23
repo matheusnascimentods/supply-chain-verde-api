@@ -658,7 +658,6 @@ As buscas (`search`, `email`, `userEmail`) casam cada palavra pelo início, sem 
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/suppliers?workedWith=true` | Catálogo de fornecedores com `workedWith`; o filtro restringe aos que têm ou tiveram lote com o mercado | Mercado |
 | `GET` | `/api/v1/suppliers?ranked=true&limit=20&offset=0&search={termo}` | Ranking paginado por sustentabilidade; busca por nome ou pelo início do CNPJ | Mercado |
-| `GET` | `/api/v1/suppliers?ranked=true&category=AGRICULTURE&unit=KG` | Recomendação pelo menor CO₂ por unidade na categoria e unidade | Mercado |
 | `GET` | `/api/v1/suppliers?supplierId={id}` | Detalhe do fornecedor | Mercado; a companhia fornecedora só o próprio |
 
 ### 🛒 Produtos (`/api/v1/products`)
@@ -666,7 +665,7 @@ As buscas (`search`, `email`, `userEmail`) casam cada palavra pelo início, sem 
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/products` | Cadastro de produto no fornecedor do usuário | `SUPPLIER`, `ADMIN` de fornecedor |
 | `PUT` | `/api/v1/products/{productId}` | Atualização do próprio produto | `SUPPLIER`, `ADMIN` de fornecedor |
-| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}&supplierId={id}` | Listagem paginada; busca por nome/descrição ou por categoria. O mercado vê o catálogo e filtra por fornecedor; o fornecedor vê só os próprios | Autenticado |
+| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}&category={c}&unit={u}&supplierId={id}` | Listagem paginada; busca por nome/descrição, categoria ou nome do fornecedor, com filtros opcionais de categoria e unidade. O mercado vê o catálogo do pedido de lote, com `supplierName`, `co2KgPerUnit` e `acceptedBatchesLast30Days`, ordenado pelos lotes aceitos dele nos últimos 30 dias e depois pelo menor CO₂ por unidade; o fornecedor vê só os próprios | Autenticado |
 
 ### 📜 Certificações (`/api/v1/certifications`)
 | Método | Rota | Descrição | Acesso |

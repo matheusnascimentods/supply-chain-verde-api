@@ -55,7 +55,7 @@ Transformar a plataforma em multiempresa:
 | ID | Regra |
 |---|---|
 | RN-12 | Toda leitura é filtrada pela companhia do usuário logado. Mercado: lotes e relatórios com `market_id` dele. Produtos e certificações de fornecedores fazem parte do catálogo (RN-13), então o mercado os lê de qualquer fornecedor, porque precisa deles para pedir lote a um fornecedor novo. Fornecedor: os próprios lotes, produtos, certificações e relatórios. |
-| RN-13 | Exceção ao RN-12: a lista e o ranking de fornecedores (`GET /suppliers`, inclusive a recomendação por categoria usada para criar lote) são um catálogo global para o mercado, para ele descobrir fornecedores novos. Cada item traz `workedWith`, que indica se o fornecedor é do mercado (glossário), e o filtro `workedWith=true` restringe a lista a eles. Score, CO₂ total e certificações ativas são métricas públicas do fornecedor. A contagem de relatórios conta só os relatórios do mercado logado. |
+| RN-13 | Exceção ao RN-12: a lista e o ranking de fornecedores (`GET /suppliers`) são um catálogo global para o mercado, para ele descobrir fornecedores novos. Cada item traz `workedWith`, que indica se o fornecedor é do mercado (glossário), e o filtro `workedWith=true` restringe a lista a eles. Score, CO₂ total e certificações ativas são métricas públicas do fornecedor. A contagem de relatórios conta só os relatórios do mercado logado. |
 | RN-13a | Companhias `SUPPLIER` não acessam a lista nem o ranking de fornecedores (403). Elas só leem o próprio detalhe. |
 | RN-13b | Todo usuário vê a lista de usuários da própria companhia. Só o `ADMIN` cria usuários e troca perfis (RN-09). |
 | RN-13c | Dashboard: o card de fornecedores conta, para o mercado, os fornecedores com `workedWith`. Para companhia `SUPPLIER`, o card é trocado por lotes `PENDING` aguardando ação dela. |
@@ -71,7 +71,7 @@ Transformar a plataforma em multiempresa:
 | RN-18 | O lote nasce `PENDING`. Só o fornecedor do lote registra a primeira etapa (`PRODUCTION`), e isso muda o lote para `ACTIVE`. |
 | RN-19 | Enquanto o lote estiver `PENDING`, o fornecedor pode recusá-lo informando um motivo obrigatório. O lote vira `REJECTED`, que é final: não recebe etapas e não volta a outro status. |
 | RN-20 | `produced_at` deixa de ser informado na criação. Ele é preenchido com a data de início da etapa `PRODUCTION`. |
-| RN-21 | A recomendação de fornecedores compara apenas por `category` + `unit` (RN-03 da feature 001). A busca por `productId` sai, porque o produto agora é de um fornecedor só. |
+| RN-21 | ~~A recomendação de fornecedores compara apenas por `category` + `unit` (RN-03 da feature 001). A busca por `productId` sai, porque o produto agora é de um fornecedor só.~~ **Substituída pela feature 015** ([RN-02 e RN-09](../015-gestao-produtos/spec.md#4-regras-de-negócio)): o pedido de lote começa pelo produto, e o catálogo de `GET /products` vem ordenado pelos lotes recentes do mercado e pelo CO₂ por unidade do fornecedor. |
 
 ### Certificação e relatório
 

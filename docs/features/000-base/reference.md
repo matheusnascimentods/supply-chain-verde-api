@@ -31,9 +31,9 @@ O domínio possui `CompanyType`, `BatchStatus`, `CertificationStatus`, `ProductC
 ```text
 company: Register, GetOwn, UpdateOwn
 plan: List
-supplier: Get, List, RankBySustainability (catálogo; recomendação por category + unit)
+supplier: Get, List, RankBySustainability (catálogo)
 certification: Register, UpdateStatus, ListPage with optional status filter
-product: Register, Update, List
+product: Register, Update, List (catálogo do pedido de lote para o mercado)
 batch: Register, Reject, GetTraceability, List (filtros supplierId e status)
 chain: RegisterStage, ListStagesByBatch
 transport: Register
@@ -56,9 +56,9 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | Companies | `POST /companies` (cadastro público de companhia, endereço, assinatura e `ADMIN`; resposta igual à do login), `GET /companies/me`, `PATCH /companies/me` (razão social, email, telefone e endereço) | Cadastro: público. `GET /me`: usuário com companhia. `PATCH /me`: `ADMIN`. Sem companhia: 403 |
 | Users | `GET /users?email={termo}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role` | Troca de perfil: `ADMIN`, só na própria companhia; o último admin (RN-08) retorna 409. Listagem: qualquer autenticado, só a própria companhia. Usuários novos só entram por convite |
 | Invites | `POST /invites` (`email`, `role`; 201 sem corpo), `GET /invites/{token}` (`email`, `role`, `companyName`, `expiresAt`), `POST /invites/accept` (`token`, `name`, `password`; resposta igual à do login) | Envio: `ADMIN`, na própria companhia; perfil não permitido para o tipo → 400, `PLATFORM_ADMIN` → 403, email já cadastrado, convite ativo para o email ou limite do plano (usuários + convites ativos) → 409, falha no SendGrid → 502 sem gravar nada. Consulta e aceite: públicos; token desconhecido, expirado ou aceito → 404 "Convite inválido ou expirado." sem dizer qual. O `GET` não consome o token. No aceite, nome ou senha vazios → 400, e plano cheio ou email já cadastrado → 409 |
-| Suppliers | `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}&workedWith=true`, recomendação com `ranked=true&category={c}&unit={u}`. Cada item traz dados cadastrais, métricas de sustentabilidade, `reportCount` (do mercado logado), `certifications` e `workedWith` | Catálogo global para o mercado (RN-13). Companhia fornecedora: 403, exceto no próprio detalhe |
+| Suppliers | `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}&workedWith=true`. Cada item traz dados cadastrais, métricas de sustentabilidade, `reportCount` (do mercado logado), `certifications` e `workedWith` | Catálogo global para o mercado (RN-13). Companhia fornecedora: 403, exceto no próprio detalhe |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE`, `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status` | Consulta: `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER`; o fornecedor vê só as próprias. Cadastro e status: o fornecedor dono (RN-22) |
-| Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}&supplierId={id}` | Cadastro e edição: o fornecedor dono (RN-16). Listagem: catálogo para o mercado, só os próprios para o fornecedor |
+| Products | `POST /products`, `PUT /products/{productId}`, `GET /products?limit=20&offset=0&search={termo}&category={c}&unit={u}&supplierId={id}` | Cadastro e edição: o fornecedor dono (RN-16). Listagem: catálogo ordenado para o mercado (feature 015), só os próprios para o fornecedor |
 | Batches | `POST /batches` (`productId`, `supplierId`, `quantity`), `PATCH /batches/{batchId}/reject` (`reason`), `GET /batches?page=0&size=20&supplierId={id}&status=PENDING`, `GET /batches/{batchId}/traceability` | Pedido: mercado (`MANAGER`, `ADMIN`); nasce `PENDING`. Recusa: o fornecedor do lote, só em `PENDING` (409 depois). Listagem: os lotes do mercado ou do fornecedor. Rastreabilidade: pública |
 | Chains | `POST /batches/{batchId}/stages` (header `X-Responsible-User-Id`), `GET /batches/{batchId}/stages` | Só o mercado ou o fornecedor do lote. Em `PENDING`, só o fornecedor registra `PRODUCTION`, que ativa o lote; em `REJECTED`, 409 |
 | Transport | `POST /stages/{chainId}/transport` | Só o mercado ou o fornecedor do lote da etapa |
@@ -75,7 +75,7 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | `PATCH /suppliers/me` | `PATCH /companies/me` (dados da companhia) e `PATCH /users/me` (nome e senha) |
 | `supplierId` no corpo de `POST /users` | A companhia vem de quem cria (RN-09) |
 | `GET /suppliers?withoutUser=true` | `GET /suppliers?workedWith=true` |
-| `GET /suppliers?ranked=true&productId={id}` | `GET /suppliers?ranked=true&category={c}&unit={u}` (RN-21) |
+| `GET /suppliers?ranked=true&productId={id}` | `GET /suppliers?ranked=true&category={c}&unit={u}` (RN-21), que também saiu na feature 015 |
 | `producedAt` no corpo de `POST /batches` | Preenchido pela etapa `PRODUCTION` (RN-20) |
 | `userId` em `SupplierResponseDTO` e `SupplierRankingDTO` | `workedWith` no ranking; o vínculo é `users.company_id` |
 
@@ -84,6 +84,13 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | Removido | Substituto |
 |---|---|
 | `POST /users` | `POST /invites` (o `ADMIN` convida) e `POST /invites/accept` (o convidado define nome e senha). O primeiro `ADMIN` continua nascendo no `POST /companies` |
+
+### Rotas e campos removidos na feature 015
+
+| Removido | Substituto |
+|---|---|
+| `GET /suppliers?ranked=true&category={c}&unit={u}` (recomendação, RN-21 da feature 010) | `GET /products`: o catálogo do mercado já vem ordenado pela RN-02 da feature 015. `category` e `unit` enviados a `/suppliers` são ignorados |
+| `co2KgPerUnit` em `SupplierRankingDTO` | `co2KgPerUnit` em cada item de `GET /products` |
 
 ### Evento de auditoria
 
@@ -132,13 +139,21 @@ Na listagem e consulta individual de relatórios, a companhia fornecedora tem o 
 
 As consultas de fornecedores usam `GET /suppliers`: sem parâmetros retorna a lista; `supplierId` retorna o detalhe; `ranked=true` retorna o ranking paginado e aceita `limit`, `offset` e `search`. A lista e os itens do ranking usam a mesma estrutura com `supplierId`, `name`, `cnpj`, `address`, `phone`, `registeredAt`, `workedWith`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `supplierId` e `ranked` não podem ser enviados juntos, mesmo com `ranked=false`.
 
+`GET /products` é o catálogo do pedido de lote (feature 015). Para o mercado e o `PLATFORM_ADMIN`, lista os produtos de todos os fornecedores, e cada item traz, além de `productId`, `supplierId`, `name`, `category`, `unit` e `description`:
+
+- `supplierName`;
+- `acceptedBatchesLast30Days`: lotes `ACTIVE` do produto pedidos pelo mercado logado nos últimos 30 dias, pelo `created_at` do lote, porque a data do aceite não é gravada. Para o `PLATFORM_ADMIN`, conta os de todos os mercados;
+- `co2KgPerUnit`: CO₂ médio por unidade do fornecedor na categoria e unidade do produto, ponderado pela quantidade dos lotes, com 4 casas. Vem `null` sem histórico.
+
+A ordem é `acceptedBatchesLast30Days` decrescente, `co2KgPerUnit` crescente com `null` no fim, `name` e `productId`. Ela substitui a recomendação de fornecedores por categoria e unidade (RN-21 da feature 010), que comparava pelo mesmo `co2KgPerUnit`. `category` e `unit` são filtros opcionais e independentes, e `supplierId` filtra por fornecedor. Para a companhia fornecedora nada muda: só os produtos dela, por `productId`, com os três campos `null`.
+
 ### Busca textual
 
 Os parâmetros `search` de produtos e do ranking de fornecedores, `email` de usuários e `userEmail` de auditoria usam só índices FULLTEXT do MySQL, sem `LIKE` (feature 014):
 
 - Cada palavra digitada casa pelo **início** de uma palavra indexada: "ara" acha "Arábica", e "rábica" não. As palavras são obrigatórias, com uma exceção: ao lado de outra palavra, uma palavra que o índice não guarda inteira (menos de 3 letras ou stopword do InnoDB, como "de" e "com") vira opcional. "c" sozinho já filtra, e "café de montanha" acha "Café Bourbon Amarelo de Montanha".
 - Acento e maiúscula não importam: `product.name`, `product.description`, `company.name` e `users.email` usam `utf8mb4_0900_ai_ci`.
-- Produtos casam nome e descrição, além do nome ou rótulo exato de uma categoria. Fornecedores casam o nome, ou o **início** do CNPJ pelos dígitos, com ou sem máscara: "12.345" e "12345" acham `12345678000195`, e um trecho do meio não acha.
+- Produtos casam nome e descrição, além do nome ou rótulo exato de uma categoria. No catálogo do mercado, casam também o nome do fornecedor, com cada lado avaliado inteiro: "café serra" não acha o café do fornecedor "Grãos da Serra". Fornecedores casam o nome, ou o **início** do CNPJ pelos dígitos, com ou sem máscara: "12.345" e "12345" acham `12345678000195`, e um trecho do meio não acha.
 - O email é quebrado em palavras por `.`, `@` e `-`, e o `_` faz parte da palavra: "kane", "bayern" e "h.kane@bayern.com" acham `h.kane@bayern.com`; "silva" não acha `joao_silva@x.com`, e "joao_s" acha.
 - Um termo sem letras nem dígitos (ex.: "--") vale como busca vazia e lista tudo.
 - Limite: o índice não guarda palavras de 1 e 2 letras nem stopwords dos dados, então "SP" sozinho não acha a palavra "SP" (acha "Spirulina"). A melhoria está no plan da feature 014, §6.
