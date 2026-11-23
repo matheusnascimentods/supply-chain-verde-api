@@ -51,10 +51,10 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 
 | Recurso | Rotas principais | Acesso e escopo |
 |---|---|---|
-| Auth | `POST /auth/login` | Público. Resposta: `token`, `expiresAt`, `role`, `supplierId`, `companyId`, `companyType`, `companyName` |
+| Auth | `POST /auth/login` | Público. O email não diferencia maiúscula nem acento. Resposta: `token`, `expiresAt`, `role`, `supplierId`, `companyId`, `companyType`, `companyName` |
 | Plans | `GET /plans` | Público. Catálogo com `code`, `name` e `maxUsers` |
 | Companies | `POST /companies` (cadastro público de companhia, endereço, assinatura e `ADMIN`; resposta igual à do login), `GET /companies/me`, `PATCH /companies/me` (razão social, email, telefone e endereço) | Cadastro: público. `GET /me`: usuário com companhia. `PATCH /me`: `ADMIN`. Sem companhia: 403 |
-| Users | `GET /users?email={fragment}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role` | Troca de perfil: `ADMIN`, só na própria companhia; o último admin (RN-08) retorna 409. Listagem: qualquer autenticado, só a própria companhia. Usuários novos só entram por convite |
+| Users | `GET /users?email={termo}&limit=20&offset=0`, `GET /users/me`, `PATCH /users/me` (próprio nome e senha; `newPassword` exige `currentPassword`), `PATCH /users/{userId}/role` | Troca de perfil: `ADMIN`, só na própria companhia; o último admin (RN-08) retorna 409. Listagem: qualquer autenticado, só a própria companhia. Usuários novos só entram por convite |
 | Invites | `POST /invites` (`email`, `role`; 201 sem corpo), `GET /invites/{token}` (`email`, `role`, `companyName`, `expiresAt`), `POST /invites/accept` (`token`, `name`, `password`; resposta igual à do login) | Envio: `ADMIN`, na própria companhia; perfil não permitido para o tipo → 400, `PLATFORM_ADMIN` → 403, email já cadastrado, convite ativo para o email ou limite do plano (usuários + convites ativos) → 409, falha no SendGrid → 502 sem gravar nada. Consulta e aceite: públicos; token desconhecido, expirado ou aceito → 404 "Convite inválido ou expirado." sem dizer qual. O `GET` não consome o token. No aceite, nome ou senha vazios → 400, e plano cheio ou email já cadastrado → 409 |
 | Suppliers | `GET /suppliers`, `GET /suppliers?supplierId={id}`, `GET /suppliers?ranked=true&limit=20&offset=0&search={termo}&workedWith=true`, recomendação com `ranked=true&category={c}&unit={u}`. Cada item traz dados cadastrais, métricas de sustentabilidade, `reportCount` (do mercado logado), `certifications` e `workedWith` | Catálogo global para o mercado (RN-13). Companhia fornecedora: 403, exceto no próprio detalhe |
 | Certifications | `GET /certifications?page=0&size=20&status=ACTIVE`, `POST /suppliers/{supplierId}/certifications`, `PATCH /certifications/{certificationId}/status` | Consulta: `AUDITOR`, `MANAGER`, `ADMIN`, `SUPPLIER`; o fornecedor vê só as próprias. Cadastro e status: o fornecedor dono (RN-22) |
@@ -64,7 +64,7 @@ Base path: `/api/v1`. Desde a feature 010, toda leitura é filtrada pela companh
 | Transport | `POST /stages/{chainId}/transport` | Só o mercado ou o fornecedor do lote da etapa |
 | Emissions | `POST /stages/{chainId}/emission`, `GET /batches/{batchId}/carbon-footprint` | Cálculo: mercado ou fornecedor do lote. Pegada: pública |
 | Reports | `POST /suppliers/{supplierId}/reports`, `GET /reports?limit=20&offset=0&supplierId={id}`, `GET /reports?reportId={id}` | Geração: só mercado, com os lotes dele (RN-23). Leitura: os relatórios do mercado ou os sobre o fornecedor; outro, 403 |
-| Audit | `GET /audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` (período obrigatório, ação e email opcionais) | `ADMIN` e `AUDITOR`; só as ações dos usuários da própria companhia (RN-14) |
+| Audit | `GET /audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` (período obrigatório, ação e email opcionais; o email segue a busca textual) | `ADMIN` e `AUDITOR`; só as ações dos usuários da própria companhia (RN-14) |
 | Dashboard | `GET /dashboard/summary?limit=10`, `GET /dashboard/emissions?from=2026-01&to=2026-06` | Qualquer autenticado, no escopo da companhia. Mercado: `suppliers` (fornecedores com `workedWith`); fornecedor: `pendingBatches` |
 
 ### Rotas e parâmetros removidos na feature 010
@@ -119,7 +119,7 @@ Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos
 - Transport: `TransportRequestDTO`, `TransportResponseDTO`.
 - Emission: `CarbonEmissionRequestDTO`, `CarbonEmissionResponseDTO`, `CarbonFootprintResponseDTO`.
 - Paginação por deslocamento: as rotas de usuários, ranking de fornecedores (`GET /suppliers?ranked=true`), produtos, relatórios e auditoria retornam `OffsetPageResponseDTO<T>`, com `items`, `limit`, `offset`, `hasNext` e `totalPages`. A fábrica do DTO deriva `hasNext` e `totalPages` da contagem filtrada total e dos parâmetros recebidos.
-- Users: `UserResponseDTO` representa cada usuário; a busca `email` parcial case-insensitive usa o índice GIN trigram `lower(email)`. Limite padrão 20, máximo 100; offset padrão 0.
+- Users: `UserResponseDTO` representa cada usuário; o filtro `email` segue a busca textual. Limite padrão 20, máximo 100; offset padrão 0.
 - Report: `ReportRequestDTO`, `ReportResponseDTO`, `ReportListItemDTO` e `ReportDetailDTO`. A listagem retorna CNPJ e nome do fornecedor, total de lotes produzidos entre as datas do relatório e CO₂ total; o total considera o filtro de fornecedor e a autorização aplicada. O detalhe também mantém `trackedProductCount`. Limite padrão 20, máximo 100; offset padrão 0.
 - Audit: `AuditLogResponseDTO` representa eventos persistidos pelas triggers, incluindo `affectedEntityId`, `beforeData` e `afterData`; a contagem considera intervalo, ação e email do usuário. A API não persiste eventos de auditoria.
 
@@ -131,6 +131,19 @@ Dashboard aceita `limit` entre `1` e `100` para a lista de lotes recentes; omiti
 Na listagem e consulta individual de relatórios, a companhia fornecedora tem o `supplierId` limitado ao dela, e o filtro de fornecedor que ela enviar é ignorado; o mercado vê só os relatórios com o `market_id` dele. A consulta individual usa `GET /reports?reportId={id}` e retorna 403 para relatório de outra companhia. A antiga rota aninhada `GET /suppliers/{supplierId}/reports` foi removida; use `GET /reports?supplierId={id}`.
 
 As consultas de fornecedores usam `GET /suppliers`: sem parâmetros retorna a lista; `supplierId` retorna o detalhe; `ranked=true` retorna o ranking paginado e aceita `limit`, `offset` e `search`. A lista e os itens do ranking usam a mesma estrutura com `supplierId`, `name`, `cnpj`, `address`, `phone`, `registeredAt`, `workedWith`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `supplierId` e `ranked` não podem ser enviados juntos, mesmo com `ranked=false`.
+
+### Busca textual
+
+Os parâmetros `search` de produtos e do ranking de fornecedores, `email` de usuários e `userEmail` de auditoria usam só índices FULLTEXT do MySQL, sem `LIKE` (feature 014):
+
+- Cada palavra digitada casa pelo **início** de uma palavra indexada: "ara" acha "Arábica", e "rábica" não. As palavras são obrigatórias, com uma exceção: ao lado de outra palavra, uma palavra que o índice não guarda inteira (menos de 3 letras ou stopword do InnoDB, como "de" e "com") vira opcional. "c" sozinho já filtra, e "café de montanha" acha "Café Bourbon Amarelo de Montanha".
+- Acento e maiúscula não importam: `product.name`, `product.description`, `company.name` e `users.email` usam `utf8mb4_0900_ai_ci`.
+- Produtos casam nome e descrição, além do nome ou rótulo exato de uma categoria. Fornecedores casam o nome, ou o **início** do CNPJ pelos dígitos, com ou sem máscara: "12.345" e "12345" acham `12345678000195`, e um trecho do meio não acha.
+- O email é quebrado em palavras por `.`, `@` e `-`, e o `_` faz parte da palavra: "kane", "bayern" e "h.kane@bayern.com" acham `h.kane@bayern.com`; "silva" não acha `joao_silva@x.com`, e "joao_s" acha.
+- Um termo sem letras nem dígitos (ex.: "--") vale como busca vazia e lista tudo.
+- Limite: o índice não guarda palavras de 1 e 2 letras nem stopwords dos dados, então "SP" sozinho não acha a palavra "SP" (acha "Spirulina"). A melhoria está no plan da feature 014, §6.
+
+Como o email usa `ai_ci`, o login e o `UNIQUE` de `users.email` também ignoram maiúscula e acento: `H.Kane@Bayern.com` entra na conta de `h.kane@bayern.com`, e não dá para cadastrar os dois.
 
 O `userId` de auditoria vem do contexto autenticado, nunca do corpo da requisição. O responsável da etapa vem do header `X-Responsible-User-Id` e precisa ser do mercado ou do fornecedor do lote. Para cada transação de escrita, a API define `@app_user_id` na conexão antes da primeira mutação e o limpa ao fim; a trigger usa o valor para atribuir o ator. `emissionFactor` e `co2Kg` são calculados pelo backend, nunca aceitos do cliente.
 

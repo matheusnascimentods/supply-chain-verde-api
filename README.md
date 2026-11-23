@@ -638,7 +638,7 @@ Todas as rotas abaixo respeitam o escopo da companhia do usuário (veja [Perfis 
 ### 👤 Usuários (`/api/v1/users`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/users?email={trecho}&limit=20&offset=0` | Usuários da própria companhia; o `PLATFORM_ADMIN` vê todos | Autenticado |
+| `GET` | `/api/v1/users?email={termo}&limit=20&offset=0` | Usuários da própria companhia, com busca por palavra do email; o `PLATFORM_ADMIN` vê todos | Autenticado |
 | `GET`/`PATCH` | `/api/v1/users/me` | Dados do usuário logado, com a companhia; o `PATCH` altera nome e senha | Autenticado |
 | `PATCH` | `/api/v1/users/{userId}/role` | Troca de perfil na própria companhia; deixar a companhia sem `ADMIN` → 409 | `ADMIN` |
 
@@ -651,11 +651,13 @@ Não existe `POST /api/v1/users`: usuários novos entram por convite.
 | `GET` | `/api/v1/invites/{token}` | Email, perfil, companhia e validade do convite, sem consumi-lo. Token desconhecido, expirado ou aceito → 404 | **Público** |
 | `POST` | `/api/v1/invites/accept` | Com `token`, `name` e `password`, cria o usuário na companhia de quem convidou e responde igual ao login. Plano cheio ou email já cadastrado → 409 | **Público** |
 
+As buscas (`search`, `email`, `userEmail`) casam cada palavra pelo início, sem diferenciar acento nem maiúscula, desde a 1ª letra. Detalhes em [`reference.md`](docs/features/000-base/reference.md#busca-textual).
+
 ### 🏭 Fornecedores (`/api/v1/suppliers`)
 | Método | Rota | Descrição | Acesso |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/suppliers?workedWith=true` | Catálogo de fornecedores com `workedWith`; o filtro restringe aos que têm ou tiveram lote com o mercado | Mercado |
-| `GET` | `/api/v1/suppliers?ranked=true&limit=20&offset=0&search={termo}` | Ranking paginado por sustentabilidade; busca por nome (FULLTEXT: todas as palavras, por prefixo) ou trecho do CNPJ | Mercado |
+| `GET` | `/api/v1/suppliers?ranked=true&limit=20&offset=0&search={termo}` | Ranking paginado por sustentabilidade; busca por nome ou pelo início do CNPJ | Mercado |
 | `GET` | `/api/v1/suppliers?ranked=true&category=AGRICULTURE&unit=KG` | Recomendação pelo menor CO₂ por unidade na categoria e unidade | Mercado |
 | `GET` | `/api/v1/suppliers?supplierId={id}` | Detalhe do fornecedor | Mercado; a companhia fornecedora só o próprio |
 
@@ -664,7 +666,7 @@ Não existe `POST /api/v1/users`: usuários novos entram por convite.
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/products` | Cadastro de produto no fornecedor do usuário | `SUPPLIER`, `ADMIN` de fornecedor |
 | `PUT` | `/api/v1/products/{productId}` | Atualização do próprio produto | `SUPPLIER`, `ADMIN` de fornecedor |
-| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}&supplierId={id}` | Listagem paginada; busca FULLTEXT por nome/descrição ou por categoria. O mercado vê o catálogo e filtra por fornecedor; o fornecedor vê só os próprios | Autenticado |
+| `GET` | `/api/v1/products?limit=20&offset=0&search={termo}&supplierId={id}` | Listagem paginada; busca por nome/descrição ou por categoria. O mercado vê o catálogo e filtra por fornecedor; o fornecedor vê só os próprios | Autenticado |
 
 ### 📜 Certificações (`/api/v1/certifications`)
 | Método | Rota | Descrição | Acesso |
@@ -678,7 +680,7 @@ Não existe `POST /api/v1/users`: usuários novos entram por convite.
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/audit-logs?from=2026-09-01&to=2026-09-30&action=UPDATE&userEmail=ana&limit=20&offset=0` | Logs do período inclusivo feitos pelos usuários da própria companhia, com filtros opcionais e paginação | `ADMIN`, `AUDITOR` |
 
-O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSERT`, `UPDATE`, `DELETE` ou `STATUS_CHANGE`. `userEmail` faz busca parcial sem diferenciar caixa. `limit` aceita de 1 a 100 (padrão 20) e `offset` começa em 0.
+O período `from`/`to` é obrigatório e usa `YYYY-MM-DD`; `action` aceita `INSERT`, `UPDATE`, `DELETE` ou `STATUS_CHANGE`. `userEmail` busca por palavra do email ("kane" acha `h.kane@bayern.com`). `limit` aceita de 1 a 100 (padrão 20) e `offset` começa em 0.
 
 Cada item retornado inclui `logId`, `userId`, `userEmail`, `action`, `affectedTable`, `affectedEntityId`, `beforeData`, `afterData` e `performedAt`. `beforeData`/`afterData` são snapshots JSON com apenas valores alterados e associações como IDs; podem ser `null` quando a operação não tem aquele lado (INSERT/DELETE). Segredos não podem ser incluídos nos snapshots.
 
