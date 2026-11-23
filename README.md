@@ -154,8 +154,6 @@ Todas as tabelas têm `created_at` e `updated_at` (`DATETIME(6)` no horário de 
 ```mermaid
 erDiagram
     address ||--o{ company : "sede de"
-    plan ||--o{ company_plan : "assinado em"
-    company ||--o{ company_plan : assina
     company |o--o{ users : emprega
     company ||--o{ product : "fornecedor de"
     company ||--o{ certification : "fornecedor possui"
@@ -171,28 +169,15 @@ erDiagram
     users |o--o{ audit_log : executa
     users ||--o{ invite : convida
 
-    plan {
-        bigint id PK
-        plan_code code UK
-        varchar name
-        int max_users
-    }
     company {
         bigint id PK
         varchar name
         char cnpj UK
         varchar email
         company_type type
+        int max_users "teto de assentos, 10 por padrão"
         bigint address_id FK
         varchar phone
-    }
-    company_plan {
-        bigint id PK
-        bigint company_id FK
-        bigint plan_id FK
-        datetime started_at
-        datetime ended_at
-        bigint active_company_id UK "gerada; NULL quando encerrada"
     }
     users {
         bigint id PK
@@ -201,6 +186,7 @@ erDiagram
         varchar password "hash BCrypt"
         user_role role
         bigint company_id FK "NULL só no PLATFORM_ADMIN"
+        boolean is_active "inativo não entra nem ocupa assento"
     }
     invite {
         bigint id PK
@@ -296,11 +282,11 @@ erDiagram
     }
 ```
 
-Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `UNIQUE` em `company_plan.active_company_id` deixa uma única assinatura ativa por companhia. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
+Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `CHECK` `chk_company_max_users_positive` garante um teto de assentos positivo. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 
 Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
-Os tipos `company_type`, `plan_code`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
+Os tipos `company_type`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
 
 ### Views
 

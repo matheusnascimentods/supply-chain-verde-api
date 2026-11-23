@@ -110,11 +110,10 @@ Para `INSERT`, `beforeData` é `null`; para `DELETE`, `afterData` é `null`. Nos
 ## 5. DTOs e regras de entrada
 
 - Auth: `LoginRequestDTO`, `LoginResponseDTO`.
-- Users: `UserResponseDTO`, `UpdateUserRoleRequestDTO`, `UpdateOwnUserRequestDTO`.
+- Users: `UserResponseDTO` (com `active`), `UpdateUserRoleRequestDTO`, `UpdateUserStatusRequestDTO`, `UpdateOwnUserRequestDTO`.
 - Invite: `SendInviteRequestDTO`, `InviteDetailsResponseDTO`, `AcceptInviteRequestDTO`; o aceite responde `LoginResponseDTO`.
 - Address: `AddressRequestDTO`, `AddressResponseDTO`.
-- Company: `RegisterCompanyRequestDTO`, `UpdateOwnCompanyRequestDTO`, `CompanyResponseDTO`.
-- Plan: `PlanResponseDTO`.
+- Company: `RegisterCompanyRequestDTO`, `UpdateOwnCompanyRequestDTO`, `CompanyResponseDTO` (com `maxUsers` e `seatsUsed`).
 - Supplier: `SupplierResponseDTO`, `SupplierRankingDTO`.
 - Certification: `CertificationRequestDTO`, `CertificationResponseDTO`, `UpdateCertificationStatusRequestDTO`.
 - Product: `ProductRequestDTO`, `ProductResponseDTO`.
@@ -202,8 +201,6 @@ Segredos não devem ter valores reais, previsíveis ou versionados. Eles ficam n
 
 ```mermaid
 erDiagram
-  PLAN ||--o{ COMPANY_PLAN : "assinado em"
-  COMPANY ||--o{ COMPANY_PLAN : assina
   ADDRESS ||--o{ COMPANY : locatedAt
   COMPANY |o--o{ USER : employs
   USER ||--o{ INVITE : sends
@@ -222,7 +219,7 @@ erDiagram
   USER ||--o{ AUDITLOG : logs
 ```
 
-O tipo da companhia em cada vínculo e a assinatura ativa única são garantidos pelo banco; veja a [ADR 0003](../../adr/0003-tipo-de-companhia-por-fk-composta.md).
+O tipo da companhia em cada vínculo é garantido pelo banco; veja a [ADR 0003](../../adr/0003-tipo-de-companhia-por-fk-composta.md).
 
 ## Paginação das listagens
 
