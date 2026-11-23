@@ -2,7 +2,7 @@
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 a 3 concluídas).
+**Status:** concluída.
 
 Esta feature vem **antes** da `015-gestao-produtos`, que usa o `FullTextSearch` e a collation daqui. As tasks são sequenciais, cada uma mexe em **no máximo 10 arquivos** (testes contam) e deixa o `./mvnw verify` verde. A task do frontend (`supply-chain-verde-web/docs/features/013-busca-full-text/tasks.md`) é a verificação manual das searchbars depois da Task 3.
 
@@ -52,8 +52,8 @@ Depende da Task 1.
 
 Depende das Tasks 1–3.
 
-- [ ] `docs/features/000-base/reference.md`: semântica de busca (RN-01 a RN-06) e o email sem diferença de maiúscula no login
-- [ ] README: uma linha sobre a busca por prefixo sem acento
+- [x] `docs/features/000-base/reference.md`: semântica de busca (RN-01 a RN-06) e o email sem diferença de maiúscula no login
+- [x] README: uma linha sobre a busca por prefixo sem acento
 
 **Arquivos (~2):** `reference.md`, `README.md`.
 
