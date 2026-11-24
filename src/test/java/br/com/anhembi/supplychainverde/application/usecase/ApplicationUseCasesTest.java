@@ -165,7 +165,7 @@ class ApplicationUseCasesTest {
 
         Batch batch = Batch.builder().batchId(9L).marketId(40L).status(BatchStatus.ACTIVE)
                 .supplier(Company.builder().companyId(2L).build()).build();
-        User user = User.builder().userId(11L).name("Operator").companyId(40L).build();
+        User user = User.builder().userId(11L).name("Operator").companyId(2L).build();
         Chain stage = Chain.builder().chainId(13L).batch(batch).responsibleUser(user).stageType(StageType.PRODUCTION).build();
         Company supplier = Company.builder().companyId(2L).name("Verde").build();
 
