@@ -25,6 +25,7 @@ public class BatchController {
     private final GetBatchTraceabilityUseCase traceability;
     private final ListBatchesUseCase list;
     private final RejectBatchUseCase reject;
+    private final CancelBatchUseCase cancel;
 
     @GetMapping("/batches")
     @Operation(
@@ -50,10 +51,16 @@ public class BatchController {
     }
 
     @PatchMapping("/batches/{batchId}/reject")
-    @Operation(summary = "Recusar lote", description = "Somente o fornecedor do lote, com reason obrigatório. O lote vira REJECTED, que é final. Lote fora de PENDING retorna 409; de outro fornecedor, 403 (RN-19).")
+    @Operation(summary = "Recusar lote", description = "Somente o fornecedor do lote ou o PLATFORM_ADMIN, com reason obrigatório. O lote vira REJECTED, que é final. Lote fora de PENDING retorna 409; outra companhia, 403 (RN-06).")
     public BatchResponseDTO reject(@PathVariable Long batchId, @RequestBody RejectBatchRequestDTO request,
                                    @AuthenticationPrincipal CustomUserPrincipal principal) {
-        return reject.execute(batchId, request == null ? null : request.reason(), principal.supplierId());
+        return reject.execute(batchId, request == null ? null : request.reason(), principal.companyId(), principal.companyType());
+    }
+
+    @PatchMapping("/batches/{batchId}/cancel")
+    @Operation(summary = "Cancelar lote", description = "Somente o mercado do lote (MANAGER ou ADMIN) ou o PLATFORM_ADMIN, sem corpo. O lote vira CANCELED, que é final. Lote fora de PENDING retorna 409; outra companhia, inclusive o fornecedor, 403 (RN-05).")
+    public BatchResponseDTO cancel(@PathVariable Long batchId, @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return cancel.execute(batchId, principal.companyId(), principal.companyType());
     }
 
     @GetMapping("/batches/{batchId}/traceability")

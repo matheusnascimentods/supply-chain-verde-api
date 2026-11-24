@@ -3,8 +3,10 @@ package br.com.anhembi.supplychainverde.infrastructure.web.controller;
 import br.com.anhembi.supplychainverde.TestPrincipals;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.RejectBatchRequestDTO;
+import br.com.anhembi.supplychainverde.application.usecase.batch.CancelBatchUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.RejectBatchUseCase;
 import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.ListBatchesUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.RegisterBatchUseCase;
@@ -20,8 +22,9 @@ class BatchControllerTest {
     private final RegisterBatchUseCase registerBatch = mock(RegisterBatchUseCase.class);
     private final ListBatchesUseCase listBatches = mock(ListBatchesUseCase.class);
     private final RejectBatchUseCase rejectBatch = mock(RejectBatchUseCase.class);
+    private final CancelBatchUseCase cancelBatch = mock(CancelBatchUseCase.class);
     private final BatchController controller = new BatchController(
-            registerBatch, mock(GetBatchTraceabilityUseCase.class), listBatches, rejectBatch);
+            registerBatch, mock(GetBatchTraceabilityUseCase.class), listBatches, rejectBatch, cancelBatch);
 
     @Test
     void shouldListOnlyLinkedSupplierBatchesForSupplier() {
@@ -52,6 +55,13 @@ class BatchControllerTest {
     void shouldRejectWithTheLoggedSupplier() {
         controller.reject(4L, new RejectBatchRequestDTO("Sem capacidade"), TestPrincipals.of(3L, "s@example.com", "SUPPLIER", 7L));
 
-        verify(rejectBatch).execute(4L, "Sem capacidade", 7L);
+        verify(rejectBatch).execute(4L, "Sem capacidade", 7L, CompanyType.SUPPLIER);
+    }
+
+    @Test
+    void shouldCancelWithTheLoggedCompany() {
+        controller.cancel(4L, TestPrincipals.market(2L, "MANAGER", 40L));
+
+        verify(cancelBatch).execute(4L, 40L, CompanyType.MARKET);
     }
 }

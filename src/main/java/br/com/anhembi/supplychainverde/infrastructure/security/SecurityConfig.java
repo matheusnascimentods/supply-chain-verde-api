@@ -82,6 +82,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/batches").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/batches/*/reject").hasAnyRole("SUPPLIER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/batches/*/cancel").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches").hasAnyRole("ADMIN", "MANAGER", "AUDITOR", "SUPPLIER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/batches/*/stages").hasAnyRole("SUPPLIER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/stages").authenticated()
