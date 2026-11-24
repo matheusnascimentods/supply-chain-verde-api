@@ -86,7 +86,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/batches/*/stages").hasAnyRole("SUPPLIER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/batches/*/stages").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/stages/*/transport").hasAnyRole("SUPPLIER", "MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/stages/*/emission").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/stages/*/emission").hasAnyRole("SUPPLIER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/suppliers/*/reports").hasAnyRole("AUDITOR", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/reports").hasAnyRole("AUDITOR", "MANAGER", "ADMIN", "SUPPLIER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/reports/**").hasAnyRole("AUDITOR", "MANAGER", "ADMIN", "SUPPLIER")

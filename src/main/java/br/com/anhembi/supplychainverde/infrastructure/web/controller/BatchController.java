@@ -29,7 +29,7 @@ public class BatchController {
     @GetMapping("/batches")
     @Operation(
             summary = "Listar lotes",
-            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. O mercado vê só os próprios lotes, e a companhia fornecedora só os lotes dela; supplierId e status (PENDING, ACTIVE ou REJECTED) filtram dentro desse escopo. Cada item traz status, rejectionReason, marketId e marketName."
+            description = "Lista lotes paginados com currentStage e stages em ordem cronológica, incluindo endereços, transporte e emissão quando disponíveis. Lotes sem etapas retornam currentStage nulo e stages vazio. Os estágios são carregados em consultas agrupadas somente para os lotes da página. O mercado vê só os próprios lotes, e a companhia fornecedora só os lotes dela; supplierId e status (PENDING, ACTIVE, COMPLETED, REJECTED ou CANCELED) filtram dentro desse escopo. Cada item traz status, rejectionReason, marketId e marketName."
     )
     public BatchPageResponseDTO list(
             @RequestParam(defaultValue = "0") @Min(0) int page,

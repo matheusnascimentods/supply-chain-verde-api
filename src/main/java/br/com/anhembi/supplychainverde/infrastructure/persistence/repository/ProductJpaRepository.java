@@ -75,7 +75,7 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Lo
             LEFT JOIN (SELECT product_id, COUNT(*) AS n
                        FROM batch
                        WHERE (:marketId IS NULL OR market_id = :marketId)
-                         AND status = 'ACTIVE'
+                         AND status IN ('ACTIVE', 'COMPLETED')
                          AND created_at >= NOW() - INTERVAL 30 DAY
                        GROUP BY product_id) recent ON recent.product_id = p.id
             LEFT JOIN (SELECT supplier_id, category, unit,

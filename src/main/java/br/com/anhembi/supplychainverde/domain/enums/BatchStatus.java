@@ -1,6 +1,18 @@
 package br.com.anhembi.supplychainverde.domain.enums;
 
-/** RN-18 e RN-19: o lote nasce PENDING; a primeira etapa o ativa e a recusa é final. */
+/** Ciclo de vida do lote: PENDING -> ACTIVE | REJECTED | CANCELED; ACTIVE -> COMPLETED. */
 public enum BatchStatus {
-    PENDING, ACTIVE, REJECTED
+    PENDING, ACTIVE, COMPLETED, REJECTED, CANCELED;
+
+    public boolean canTransitionTo(BatchStatus next) {
+        return switch (this) {
+            case PENDING -> next == ACTIVE || next == REJECTED || next == CANCELED;
+            case ACTIVE -> next == COMPLETED;
+            case COMPLETED, REJECTED, CANCELED -> false;
+        };
+    }
+
+    public boolean acceptsStages() {
+        return this == PENDING || this == ACTIVE;
+    }
 }

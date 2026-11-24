@@ -12,6 +12,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Batch;
 import br.com.anhembi.supplychainverde.domain.entity.Chain;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.exception.InvalidStageTransitionException;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
@@ -45,7 +46,8 @@ class RegisterChainStageUseCaseTest {
     @BeforeEach
     void setUp() {
         when(batches.findById(1L)).thenReturn(Optional.of(batch));
-        when(users.findById(2L)).thenReturn(Optional.of(User.builder().userId(2L).companyId(40L).build()));
+        when(users.findById(2L)).thenReturn(Optional.of(User.builder().userId(2L).companyId(7L).build()));
+        when(users.findById(4L)).thenReturn(Optional.of(User.builder().userId(4L).companyId(40L).build()));
         when(users.findById(3L)).thenReturn(Optional.of(User.builder().userId(3L).companyId(99L).build()));
         when(chains.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -56,7 +58,7 @@ class RegisterChainStageUseCaseTest {
         given();
 
         useCase.execute(1L, 2L, new ChainRequestDTO(1L, null, null, StageType.PRODUCTION,
-                LocalDateTime.of(2026, 3, 4, 10, 0), null), null, 7L);
+                LocalDateTime.of(2026, 3, 4, 10, 0), null), null, 7L, CompanyType.SUPPLIER);
 
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.ACTIVE);
         assertThat(batch.getProducedAt()).isEqualTo(LocalDate.of(2026, 3, 4));
@@ -67,7 +69,8 @@ class RegisterChainStageUseCaseTest {
     void pendingBatchRejectsTheMarketAndRejectedBatchIsFinal() {
         batch.setStatus(BatchStatus.PENDING);
         given();
-        assertThatThrownBy(() -> register(StageType.PRODUCTION)).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> useCase.execute(1L, 4L, request(StageType.PRODUCTION), 40L, null, CompanyType.MARKET))
+                .isInstanceOf(AccessDeniedException.class);
 
         batch.setStatus(BatchStatus.REJECTED);
         assertThatThrownBy(() -> register(StageType.PRODUCTION)).isInstanceOf(BatchStatusConflictException.class);
@@ -77,9 +80,9 @@ class RegisterChainStageUseCaseTest {
     @Test
     void rejectsBatchOfAnotherCompanyAndResponsibleOutsideTheBatch() {
         given();
-        assertThatThrownBy(() -> useCase.execute(1L, 2L, request(StageType.PRODUCTION), 99L, null))
+        assertThatThrownBy(() -> useCase.execute(1L, 2L, request(StageType.PRODUCTION), 99L, null, CompanyType.SUPPLIER))
                 .isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> useCase.execute(1L, 3L, request(StageType.PRODUCTION), 40L, null))
+        assertThatThrownBy(() -> useCase.execute(1L, 3L, request(StageType.PRODUCTION), 40L, null, CompanyType.MARKET))
                 .isInstanceOf(AccessDeniedException.class);
         verify(chains, never()).save(any());
     }
@@ -100,6 +103,31 @@ class RegisterChainStageUseCaseTest {
     }
 
     @Test
+    void marketRegistersRetailAndSupplierCannotRegisterIt() {
+        given(StageType.PRODUCTION, StageType.STORAGE, StageType.PROCESSING,
+                StageType.TRANSPORT, StageType.DISTRIBUTION);
+
+        assertThatThrownBy(() -> useCase.execute(1L, 2L, request(StageType.RETAIL),
+                null, 7L, CompanyType.SUPPLIER))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThat(useCase.execute(1L, 4L, request(StageType.RETAIL),
+                40L, null, CompanyType.MARKET).stageType()).isEqualTo(StageType.RETAIL);
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        verify(batches).save(batch);
+    }
+
+    @Test
+    void completedBatchRejectsAnyNewStage() {
+        batch.setStatus(BatchStatus.COMPLETED);
+        given();
+
+        assertThatThrownBy(() -> useCase.execute(1L, 4L, request(StageType.RETAIL),
+                40L, null, CompanyType.MARKET))
+                .isInstanceOf(BatchStatusConflictException.class);
+        verify(chains, never()).save(any());
+    }
+
+    @Test
     void rejectsSkippedRepeatedAndPostRetailStages() {
         given(StageType.PRODUCTION);
         assertThatThrownBy(() -> register(StageType.PROCESSING)).isInstanceOf(InvalidStageTransitionException.class);
@@ -117,7 +145,7 @@ class RegisterChainStageUseCaseTest {
     }
 
     private ChainResponseDTO register(StageType type) {
-        return useCase.execute(1L, 2L, request(type), 40L, null);
+        return useCase.execute(1L, 2L, request(type), null, 7L, CompanyType.SUPPLIER);
     }
 
     private ChainRequestDTO request(StageType type) {

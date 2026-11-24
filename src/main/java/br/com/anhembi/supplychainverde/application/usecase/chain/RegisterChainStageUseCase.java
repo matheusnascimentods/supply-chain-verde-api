@@ -11,6 +11,7 @@ import br.com.anhembi.supplychainverde.domain.entity.Batch;
 import br.com.anhembi.supplychainverde.domain.entity.Chain;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
+import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.exception.InvalidStageTransitionException;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
@@ -32,17 +33,20 @@ public class RegisterChainStageUseCase {
     private final AddressRepository addressRepository;
     private final ChainDtoMapper mapper;
 
+    public ChainResponseDTO execute(Long batchId, Long responsibleUserId, ChainRequestDTO request,
+                                    Long marketId, Long supplierId) {
+        return execute(batchId, responsibleUserId, request, marketId, supplierId, null);
+    }
+
     @Transactional
     /** marketId e supplierId são o escopo de quem escreve; os dois nulos são o PLATFORM_ADMIN. */
-    public ChainResponseDTO execute(Long batchId, Long responsibleUserId, ChainRequestDTO request, Long marketId, Long supplierId) {
+    public ChainResponseDTO execute(Long batchId, Long responsibleUserId, ChainRequestDTO request,
+                                    Long marketId, Long supplierId, CompanyType actorSide) {
         if (request == null) throw new ValidationException("Requisição de etapa é obrigatória.");
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new IllegalArgumentException("Lote não encontrado: " + batchId));
         if (!batch.isWithin(marketId, supplierId)) throw new AccessDeniedException("Lote de outra companhia.");
-        if (batch.getStatus() == BatchStatus.REJECTED) throw new BatchStatusConflictException(batchId, batch.getStatus());
-        // RN-18: em PENDING só o fornecedor do lote começa a cadeia, com PRODUCTION.
-        boolean pending = batch.getStatus() == BatchStatus.PENDING;
-        if (pending && supplierId == null) throw new AccessDeniedException("Só o fornecedor inicia a produção do lote.");
+        if (!batch.getStatus().acceptsStages()) throw new BatchStatusConflictException(batchId, batch.getStatus());
         if (request.stageType() == null) throw new ValidationException("Tipo da etapa é obrigatório.");
         StageType current = chainRepository.findByBatchId(batchId).stream()
                 .map(Chain::getStageType)
@@ -52,18 +56,25 @@ public class RegisterChainStageUseCase {
         if (request.stageType() != expected) {
             throw new InvalidStageTransitionException(current, request.stageType());
         }
+        if (actorSide != null && actorSide != expected.owner()) {
+            String owner = expected.owner() == CompanyType.MARKET ? "mercado" : "fornecedor";
+            throw new AccessDeniedException("A etapa " + expected + " é registrada pelo " + owner + " do lote.");
+        }
         User responsibleUser = userRepository.findById(responsibleUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário responsável não encontrado: " + responsibleUserId));
-        // O responsável do header precisa ser do mercado ou do fornecedor do lote.
         Long responsibleCompany = responsibleUser.getCompanyId();
-        if (responsibleCompany == null || !(responsibleCompany.equals(batch.getMarketId())
-                || responsibleCompany.equals(batch.getSupplier().getCompanyId()))) {
-            throw new AccessDeniedException("O responsável não é do mercado nem do fornecedor do lote.");
+        Long ownerCompany = expected.owner() == CompanyType.SUPPLIER
+                ? batch.getSupplier().getCompanyId()
+                : batch.getMarketId();
+        if (!java.util.Objects.equals(responsibleCompany, ownerCompany)) {
+            throw new AccessDeniedException("O responsável não é da companhia dona da etapa.");
         }
+        boolean pending = batch.getStatus() == BatchStatus.PENDING;
         if (pending) {
             if (request.startedAt() == null) throw new ValidationException("Data de início da etapa é obrigatória.");
             batch.activate(request.startedAt().toLocalDate());
         }
+        if (expected == StageType.RETAIL) batch.complete();
 
         Address origin = request.originAddressId() != null ? addressRepository.findById(request.originAddressId()).orElse(null) : null;
         Address destination = request.destinationAddressId() != null ? addressRepository.findById(request.destinationAddressId()).orElse(null) : null;
@@ -79,7 +90,7 @@ public class RegisterChainStageUseCase {
                 .build();
 
         ChainResponseDTO saved = mapper.toResponse(chainRepository.save(stage), null, null);
-        if (pending) batchRepository.save(batch);
+        if (pending || expected == StageType.RETAIL) batchRepository.save(batch);
         return saved;
     }
 }
