@@ -97,11 +97,16 @@ class MigrationToCompanyIT {
                 .isZero();
         assertThat(count("SELECT COUNT(*) FROM batch b JOIN company m ON m.id = b.market_id WHERE m.type <> 'MARKET'"))
                 .isZero();
-        // Os lotes do seed (com etapas) ficaram ACTIVE. A V11 cria PENDING e REJECTED sem etapas, com datas anteriores.
+        // Os lotes do seed ficam ACTIVE ou COMPLETED conforme tenham RETAIL.
+        // A V11 cria PENDING e REJECTED sem etapas, com datas anteriores.
         assertThat(count("""
                 SELECT COUNT(*) FROM batch b
-                WHERE b.created_at < '2026-10-30' AND b.status <> 'ACTIVE'
+                WHERE b.created_at < '2026-10-30'
                   AND EXISTS (SELECT 1 FROM chain c WHERE c.batch_id = b.id)
+                  AND NOT (
+                      (NOT EXISTS (SELECT 1 FROM chain c WHERE c.batch_id = b.id AND c.stage_type = 'RETAIL') AND b.status = 'ACTIVE')
+                      OR (EXISTS (SELECT 1 FROM chain c WHERE c.batch_id = b.id AND c.stage_type = 'RETAIL') AND b.status = 'COMPLETED')
+                  )
                 """)).isZero();
         // RN-28: os 52 produtos do seed continuam existindo, com cópias para os fornecedores extras.
         assertThat(count("SELECT COUNT(*) FROM product WHERE id <= 52")).isEqualTo(52);

@@ -15,4 +15,9 @@ public enum StageType {
             case RETAIL -> null;
         };
     }
+
+    /** RN-08: o mercado registra só RETAIL; o fornecedor registra as demais etapas. */
+    public CompanyType owner() {
+        return this == RETAIL ? CompanyType.MARKET : CompanyType.SUPPLIER;
+    }
 }

@@ -37,9 +37,8 @@ public interface BatchJpaRepository extends JpaRepository<BatchJpaEntity, Long> 
 
     @Query(value = """
             select count(*)
-            from vw_batch_current_stage latest
-            join batch b on b.id = latest.batch_id
-            where latest.stage_type <> 'RETAIL'
+            from batch b
+            where b.status = 'ACTIVE'
               and (:marketId is null or b.market_id = :marketId)
               and (:supplierId is null or b.supplier_id = :supplierId)
             """, nativeQuery = true)

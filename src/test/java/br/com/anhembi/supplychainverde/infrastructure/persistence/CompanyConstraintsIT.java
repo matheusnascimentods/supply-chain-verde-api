@@ -43,13 +43,15 @@ class CompanyConstraintsIT {
     }
 
     @Test
-    void rejectedBatchNeedsReasonAndActiveBatchNeedsProductionDate() {
+    void rejectedBatchNeedsReasonAndActiveOrCompletedBatchNeedsProductionDate() {
         assertViolates("chk_batch_rejection_reason", () -> batch(productId, supplierId, DEMO_MARKET, "'REJECTED'", "NULL"));
         assertViolates("chk_batch_rejection_reason", () -> batch(productId, supplierId, DEMO_MARKET, "'PENDING'", "'motivo'"));
-        assertViolates("chk_batch_active_produced_at", () -> jdbcTemplate.update("""
-                INSERT INTO batch (product_id, supplier_id, market_id, status, quantity)
-                VALUES (?, ?, %s, 'ACTIVE', 1)
-                """.formatted(DEMO_MARKET), productId, supplierId));
+        for (String status : new String[]{"ACTIVE", "COMPLETED"}) {
+            assertViolates("chk_batch_produced_at", () -> jdbcTemplate.update("""
+                    INSERT INTO batch (product_id, supplier_id, market_id, status, quantity)
+                    VALUES (?, ?, %s, '%s', 1)
+                    """.formatted(DEMO_MARKET, status), productId, supplierId));
+        }
     }
 
     @Test

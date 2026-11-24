@@ -43,16 +43,23 @@ class StageOrderIT {
     private JdbcTemplate jdbcTemplate;
 
     private long userId;
+    private long supplierId;
     private long batchId;
 
     @BeforeEach
     void setUp() {
-        // O responsável precisa ser do mercado ou do fornecedor do lote (RN-15): um usuário do mercado do seed.
-        userId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE company_id = " + SEED_MARKET, Long.class);
+        // Etapas antes do RETAIL são do fornecedor (RN-08): quem age e o responsável são do fornecedor do lote.
+        long productId = jdbcTemplate.queryForObject("""
+                SELECT MIN(p.id) FROM product p
+                WHERE EXISTS (SELECT 1 FROM users u WHERE u.company_id = p.supplier_id AND u.is_active)
+                """, Long.class);
+        supplierId = jdbcTemplate.queryForObject("SELECT supplier_id FROM product WHERE id = ?", Long.class, productId);
+        userId = jdbcTemplate.queryForObject(
+                "SELECT MIN(id) FROM users WHERE company_id = ? AND is_active", Long.class, supplierId);
         batchId = insert(jdbcTemplate, """
                 INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
-                SELECT id, supplier_id, %s, 'ACTIVE', 10, CURRENT_DATE FROM product ORDER BY id LIMIT 1
-                """.formatted(SEED_MARKET));
+                VALUES (?, ?, %s, 'ACTIVE', 10, CURRENT_DATE)
+                """.formatted(SEED_MARKET), productId, supplierId);
     }
 
     @Test
@@ -91,7 +98,7 @@ class StageOrderIT {
 
     private void postStage(String stageType, int expectedStatus) throws Exception {
         var result = mockMvc.perform(post("/api/v1/batches/{id}/stages", batchId)
-                        .with(authentication(asManager()))
+                        .with(authentication(asSupplier()))
                         .header("X-Responsible-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stageType\":\"" + stageType + "\",\"startedAt\":\"2026-01-01T10:00:00\"}"))
@@ -113,11 +120,10 @@ class StageOrderIT {
         assertThatThrownBy(statement::run).hasMessageContaining(constraint);
     }
 
-    private UsernamePasswordAuthenticationToken asManager() {
+    private UsernamePasswordAuthenticationToken asSupplier() {
         return new UsernamePasswordAuthenticationToken(
-                TestPrincipals.market(userId, "MANAGER",
-                        jdbcTemplate.queryForObject("SELECT " + SEED_MARKET, Long.class)),
+                TestPrincipals.of(userId, "supplier@example.com", "SUPPLIER", supplierId),
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_MANAGER")));
+                List.of(new SimpleGrantedAuthority("ROLE_SUPPLIER")));
     }
 }

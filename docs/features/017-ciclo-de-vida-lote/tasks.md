@@ -16,14 +16,14 @@ A web Task 1 vem primeiro porque o front valida o `status` com `z.enum`. Se a AP
 
 Depende da web Task 1 em produção.
 
-- [ ] `V20__ciclo_de_vida_lote.sql`: enum, checks, `COMPLETED` dos legados e reatribuição dos responsáveis (plan §4). Conferir as duas consultas no compose antes de commitar
-- [ ] `BatchStatus`: `COMPLETED`, `CANCELED`, `canTransitionTo` e `acceptsStages` (plan §1)
-- [ ] `Batch`: `moveTo`, `cancel` e `complete`, e `reject`/`activate` passando pelo `moveTo`
-- [ ] `StageType.owner()`
-- [ ] `RegisterChainStageUseCase` e `ChainController`: o lado de quem age, o dono da etapa, o responsável do lado dono e o `complete()` no `RETAIL` (plan §2)
-- [ ] `SecurityConfig`: `SUPPLIER` no `POST /stages/*/emission`
-- [ ] `ProductJpaRepository.findCatalog` (`ACTIVE` ou `COMPLETED`) e `BatchJpaRepository.countActiveBatches` (`status = 'ACTIVE'`) (plan §3)
-- [ ] Testes: `BatchStatusTest`, `BatchTest`, `RegisterChainStageUseCaseTest` e `MigrationLifecycleIT`
+- [x] `V20__ciclo_de_vida_lote.sql`: enum, checks, `COMPLETED` dos legados e reatribuição dos responsáveis (plan §4). Conferir as duas consultas no compose antes de commitar
+- [x] `BatchStatus`: `COMPLETED`, `CANCELED`, `canTransitionTo` e `acceptsStages` (plan §1)
+- [x] `Batch`: `moveTo`, `cancel` e `complete`, e `reject`/`activate` passando pelo `moveTo`
+- [x] `StageType.owner()`
+- [x] `RegisterChainStageUseCase` e `ChainController`: o lado de quem age, o dono da etapa, o responsável do lado dono e o `complete()` no `RETAIL` (plan §2)
+- [x] `SecurityConfig`: `SUPPLIER` no `POST /stages/*/emission`
+- [x] `ProductJpaRepository.findCatalog` (`ACTIVE` ou `COMPLETED`) e `BatchJpaRepository.countActiveBatches` (`status = 'ACTIVE'`) (plan §3)
+- [x] Testes: `BatchStatusTest`, `BatchTest`, `RegisterChainStageUseCaseTest` e `MigrationLifecycleIT`
 
 Se passar de 10 arquivos, a `V20` e o `MigrationLifecycleIT` vão num commit próprio da mesma branch.
 
