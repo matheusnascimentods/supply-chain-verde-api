@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** RN-17 a RN-20: o mercado pede o lote, e o fornecedor executa (PRODUCTION ativa) ou recusa (final). */
+/** RN-17 a RN-20 (010) e 017: o mercado pede ou cancela o lote, e o fornecedor executa (PRODUCTION ativa) ou recusa (final). */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -119,6 +119,42 @@ class BatchLifecycleIT {
         stage(batchId, outsider, asSupplier()).andExpect(status().isForbidden());
     }
 
+    @Test
+    void marketCancelsAPendingBatchAndTheSupplierCannot() throws Exception {
+        long batchId = pendingBatch();
+
+        cancel(batchId, asSupplier()).andExpect(status().isForbidden());
+        cancel(batchId, asMarket())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELED"));
+
+        cancel(batchId, asMarket()).andExpect(status().isConflict());
+        stage(batchId, supplierUser, asSupplier()).andExpect(status().isConflict());
+    }
+
+    @Test
+    void platformAdminRejectsAndCancelsButStillFollowsTheTransitions() throws Exception {
+        long rejected = pendingBatch();
+        reject(rejected, asPlatformAdmin()).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"));
+        cancel(rejected, asPlatformAdmin()).andExpect(status().isConflict());
+
+        cancel(pendingBatch(), asPlatformAdmin()).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CANCELED"));
+    }
+
+    @Test
+    void supplierRoleCalculatesTheEmissionOfItsStage() throws Exception {
+        long batchId = pendingBatch();
+        String body = stage(batchId, supplierUser, asSupplier()).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long chainId = ((Number) JsonPath.read(body, "$.chainId")).longValue();
+
+        mockMvc.perform(post("/api/v1/stages/{id}/emission", chainId)
+                        .with(as(TestPrincipals.of(supplierUser, "supplier@example.com", "SUPPLIER", SUPPLIER)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"chainId\":" + chainId + ",\"calculationMethod\":\"IPCC\"}"))
+                .andExpect(status().isCreated());
+    }
+
     private long pendingBatch() throws Exception {
         String body = requestBatch(productId, SUPPLIER).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.batchId")).longValue();
@@ -138,6 +174,10 @@ class BatchLifecycleIT {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"Sem capacidade\"}"));
     }
 
+    private ResultActions cancel(long batchId, RequestPostProcessor actor) throws Exception {
+        return mockMvc.perform(patch("/api/v1/batches/{id}/cancel", batchId).with(actor));
+    }
+
     private ResultActions stage(long batchId, long responsibleUser, RequestPostProcessor actor) throws Exception {
         return mockMvc.perform(post("/api/v1/batches/{id}/stages", batchId).with(actor)
                 .header("X-Responsible-User-Id", responsibleUser)
@@ -151,6 +191,11 @@ class BatchLifecycleIT {
 
     private RequestPostProcessor asSupplier() {
         return as(TestPrincipals.of(supplierUser, "supplier@example.com", "ADMIN", SUPPLIER));
+    }
+
+    private RequestPostProcessor asPlatformAdmin() {
+        long admin = jdbcTemplate.queryForObject("SELECT MIN(id) FROM users WHERE role = 'PLATFORM_ADMIN'", Long.class);
+        return as(TestPrincipals.of(admin, "platform@example.com", "PLATFORM_ADMIN", null));
     }
 
     private RequestPostProcessor as(CustomUserPrincipal principal) {

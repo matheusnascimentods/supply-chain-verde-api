@@ -35,11 +35,11 @@ Se passar de 10 arquivos, a `V20` e o `MigrationLifecycleIT` vão num commit pr�
 
 Depende da Task 1.
 
-- [ ] `CancelBatchUseCase` (plan §5)
-- [ ] `RejectBatchUseCase`: passa a receber `companyId`/`companyType` e deixa o `PLATFORM_ADMIN` passar (RF-04)
-- [ ] `BatchController`: `PATCH /batches/{id}/cancel`, a nova chamada do reject e o `@Operation` com os 5 status
-- [ ] `SecurityConfig`: `PATCH /api/v1/batches/*/cancel` para `MANAGER` e `ADMIN`
-- [ ] Testes: `CancelBatchUseCaseTest`, `RejectBatchUseCaseTest` e `BatchLifecycleIT` (plan §6)
+- [x] `CancelBatchUseCase` (plan §5)
+- [x] `RejectBatchUseCase`: passa a receber `companyId`/`companyType` e deixa o `PLATFORM_ADMIN` passar (RF-04)
+- [x] `BatchController`: `PATCH /batches/{id}/cancel`, a nova chamada do reject e o `@Operation` com os 5 status
+- [x] `SecurityConfig`: `PATCH /api/v1/batches/*/cancel` para `MANAGER` e `ADMIN`
+- [x] Testes: `CancelBatchUseCaseTest`, `RejectBatchUseCaseTest` e `BatchLifecycleIT` (plan §6)
 
 **Arquivos (~7):** `CancelBatchUseCase`, `RejectBatchUseCase`, `BatchController`, `SecurityConfig`, testes.
 
