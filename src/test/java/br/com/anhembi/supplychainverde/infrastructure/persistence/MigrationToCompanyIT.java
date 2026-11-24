@@ -27,11 +27,11 @@ class MigrationToCompanyIT {
         assertThat(count("SELECT COUNT(*) FROM company c WHERE c.type = 'SUPPLIER' AND" + SEEDED)).isEqualTo(41);
         assertThat(jdbcTemplate.queryForObject("SELECT name FROM company WHERE id = 3", String.class))
                 .isEqualTo("Beneficiadora Circular de Grãos");
-        // Sem usuário vinculado, o email é o placeholder; com usuário, o do usuário.
+        // O email que a V8 deu (placeholder ou o do usuário vinculado) a V19 troca pelo contato da companhia.
         assertThat(jdbcTemplate.queryForObject("SELECT email FROM company WHERE id = 1", String.class))
-                .isEqualTo("fornecedor1@supplychainverde.local");
+                .isEqualTo("contato@cooperativaverdedehortifruti.com");
         assertThat(jdbcTemplate.queryForObject("SELECT email FROM company WHERE id = 3", String.class))
-                .isEqualTo("d.upamecano@bayern.com");
+                .isEqualTo("contato@beneficiadoracirculardegraos.com");
     }
 
     @Test
