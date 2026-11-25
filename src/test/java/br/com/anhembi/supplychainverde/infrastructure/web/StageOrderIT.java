@@ -101,7 +101,7 @@ class StageOrderIT {
                         .with(authentication(asSupplier()))
                         .header("X-Responsible-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"stageType\":\"" + stageType + "\",\"startedAt\":\"2026-01-01T10:00:00\"}"))
+                        .content("{\"stageType\":\"" + stageType + "\",\"startedAt\":\"2026-01-01T10:00:00\",\"destination\":{\"street\":\"Rua A\",\"number\":\"1\",\"neighborhood\":\"Centro\",\"zipCode\":\"13000000\",\"city\":\"Campinas\",\"state\":\"SP\"}}"))
                 .andExpect(status().is(expectedStatus));
         if (expectedStatus == 400) {
             result.andExpect(jsonPath("$.message").value(containsString("Transição de etapa inválida")));
