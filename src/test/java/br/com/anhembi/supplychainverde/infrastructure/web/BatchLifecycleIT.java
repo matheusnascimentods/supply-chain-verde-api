@@ -155,6 +155,27 @@ class BatchLifecycleIT {
                 .andExpect(status().isCreated());
     }
 
+    @Test
+    void productionStartsAtTheSupplierAndEndsAtTheInformedDestination() throws Exception {
+        String supplierCity = jdbcTemplate.queryForObject(
+                "SELECT a.city FROM company c JOIN address a ON a.id = c.address_id WHERE c.id = ?", String.class, SUPPLIER);
+
+        stage(pendingBatch(), supplierUser, asSupplier()).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.originAddress.city").value(supplierCity))
+                .andExpect(jsonPath("$.destinationAddress.city").value("Campinas"))
+                .andExpect(jsonPath("$.destinationAddress.addressId").isNumber());
+    }
+
+    @Test
+    void stageWithoutDestinationIsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/batches/{id}/stages", pendingBatch()).with(asSupplier())
+                        .header("X-Responsible-User-Id", supplierUser)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stageType\":\"PRODUCTION\",\"startedAt\":\"2026-03-04T10:00:00\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Destino da etapa é obrigatório."));
+    }
+
     private long pendingBatch() throws Exception {
         String body = requestBatch(productId, SUPPLIER).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.batchId")).longValue();
@@ -182,7 +203,7 @@ class BatchLifecycleIT {
         return mockMvc.perform(post("/api/v1/batches/{id}/stages", batchId).with(actor)
                 .header("X-Responsible-User-Id", responsibleUser)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"stageType\":\"PRODUCTION\",\"startedAt\":\"" + LocalDate.of(2026, 3, 4) + "T10:00:00\"}"));
+                .content("{\"stageType\":\"PRODUCTION\",\"startedAt\":\"" + LocalDate.of(2026, 3, 4) + "T10:00:00\",\"destination\":{\"street\":\"Rua A\",\"number\":\"1\",\"neighborhood\":\"Centro\",\"zipCode\":\"13000000\",\"city\":\"Campinas\",\"state\":\"SP\"}}"));
     }
 
     private RequestPostProcessor asMarket() {
