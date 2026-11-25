@@ -22,7 +22,7 @@ public class ChainController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar etapa", description = "Registra a próxima etapa com o lado dono: o fornecedor registra PRODUCTION até DISTRIBUTION e o mercado registra RETAIL. PRODUCTION ativa o lote; RETAIL o conclui. Estados finais retornam 409.")
+    @Operation(summary = "Registrar etapa", description = "Registra a próxima etapa com o lado dono: o fornecedor registra PRODUCTION até DISTRIBUTION e o mercado registra RETAIL. PRODUCTION ativa o lote; RETAIL o conclui. Estados finais retornam 409. destination (endereço completo, complement opcional) é obrigatório de PRODUCTION a DISTRIBUTION e cria um endereço novo; no RETAIL ele não é aceito (400), porque o destino é o endereço do mercado. originAddress não é enviado: na resposta ele é o endereço do fornecedor na PRODUCTION e o destino da etapa anterior nas demais.")
     public ChainResponseDTO create(@PathVariable Long batchId, @RequestHeader("X-Responsible-User-Id") Long responsibleUserId,
                                    @RequestBody ChainRequestDTO request, @AuthenticationPrincipal CustomUserPrincipal principal) {
         return register.execute(batchId, responsibleUserId, request, principal.marketId(), principal.supplierId(), principal.companyType());

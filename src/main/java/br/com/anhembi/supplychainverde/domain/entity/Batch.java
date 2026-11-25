@@ -50,6 +50,11 @@ public class Batch {
     }
 
     /** Escopo de leitura e escrita (RN-12, RN-15): nulos são o PLATFORM_ADMIN, que alcança qualquer lote. */
+    /** Origem da PRODUCTION (RN-04 da 018); nulo só em lote montado sem fornecedor, como nos testes. */
+    public Address supplierAddress() {
+        return supplier != null ? supplier.getAddress() : null;
+    }
+
     public boolean isWithin(Long marketId, Long supplierId) {
         return (marketId == null || marketId.equals(this.marketId))
                 && (supplierId == null || (supplier != null && supplierId.equals(supplier.getCompanyId())));

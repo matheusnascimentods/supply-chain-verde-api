@@ -2,7 +2,7 @@
 
 > Os requisitos estão em [`spec.md`](spec.md) e a arquitetura em [`plan.md`](plan.md).
 
-**Status:** planejada.
+**Status:** Task 1 implementada.
 
 Cada task mexe em **no máximo 10 arquivos** (os testes contam) e deixa o `./mvnw verify` verde. As dependências "web Task N" apontam para `supply-chain-verde-web/docs/features/017-enderecos-etapas/tasks.md`.
 
@@ -16,12 +16,12 @@ O contrato do `POST /stages` muda de forma incompatível (`destination` substitu
 
 Depende de nada. Sobe junto com a web Task 1.
 
-- [ ] `Chain.origins` (plan §1)
-- [ ] `ChainDtoMapper.toResponse` com o parâmetro `origin`. Ajustar `BatchStagesReader` e `ListChainStagesByBatchUseCase`
-- [ ] `ChainRequestDTO` com `destination` (RF-01)
-- [ ] `RegisterChainStageUseCase`: destino obrigatório e salvo, `RETAIL` com o endereço do mercado, origem derivada no response e sem gravar origem (plan §2)
-- [ ] `ChainController`: `@Operation` com `destination` e as regras
-- [ ] Testes: `ChainTest`, `RegisterChainStageUseCaseTest`, `StageAddressIT`. Os ITs que postam etapa (`BatchLifecycleIT`, `TenantIsolationIT` e outros) passam a enviar `destination`
+- [x] `Chain.origins` (plan §1)
+- [x] `ChainDtoMapper.toResponse` com o parâmetro `origin`. Ajustar `BatchStagesReader` e `ListChainStagesByBatchUseCase`
+- [x] `ChainRequestDTO` com `destination` (RF-01)
+- [x] `RegisterChainStageUseCase`: destino obrigatório e salvo, `RETAIL` com o endereço do mercado, origem derivada no response e sem gravar origem (plan §2)
+- [x] `ChainController`: `@Operation` com `destination` e as regras
+- [x] Testes: `RegisterChainStageUseCaseTest`, `BatchStagesReaderTest` (cobre o `Chain.origins` fora de ordem) e dois casos novos no `BatchLifecycleIT` (origem e destino pela API, 400 sem destino), em vez de um `ChainTest` e um `StageAddressIT` separados. Os ITs que postam etapa (`BatchLifecycleIT`, `TenantIsolationIT` e outros) passam a enviar `destination`
 
 Se passar de 10 arquivos, o ajuste dos ITs existentes vai num commit próprio da mesma branch.
 

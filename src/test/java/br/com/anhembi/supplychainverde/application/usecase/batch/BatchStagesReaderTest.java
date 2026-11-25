@@ -24,12 +24,13 @@ class BatchStagesReaderTest {
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
         BatchStagesReader reader = new BatchStagesReader(chains, transports, emissions, DtoMappers.CHAIN);
 
-        Batch batch = Batch.builder().batchId(10L).build();
+        Address farm = Address.builder().addressId(3L).city("Amparo").state("SP").build();
+        Address silo = Address.builder().addressId(5L).city("Campinas").state("SP").build();
+        Batch batch = Batch.builder().batchId(10L).supplier(Company.builder().companyId(2L).address(farm).build()).build();
         User user = User.builder().userId(7L).name("Ana").build();
-        Address origin = Address.builder().addressId(3L).city("Amparo").state("SP").build();
         Chain second = Chain.builder().chainId(22L).batch(batch).responsibleUser(user).stageType(StageType.TRANSPORT)
                 .startedAt(LocalDateTime.parse("2026-09-21T06:00:00")).build();
-        Chain first = Chain.builder().chainId(21L).batch(batch).responsibleUser(user).originAddress(origin)
+        Chain first = Chain.builder().chainId(21L).batch(batch).responsibleUser(user).destinationAddress(silo)
                 .stageType(StageType.PRODUCTION).startedAt(LocalDateTime.parse("2026-09-20T08:00:00")).build();
         Transport transport = Transport.builder().transportId(33L).chain(second).transportMode(TransportMode.ROAD)
                 .distance(new BigDecimal("180.0")).fuelType(FuelType.BIODIESEL).capacity(new BigDecimal("1200.0")).build();
@@ -44,6 +45,7 @@ class BatchStagesReaderTest {
 
         assertThat(stages).extracting("chainId").containsExactly(21L, 22L);
         assertThat(stages.get(0).originAddress().city()).isEqualTo("Amparo");
+        assertThat(stages.get(1).originAddress().city()).isEqualTo("Campinas");
         assertThat(stages.get(0).emission().co2Kg()).isEqualByComparingTo("12.5");
         assertThat(stages.get(0).transport()).isNull();
         assertThat(stages.get(1).transport().transportMode()).isEqualTo(TransportMode.ROAD);

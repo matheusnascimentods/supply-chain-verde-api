@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.application.usecase.batch;
 
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
+import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Chain;
 import br.com.anhembi.supplychainverde.domain.entity.Transport;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +43,12 @@ public class BatchStagesReader {
         Map<Long, CarbonEmission> emissions = carbonEmissionRepository.findByChainIds(chainIds).stream()
                 .collect(Collectors.toMap(e -> e.getChain().getChainId(), Function.identity()));
 
-        return chains.stream().map(chain -> mapper.toResponse(chain, transports.get(chain.getChainId()), emissions.get(chain.getChainId())))
+        Map<Long, Address> origins = new HashMap<>();
+        chains.stream().collect(Collectors.groupingBy(chain -> chain.getBatch().getBatchId()))
+                .values().forEach(stages -> origins.putAll(Chain.origins(stages)));
+
+        return chains.stream().map(chain -> mapper.toResponse(chain, origins.get(chain.getChainId()),
+                        transports.get(chain.getChainId()), emissions.get(chain.getChainId())))
                 .collect(Collectors.groupingBy(ChainResponseDTO::batchId, Collectors.toList()));
     }
 }
