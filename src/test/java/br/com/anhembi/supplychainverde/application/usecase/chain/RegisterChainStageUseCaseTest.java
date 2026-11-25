@@ -96,8 +96,7 @@ class RegisterChainStageUseCaseTest {
     void retailEndsAtTheMarketAndRejectsAnInformedDestination() {
         given(StageType.PRODUCTION, StageType.STORAGE, StageType.PROCESSING,
                 StageType.TRANSPORT, StageType.DISTRIBUTION);
-        assertThatThrownBy(() -> useCase.execute(1L, 4L, new ChainRequestDTO(1L, destination(), StageType.RETAIL,
-                LocalDateTime.now(), null), 40L, null, CompanyType.MARKET))
+        assertThatThrownBy(() -> useCase.execute(1L, 4L, new ChainRequestDTO(1L, destination(), StageType.RETAIL), 40L, null, CompanyType.MARKET))
                 .isInstanceOf(ValidationException.class).hasMessageContaining("endereço do mercado");
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.ACTIVE);
 
@@ -108,15 +107,27 @@ class RegisterChainStageUseCaseTest {
     }
 
     @Test
+    void newStageStartsNowAndClosesThePreviousOne() {
+        given(StageType.PRODUCTION);
+        LocalDateTime before = LocalDateTime.now();
+
+        ChainResponseDTO storage = register(StageType.STORAGE);
+
+        assertThat(storage.startedAt()).isBetween(before, LocalDateTime.now());
+        assertThat(storage.endedAt()).isNull();
+        verify(chains).closeOpenStages(1L, storage.startedAt());
+    }
+
+    @Test
     void productionBySupplierActivatesAPendingBatch() {
         batch.setStatus(BatchStatus.PENDING);
         given();
 
-        useCase.execute(1L, 2L, new ChainRequestDTO(1L, destination(), StageType.PRODUCTION,
-                LocalDateTime.of(2026, 3, 4, 10, 0), null), null, 7L, CompanyType.SUPPLIER);
+        useCase.execute(1L, 2L, request(StageType.PRODUCTION), null, 7L, CompanyType.SUPPLIER);
 
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.ACTIVE);
-        assertThat(batch.getProducedAt()).isEqualTo(LocalDate.of(2026, 3, 4));
+        assertThat(batch.getProducedAt()).isEqualTo(LocalDate.now());
+        verify(chains, never()).closeOpenStages(any(), any());
         verify(batches).save(batch);
     }
 
@@ -204,13 +215,13 @@ class RegisterChainStageUseCaseTest {
     }
 
     private ChainResponseDTO register(StageType type, AddressRequestDTO destination) {
-        return useCase.execute(1L, 2L, new ChainRequestDTO(1L, destination, type, LocalDateTime.now(), null),
+        return useCase.execute(1L, 2L, new ChainRequestDTO(1L, destination, type),
                 null, 7L, CompanyType.SUPPLIER);
     }
 
     /** RETAIL vai sem destino (RN-03); as outras etapas com um destino completo. */
     private ChainRequestDTO request(StageType type) {
-        return new ChainRequestDTO(1L, type == StageType.RETAIL ? null : destination(), type, LocalDateTime.now(), null);
+        return new ChainRequestDTO(1L, type == StageType.RETAIL ? null : destination(), type);
     }
 
     private AddressRequestDTO destination() {

@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.infrastructure.persistence.mapper.ChainJp
 import br.com.anhembi.supplychainverde.infrastructure.persistence.repository.ChainJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Collection;
@@ -45,5 +46,10 @@ public class ChainRepositoryImpl implements ChainRepository {
     @Override
     public void deleteById(Long chainId) {
         jpaRepository.deleteById(chainId);
+    }
+
+    @Override
+    public void closeOpenStages(Long batchId, LocalDateTime endedAt) {
+        jpaRepository.closeOpenStages(batchId, endedAt);
     }
 }

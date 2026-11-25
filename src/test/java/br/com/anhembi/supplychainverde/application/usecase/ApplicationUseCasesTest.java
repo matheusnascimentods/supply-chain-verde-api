@@ -179,7 +179,7 @@ class ApplicationUseCasesTest {
         when(reports.countBySupplierIds(any(), any())).thenReturn(java.util.Map.of());
 
         ChainRequestDTO request = new ChainRequestDTO(9L, new br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO(
-                "Rua A", "1", "Centro", null, "13000000", "Campinas", "SP"), StageType.STORAGE, LocalDateTime.now(), null);
+                "Rua A", "1", "Centro", null, "13000000", "Campinas", "SP"), StageType.STORAGE);
         when(addresses.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, suppliers, DtoMappers.ADDRESS, DtoMappers.CHAIN)
                 .execute(9L, 11L, request, null, null).chainId()).isEqualTo(13L);

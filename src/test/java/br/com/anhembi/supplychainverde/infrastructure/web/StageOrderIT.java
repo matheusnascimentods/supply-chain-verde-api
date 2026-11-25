@@ -69,6 +69,12 @@ class StageOrderIT {
         postStage("PROCESSING", 400);
         postStage("PRODUCTION", 400);
         postStage("STORAGE", 201);
+
+        // A etapa anterior termina quando a próxima começa; a última continua aberta.
+        var stages = jdbcTemplate.queryForList(
+                "SELECT stage_type, started_at, ended_at FROM chain WHERE batch_id = ? ORDER BY id", batchId);
+        assertThat(stages.get(0).get("ended_at")).isEqualTo(stages.get(1).get("started_at"));
+        assertThat(stages.get(1).get("ended_at")).isNull();
     }
 
     @Test
@@ -101,7 +107,7 @@ class StageOrderIT {
                         .with(authentication(asSupplier()))
                         .header("X-Responsible-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"stageType\":\"" + stageType + "\",\"startedAt\":\"2026-01-01T10:00:00\",\"destination\":{\"street\":\"Rua A\",\"number\":\"1\",\"neighborhood\":\"Centro\",\"zipCode\":\"13000000\",\"city\":\"Campinas\",\"state\":\"SP\"}}"))
+                        .content("{\"stageType\":\"" + stageType + "\",\"destination\":{\"street\":\"Rua A\",\"number\":\"1\",\"neighborhood\":\"Centro\",\"zipCode\":\"13000000\",\"city\":\"Campinas\",\"state\":\"SP\"}}"))
                 .andExpect(status().is(expectedStatus));
         if (expectedStatus == 400) {
             result.andExpect(jsonPath("$.message").value(containsString("Transição de etapa inválida")));

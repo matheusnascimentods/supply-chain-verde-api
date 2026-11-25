@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
@@ -80,11 +81,11 @@ public class RegisterChainStageUseCase {
                 : addressRepository.save(validDestination(request.destination()));
         Address origin = last == null ? batch.supplierAddress() : last.getDestinationAddress(); // RN-04
 
+        // A etapa começa agora e encerra a anterior: as datas são do servidor, não do cliente.
+        LocalDateTime now = LocalDateTime.now();
         boolean pending = batch.getStatus() == BatchStatus.PENDING;
-        if (pending) {
-            if (request.startedAt() == null) throw new ValidationException("Data de início da etapa é obrigatória.");
-            batch.activate(request.startedAt().toLocalDate());
-        }
+        if (pending) batch.activate(now.toLocalDate());
+        if (last != null) chainRepository.closeOpenStages(batchId, now);
         if (expected == StageType.RETAIL) batch.complete();
 
         Chain stage = Chain.builder()
@@ -92,8 +93,7 @@ public class RegisterChainStageUseCase {
                 .destinationAddress(destination)
                 .responsibleUser(responsibleUser)
                 .stageType(request.stageType())
-                .startedAt(request.startedAt())
-                .endedAt(request.endedAt())
+                .startedAt(now)
                 .build();
 
         ChainResponseDTO saved = mapper.toResponse(chainRepository.save(stage), origin, null, null);
