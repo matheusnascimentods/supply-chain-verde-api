@@ -106,7 +106,7 @@ class BatchLifecycleIT {
 
         // A listagem é JPQL: o Hibernate faz flush antes, e o lote já aparece ACTIVE.
         mockMvc.perform(get("/api/v1/batches").param("status", "ACTIVE").param("size", "100").with(asSupplier()))
-                .andExpect(jsonPath("$.content[?(@.batchId == " + batchId + ")].producedAt", hasItem("2026-03-04")));
+                .andExpect(jsonPath("$.content[?(@.batchId == " + batchId + ")].producedAt", hasItem(LocalDate.now().toString())));
         reject(batchId, asSupplier()).andExpect(status().isConflict());
     }
 
@@ -171,7 +171,7 @@ class BatchLifecycleIT {
         mockMvc.perform(post("/api/v1/batches/{id}/stages", pendingBatch()).with(asSupplier())
                         .header("X-Responsible-User-Id", supplierUser)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"stageType\":\"PRODUCTION\",\"startedAt\":\"2026-03-04T10:00:00\"}"))
+                        .content("{\"stageType\":\"PRODUCTION\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Destino da etapa é obrigatório."));
     }
@@ -203,7 +203,7 @@ class BatchLifecycleIT {
         return mockMvc.perform(post("/api/v1/batches/{id}/stages", batchId).with(actor)
                 .header("X-Responsible-User-Id", responsibleUser)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"stageType\":\"PRODUCTION\",\"startedAt\":\"" + LocalDate.of(2026, 3, 4) + "T10:00:00\",\"destination\":{\"street\":\"Rua A\",\"number\":\"1\",\"neighborhood\":\"Centro\",\"zipCode\":\"13000000\",\"city\":\"Campinas\",\"state\":\"SP\"}}"));
+                .content("{\"stageType\":\"PRODUCTION\",\"destination\":{\"street\":\"Rua A\",\"number\":\"1\",\"neighborhood\":\"Centro\",\"zipCode\":\"13000000\",\"city\":\"Campinas\",\"state\":\"SP\"}}"));
     }
 
     private RequestPostProcessor asMarket() {
