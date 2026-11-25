@@ -17,8 +17,7 @@ import java.util.Map;
 public class Chain {
     private Long chainId;
     private Batch batch;
-    private Address originAddress;      // nullable — ver pendência na seção 13
-    private Address destinationAddress; // nullable — ver pendência na seção 13
+    private Address destinationAddress; // a origem é derivada: ver origins (RN-04 da 018)
     private User responsibleUser;
     private StageType stageType;
     private LocalDateTime startedAt;

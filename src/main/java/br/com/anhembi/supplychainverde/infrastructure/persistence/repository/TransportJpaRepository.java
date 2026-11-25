@@ -11,6 +11,6 @@ public interface TransportJpaRepository extends JpaRepository<TransportJpaEntity
     Optional<TransportJpaEntity> findByChainChainId(Long chainId);
 
     @EntityGraph(attributePaths = {"chain", "chain.batch", "chain.batch.product", "chain.batch.supplier",
-            "chain.batch.supplier.address", "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"})
+            "chain.batch.supplier.address", "chain.destinationAddress", "chain.responsibleUser"})
     List<TransportJpaEntity> findByChainChainIdIn(Collection<Long> chainIds);
 }

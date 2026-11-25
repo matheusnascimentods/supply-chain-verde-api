@@ -10,6 +10,6 @@ public interface ChainJpaRepository extends JpaRepository<ChainJpaEntity, Long> 
     List<ChainJpaEntity> findByBatchBatchId(Long batchId);
 
     @EntityGraph(attributePaths = {"batch", "batch.product", "batch.supplier", "batch.supplier.address",
-            "originAddress", "destinationAddress", "responsibleUser"})
+            "destinationAddress", "responsibleUser"})
     List<ChainJpaEntity> findByBatchBatchIdInOrderByStartedAtAscChainIdAsc(Collection<Long> batchIds);
 }

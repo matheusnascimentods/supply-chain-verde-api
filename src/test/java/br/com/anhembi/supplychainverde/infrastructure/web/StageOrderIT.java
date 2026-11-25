@@ -110,9 +110,9 @@ class StageOrderIT {
 
     private long insertStage(String stageType) {
         return insert(jdbcTemplate, """
-                INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at)
-                VALUES (?, ?, ?, NOW())
-                """, batchId, userId, stageType);
+                INSERT INTO chain (batch_id, destination_address_id, responsible_user_id, stage_type, started_at)
+                VALUES (?, (SELECT c.address_id FROM company c JOIN batch b ON b.supplier_id = c.id WHERE b.id = ?), ?, ?, NOW())
+                """, batchId, batchId, userId, stageType);
     }
 
     // No MySQL o erro desfaz só a instrução; a transação do teste continua.

@@ -2,7 +2,7 @@
 
 > Os requisitos estão em [`spec.md`](spec.md) e a arquitetura em [`plan.md`](plan.md).
 
-**Status:** Task 1 implementada.
+**Status:** implementada.
 
 Cada task mexe em **no máximo 10 arquivos** (os testes contam) e deixa o `./mvnw verify` verde. As dependências "web Task N" apontam para `supply-chain-verde-web/docs/features/017-enderecos-etapas/tasks.md`.
 
@@ -33,11 +33,11 @@ Se passar de 10 arquivos, o ajuste dos ITs existentes vai num commit próprio da
 
 Depende da Task 1 em produção, porque a partir dela nenhuma etapa nova grava a origem.
 
-- [ ] `V21__enderecos_etapas.sql`: backfill, `NOT NULL`, remoção da coluna e recriação dos triggers (plan §3). Conferir as duas consultas no compose antes de commitar
-- [ ] `Chain`, `ChainJpaEntity` e `ChainJpaMapper` sem `originAddress` (plan §4)
-- [ ] `@EntityGraph` de `ChainJpaRepository`, `TransportJpaRepository` e `CarbonEmissionJpaRepository`
-- [ ] Teste: `MigrationStageAddressIT`
+- [x] `V21__enderecos_etapas.sql`: backfill, `NOT NULL`, remoção da coluna e recriação dos triggers (plan §3). Conferir as duas consultas no compose antes de commitar
+- [x] `Chain`, `ChainJpaEntity` e `ChainJpaMapper` sem `originAddress` (plan §4)
+- [x] `@EntityGraph` de `ChainJpaRepository`, `TransportJpaRepository` e `CarbonEmissionJpaRepository`
+- [x] Teste: `MigrationStageAddressIT`
 
-**Arquivos (~8):** `V21`, `Chain`, `ChainJpaEntity`, `ChainJpaMapper`, 3 repositórios JPA, teste.
+**Arquivos (10):** `V21`, `Chain`, `ChainJpaEntity`, 3 repositórios JPA, `MigrationStageAddressIT` e os ITs que inserem `chain` direto no SQL (`StageOrderIT`, `ProductControllerIT`, `ViewsAndProceduresIT`), que passam a gravar o destino por causa do `NOT NULL`. O `ChainJpaMapper` não precisou mudar, porque o MapStruct mapeia por nome.
 
 **Pronto:** `./mvnw verify` verde. `SHOW COLUMNS FROM chain` não lista `origin_address_id`, e registrar uma etapa gera auditoria.

@@ -22,12 +22,8 @@ public class ChainJpaEntity {
     @JoinColumn(name = "batch_id", nullable = false)
     private BatchJpaEntity batch;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "origin_address_id")
-    private AddressJpaEntity originAddress;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "destination_address_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "destination_address_id", nullable = false)
     private AddressJpaEntity destinationAddress;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

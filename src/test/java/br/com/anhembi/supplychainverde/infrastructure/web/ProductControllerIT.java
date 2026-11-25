@@ -189,9 +189,9 @@ class ProductControllerIT {
                 """, productId, supplierId, marketId, status, status, daysAgo);
         if (co2Kg != null) {
             long chainId = insert(jdbcTemplate, """
-                    INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at)
-                    VALUES (?, (SELECT MIN(id) FROM users), 'PRODUCTION', NOW())
-                    """, batchId);
+                    INSERT INTO chain (batch_id, destination_address_id, responsible_user_id, stage_type, started_at)
+                    VALUES (?, (SELECT c.address_id FROM company c JOIN batch b ON b.supplier_id = c.id WHERE b.id = ?), (SELECT MIN(id) FROM users), 'PRODUCTION', NOW())
+                    """, batchId, batchId);
             jdbcTemplate.update("INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'IPCC')",
                     chainId, co2Kg);
         }

@@ -81,13 +81,18 @@ DROP TRIGGER audit_chain_delete;
 
 ALTER TABLE chain
     DROP FOREIGN KEY fk_chain_origin_address,
+    DROP FOREIGN KEY fk_chain_destination_address,
     DROP INDEX idx_chain_origin_address_id,
     DROP COLUMN origin_address_id,
     MODIFY destination_address_id BIGINT NOT NULL;
 
+ALTER TABLE chain
+    ADD CONSTRAINT fk_chain_destination_address FOREIGN KEY (destination_address_id) REFERENCES address (id);
+
 -- 4. Recria os 3 triggers copiando o corpo vigente da V5, sem as linhas de origin_address_id.
 ```
 
+- O MySQL não muda a nulidade de uma coluna que tem FK (erro 1832). Por isso a FK do destino sai e volta num segundo `ALTER`: no mesmo comando, o nome repetido conflita.
 - `ponytail:` o backfill da RN-07 não percorre a cadeia. Se a origem antiga também for nula, o destino vira o endereço do fornecedor, mesmo que a etapa anterior tenha terminado em outro lugar. Só afeta dados criados pela UI antiga com "Não informar". Se isso aparecer em dados reais, a melhoria é um backfill em ordem de `stage_type`.
 - Os triggers são `DEFINER = 'supply_audit'@'%'`. A V5 mostra como a migration os cria, e a V21 segue o mesmo padrão. Antes de copiar, conferir se alguma migration posterior à V5 recriou esses triggers (`grep audit_chain` em `db/migration`).
 - Conferir no compose local antes de commitar:

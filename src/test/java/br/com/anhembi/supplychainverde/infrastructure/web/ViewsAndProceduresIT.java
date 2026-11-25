@@ -157,8 +157,9 @@ class ViewsAndProceduresIT {
                 VALUES (?, ?, %s, 'ACTIVE', 100, CURRENT_DATE)
                 """.formatted(DEMO_MARKET), productId, supplierId);
         long chainId = insert(jdbcTemplate,
-                "INSERT INTO chain (batch_id, responsible_user_id, stage_type, started_at) VALUES (?, ?, 'PRODUCTION', NOW())",
-                batchId, userId);
+                "INSERT INTO chain (batch_id, destination_address_id, responsible_user_id, stage_type, started_at) "
+                        + "VALUES (?, (SELECT c.address_id FROM company c JOIN batch b ON b.supplier_id = c.id WHERE b.id = ?), ?, 'PRODUCTION', NOW())",
+                batchId, batchId, userId);
         jdbcTemplate.update(
                 "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'IPCC')",
                 chainId, co2Kg);
