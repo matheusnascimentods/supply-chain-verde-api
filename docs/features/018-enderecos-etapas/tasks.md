@@ -1,0 +1,43 @@
+# Tarefas: Endereços das etapas do lote
+
+> Os requisitos estão em [`spec.md`](spec.md) e a arquitetura em [`plan.md`](plan.md).
+
+**Status:** planejada.
+
+Cada task mexe em **no máximo 10 arquivos** (os testes contam) e deixa o `./mvnw verify` verde. As dependências "web Task N" apontam para `supply-chain-verde-web/docs/features/017-enderecos-etapas/tasks.md`.
+
+Ordem entre os repositórios: **API Task 1 + web Task 1 (deploy junto) → API Task 2**.
+
+O contrato do `POST /stages` muda de forma incompatível (`destination` substitui os ids). Como o projeto é acadêmico e não mantém compatibilidade, as duas Tasks 1 sobem no mesmo deploy, sem versão de transição.
+
+---
+
+## Task 1: `feat/destino-etapa`
+
+Depende de nada. Sobe junto com a web Task 1.
+
+- [ ] `Chain.origins` (plan §1)
+- [ ] `ChainDtoMapper.toResponse` com o parâmetro `origin`. Ajustar `BatchStagesReader` e `ListChainStagesByBatchUseCase`
+- [ ] `ChainRequestDTO` com `destination` (RF-01)
+- [ ] `RegisterChainStageUseCase`: destino obrigatório e salvo, `RETAIL` com o endereço do mercado, origem derivada no response e sem gravar origem (plan §2)
+- [ ] `ChainController`: `@Operation` com `destination` e as regras
+- [ ] Testes: `ChainTest`, `RegisterChainStageUseCaseTest`, `StageAddressIT`. Os ITs que postam etapa (`BatchLifecycleIT`, `TenantIsolationIT` e outros) passam a enviar `destination`
+
+Se passar de 10 arquivos, o ajuste dos ITs existentes vai num commit próprio da mesma branch.
+
+**Arquivos (~10):** `Chain`, `ChainDtoMapper`, `BatchStagesReader`, `ListChainStagesByBatchUseCase`, `ChainRequestDTO`, `RegisterChainStageUseCase`, `ChainController`, testes.
+
+**Pronto:** `./mvnw verify` verde. No compose local, a rota de um lote novo vai do fornecedor, passa pelos destinos digitados e termina no mercado.
+
+## Task 2: `refactor/remove-origem-etapa`
+
+Depende da Task 1 em produção, porque a partir dela nenhuma etapa nova grava a origem.
+
+- [ ] `V21__enderecos_etapas.sql`: backfill, `NOT NULL`, remoção da coluna e recriação dos triggers (plan §3). Conferir as duas consultas no compose antes de commitar
+- [ ] `Chain`, `ChainJpaEntity` e `ChainJpaMapper` sem `originAddress` (plan §4)
+- [ ] `@EntityGraph` de `ChainJpaRepository`, `TransportJpaRepository` e `CarbonEmissionJpaRepository`
+- [ ] Teste: `MigrationStageAddressIT`
+
+**Arquivos (~8):** `V21`, `Chain`, `ChainJpaEntity`, `ChainJpaMapper`, 3 repositórios JPA, teste.
+
+**Pronto:** `./mvnw verify` verde. `SHOW COLUMNS FROM chain` não lista `origin_address_id`, e registrar uma etapa gera auditoria.
