@@ -24,20 +24,20 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product",
             "chain.batch.supplier", "chain.batch.supplier.address",
-            "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
+            "chain.destinationAddress", "chain.responsibleUser"
     })
     Optional<CarbonEmissionJpaEntity> findByChainChainId(Long chainId);
 
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product", "chain.batch.supplier", "chain.batch.supplier.address",
-            "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
+            "chain.destinationAddress", "chain.responsibleUser"
     })
     List<CarbonEmissionJpaEntity> findByChainChainIdIn(Collection<Long> chainIds);
 
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product",
             "chain.batch.supplier", "chain.batch.supplier.address",
-            "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
+            "chain.destinationAddress", "chain.responsibleUser"
     })
     List<CarbonEmissionJpaEntity> findByChainBatchBatchId(Long batchId);
 
@@ -45,7 +45,7 @@ public interface CarbonEmissionJpaRepository extends JpaRepository<CarbonEmissio
     @EntityGraph(attributePaths = {
             "chain", "chain.batch", "chain.batch.product",
             "chain.batch.supplier", "chain.batch.supplier.address",
-            "chain.originAddress", "chain.destinationAddress", "chain.responsibleUser"
+            "chain.destinationAddress", "chain.responsibleUser"
     })
     List<CarbonEmissionJpaEntity> findAll();
 
