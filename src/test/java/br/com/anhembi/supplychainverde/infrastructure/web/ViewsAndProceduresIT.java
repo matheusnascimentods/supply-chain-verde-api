@@ -153,18 +153,46 @@ class ViewsAndProceduresIT {
                 .containsEntry("starts_at", "00:00").containsEntry("status", "ENABLED");
     }
 
+    // RN-14 e RN-15 (019): o score desconta a intensidade (kg CO2e por tonelada) / 10, não o CO2 total.
     @Test
     void sustainabilityViewAppliesScoreFormula() {
         assertThat(score()).isEqualByComparingTo("100.00");
 
         certification("ACTIVE", LocalDate.now().plusYears(1));
         certification("EXPIRED", LocalDate.now().minusDays(1));
+        // Lote sem peso: entra no CO2 total (RN-16), mas não na intensidade.
         batchWithEmission("1234.0000");
-        // 100 + 10 × 1 ativa − 12,34
-        assertThat(score()).isEqualByComparingTo("97.66");
+        assertThat(score()).isEqualByComparingTo("110.00");
 
-        batchWithEmission("20000.0000");
+        // 1000 kg CO2e em 2 t = 500 kg/t → 100 + 10 × 1 ativa − 50
+        batchWithIntensity(supplierId, productId, "1000.0000", "2000");
+        assertThat(score()).isEqualByComparingTo("60.00");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT total_co2_kg FROM vw_supplier_sustainability WHERE supplier_id = ?", BigDecimal.class, supplierId))
+                .isEqualByComparingTo("2234");
+
+        batchWithIntensity(supplierId, productId, "20000.0000", "1000");
         assertThat(score()).isEqualByComparingTo("0.00");
+    }
+
+    // Critério de aceite da 019: com menos kg CO2e por tonelada, o fornecedor fica à frente mesmo com mais CO2 total.
+    @Test
+    void rankingFollowsIntensityNotTotalCo2() {
+        long efficient = supplierId;
+        batchWithIntensity(efficient, productId, "2000.0000", "100000");  // 20 kg/t
+        long addressId = jdbcTemplate.queryForObject("SELECT address_id FROM company WHERE id = ?", Long.class, efficient);
+        long small = insert(jdbcTemplate, """
+                INSERT INTO company (name, cnpj, address_id, email, type)
+                VALUES ('Fornecedor IT pequeno', '98765432000200', ?, 'pequeno@it.test', 'SUPPLIER')
+                """, addressId);
+        long smallProduct = insert(jdbcTemplate,
+                "INSERT INTO product (supplier_id, name, category, unit) VALUES (?, 'Milho IT', 'AGRICULTURE', 'KG')", small);
+        batchWithIntensity(small, smallProduct, "100.0000", "1000");  // 100 kg/t
+
+        assertThat(jdbcTemplate.queryForList("""
+                SELECT supplier_id FROM vw_supplier_sustainability
+                WHERE supplier_id IN (?, ?) ORDER BY sustainability_score DESC
+                """, Long.class, efficient, small)).containsExactly(efficient, small);
     }
 
     @Test
@@ -197,6 +225,25 @@ class ViewsAndProceduresIT {
         jdbcTemplate.update(
                 "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'GHG_PROTOCOL')",
                 chainId, co2Kg);
+    }
+
+    /** Lote com as etapas até o TRANSPORT; a emissão dele traz o CO2 e o peso da carga. */
+    private void batchWithIntensity(long supplier, long product, String co2Kg, String cargoWeightKg) {
+        long batchId = insert(jdbcTemplate, """
+                INSERT INTO batch (product_id, supplier_id, market_id, status, quantity, produced_at)
+                VALUES (?, ?, %s, 'ACTIVE', 100, CURRENT_DATE)
+                """.formatted(DEMO_MARKET), product, supplier);
+        long chainId = 0;
+        for (String stage : List.of("PRODUCTION", "STORAGE", "PROCESSING", "TRANSPORT")) {
+            chainId = insert(jdbcTemplate,
+                    "INSERT INTO chain (batch_id, destination_address_id, responsible_user_id, stage_type, started_at) "
+                            + "VALUES (?, (SELECT address_id FROM company WHERE id = ?), ?, ?, NOW())",
+                    batchId, supplier, userId, stage);
+        }
+        jdbcTemplate.update("""
+                INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method, cargo_weight_kg)
+                VALUES (?, 1, ?, 'GHG_PROTOCOL', ?)
+                """, chainId, co2Kg, cargoWeightKg);
     }
 
     private long certification(String status, LocalDate expiresAt) {

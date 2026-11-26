@@ -4,6 +4,25 @@ Problemas encontrados no cálculo e no uso das emissões de CO₂ (API e web). O
 
 > Tratados na feature [`019-calculo-de-carbono`](spec.md). A spec cita cada item como D-n; o que ficou fora do escopo está no §7 de lá.
 
+## Situação depois da 019
+
+| Item | Situação | Onde |
+|---|---|---|
+| D-1 | Resolvido. Deslocamento emite pelo frete e as etapas fixas pelo consumo de energia. | API Task 4, web Task 2 |
+| D-2 | Resolvido. O fator vem da metodologia + modo + combustível, em kg CO₂e por t·km, com o peso da carga. A capacidade continua só informativa. | API Tasks 2 e 4 |
+| D-3 | Resolvido. Cada metodologia tem o próprio fator; `IPCC` e `EMEP_EEA` saíram e foram remapeados para `GHG_PROTOCOL`. | `V22`, API Task 4 |
+| D-4 | Resolvido. Sem transporte, peso ou consumo, o cálculo devolve 400 em vez de gravar 0. | API Task 4 |
+| D-5 | Resolvido. A emissão é parte obrigatória do registro e a próxima etapa espera a emissão da anterior (409). | web Task 2, API Task 5 |
+| D-6 | Resolvido. O card oferece **Calcular emissão** para a última etapa sem emissão. | web Task 3 |
+| D-7 | Resolvido. A segunda emissão da mesma etapa devolve 409. | API Task 1 |
+| D-8 | Resolvido em parte. A unidade é CO₂e, e cada fator tem fonte e ano em `emission_factor`. Exceção: a eletricidade usa o fator do MCTI, publicado só em CO₂. Renomear `co2_kg` ficou fora do escopo. | `V22`, spec §7 |
+| D-9 | Fora do escopo. As somas continuam misturando metodologias; o detalhe do relatório mostra a quebra `sumByMethod`. | spec §7 |
+| D-10 | Resolvido. O score desconta a intensidade (kg CO₂e por tonelada), não o CO₂ total. | `V23`, API Task 6 |
+| D-11 | Resolvido. `GetBatchCarbonFootprintUseCase` usa o `CarbonFootprintCalculator`, e o `supply-chain-verde.md` deixou de citar o `SustainabilityScoreCalculator`. | API Task 1 |
+| D-12 | Resolvido. O texto de permissão saiu do modal. | web Task 2 (RF-08) |
+
+O restante deste arquivo descreve o problema como era antes da 019.
+
 ## Resumo
 
 Na prática, o CO₂ exibido no ranking, nos relatórios, no dashboard e na página pública é **distância do frete × 0,15**, e só existe quando alguém marcou a caixa de cálculo na etapa `TRANSPORT`. As outras etapas valem 0 ou não têm emissão (itens 1, 2, 4 e 5). Antes de mexer em fator ou metodologia, é preciso decidir o que gera emissão em cada etapa e se o cálculo é obrigatório.
