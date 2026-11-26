@@ -28,7 +28,7 @@ public class CarbonEmissionController {
 
     @PostMapping("/stages/{chainId}/emission")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Calcular emissão", description = "Calcula e registra a emissão de carbono de uma etapa de um lote do mercado ou do fornecedor do usuário; outro lote retorna 403.")
+    @Operation(summary = "Calcular emissão", description = "Etapas de transporte e distribuição usam distância, peso da carga, modo e combustível. Etapas fixas usam fonte de energia e consumo.")
     public CarbonEmissionResponseDTO calculate(@PathVariable Long chainId, @RequestBody CarbonEmissionRequestDTO request,
                                                @AuthenticationPrincipal CustomUserPrincipal principal) {
         return calculate.execute(chainId, request, principal.marketId(), principal.supplierId());
