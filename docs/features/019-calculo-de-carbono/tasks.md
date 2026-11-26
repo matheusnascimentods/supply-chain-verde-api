@@ -2,7 +2,7 @@
 
 > Os requisitos estão em [`spec.md`](spec.md) e a arquitetura em [`plan.md`](plan.md).
 
-**Status:** em andamento (Tasks 1 a 5 implementadas).
+**Status:** implementada.
 
 Cada task mexe em **no máximo 10 arquivos** (os testes contam) e deixa o `./mvnw verify` verde. As dependências "web Task N" apontam para `supply-chain-verde-web/docs/features/018-calculo-de-carbono/tasks.md`.
 
@@ -83,10 +83,10 @@ Depende da Task 4 e da web Task 3 em produção.
 
 Depende da Task 4. Faz mais sentido depois de algumas semanas de emissões novas com peso.
 
-- [ ] `V23__score_por_intensidade.sql`, com o `K` calibrado no seed (plan §6)
-- [ ] Teste: os dois fornecedores na ordem da intensidade (plan §7)
-- [ ] `000-base/reference.md` e `supply-chain-verde.md`: o score novo
-- [ ] `debitos.md`: marcar D-1 a D-12 como resolvidos, ou dizer onde cada um ficou fora do escopo
+- [x] `V23__score_por_intensidade.sql`, com o `K` calibrado no seed (plan §6)
+- [x] Teste: os dois fornecedores na ordem da intensidade (plan §7)
+- [x] `000-base/reference.md` e `supply-chain-verde.md`: o score novo
+- [x] `debitos.md`: marcar D-1 a D-12 como resolvidos, ou dizer onde cada um ficou fora do escopo
 
 **Arquivos (~4):** `V23`, o teste, o `reference.md` e o `debitos.md`.
 

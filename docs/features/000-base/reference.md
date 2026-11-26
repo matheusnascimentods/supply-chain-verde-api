@@ -135,6 +135,8 @@ Na listagem e consulta individual de relatórios, a companhia fornecedora tem o 
 
 As consultas de fornecedores usam `GET /suppliers`: sem parâmetros retorna a lista; `supplierId` retorna o detalhe; `ranked=true` retorna o ranking paginado e aceita `limit`, `offset` e `search`. A lista e os itens do ranking usam a mesma estrutura com `supplierId`, `name`, `cnpj`, `address`, `phone`, `registeredAt`, `workedWith`, `sustainabilityScore`, `activeCertificationCount` e `totalCo2Kg`. `supplierId` e `ranked` não podem ser enviados juntos, mesmo com `ranked=false`.
 
+O `sustainabilityScore` vem da view `vw_supplier_sustainability` (`V23`, feature 019): `max(0, 100 + 10 × certificações ativas − intensidade / 10)`, com 2 casas. A intensidade é o CO₂e dos lotes com peso conhecido dividido pela soma desses pesos em toneladas; o peso do lote é o `cargo_weight_kg` da emissão da etapa `TRANSPORT`. Sem nenhum lote com peso, a intensidade é 0. O `totalCo2Kg` continua na resposta, mas não entra no score.
+
 `GET /products` é o catálogo do pedido de lote (feature 015). Para o mercado e o `PLATFORM_ADMIN`, lista os produtos de todos os fornecedores, e cada item traz, além de `productId`, `supplierId`, `name`, `category`, `unit` e `description`:
 
 - `supplierName`;
