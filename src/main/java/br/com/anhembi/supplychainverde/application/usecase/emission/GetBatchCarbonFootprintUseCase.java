@@ -5,6 +5,7 @@ import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonFoot
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.application.mapper.CarbonEmissionDtoMapper;
+import br.com.anhembi.supplychainverde.domain.service.CarbonFootprintCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,7 @@ public class GetBatchCarbonFootprintUseCase {
 
     public CarbonFootprintResponseDTO execute(Long batchId) {
         List<CarbonEmission> emissions = carbonEmissionRepository.findByBatchId(batchId);
-        BigDecimal total = emissions.stream().map(CarbonEmission::getCo2Kg).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = new CarbonFootprintCalculator().calculateTotal(emissions);
         List<CarbonEmissionResponseDTO> items = emissions.stream().map(mapper::toResponse).toList();
         return new CarbonFootprintResponseDTO(batchId, total, items);
     }
