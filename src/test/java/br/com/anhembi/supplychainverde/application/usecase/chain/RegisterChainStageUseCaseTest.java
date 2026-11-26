@@ -7,11 +7,13 @@ import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.domain.entity.Company;
 import br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainRequestDTO;
+import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
 import br.com.anhembi.supplychainverde.application.mapper.DtoMappers;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
+import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Chain;
 import br.com.anhembi.supplychainverde.domain.entity.User;
 import br.com.anhembi.supplychainverde.domain.enums.StageType;
@@ -19,6 +21,7 @@ import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.exception.InvalidStageTransitionException;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
 import br.com.anhembi.supplychainverde.domain.repository.UserRepository;
@@ -43,8 +46,9 @@ class RegisterChainStageUseCaseTest {
     private final UserRepository users = mock(UserRepository.class);
     private final AddressRepository addresses = mock(AddressRepository.class);
     private final CompanyRepository companies = mock(CompanyRepository.class);
+    private final CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
     private final RegisterChainStageUseCase useCase = new RegisterChainStageUseCase(
-            chains, batches, users, addresses, companies, DtoMappers.ADDRESS, DtoMappers.CHAIN);
+            chains, batches, users, addresses, companies, DtoMappers.ADDRESS, DtoMappers.CHAIN, emissions);
 
     private final Address farm = Address.builder().addressId(70L).city("Amparo").state("SP").build();
     private final Address store = Address.builder().addressId(400L).city("São Paulo").state("SP").build();
@@ -60,6 +64,20 @@ class RegisterChainStageUseCaseTest {
         when(chains.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(addresses.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(companies.findById(40L)).thenReturn(Optional.of(Company.builder().companyId(40L).address(store).build()));
+        when(emissions.findByChainId(any())).thenReturn(Optional.of(CarbonEmission.builder().build()));
+    }
+
+    @Test
+    void rejectsTheNextStageWhileThePreviousOneHasNoEmission() {
+        when(chains.findByBatchId(1L)).thenReturn(java.util.List.of(
+                Chain.builder().chainId(30L).batch(batch).stageType(StageType.PRODUCTION).destinationAddress(farm).build()));
+        when(emissions.findByChainId(30L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> register(StageType.STORAGE,
+                new AddressRequestDTO("Rua A", "1", "Centro", null, "13000000", "Campinas", "SP")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Calcule a emissão da etapa PRODUCTION antes de registrar a próxima.");
+        verify(chains, never()).save(any());
     }
 
     @Test

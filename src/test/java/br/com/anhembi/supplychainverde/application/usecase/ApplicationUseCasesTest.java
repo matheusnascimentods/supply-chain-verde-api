@@ -343,7 +343,9 @@ class ApplicationUseCasesTest {
         ChainRequestDTO request = new ChainRequestDTO(9L, new br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO(
                 "Rua A", "1", "Centro", null, "13000000", "Campinas", "SP"), StageType.STORAGE);
         when(addresses.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, suppliers, DtoMappers.ADDRESS, DtoMappers.CHAIN)
+        CarbonEmissionRepository stageEmissions = mock(CarbonEmissionRepository.class);
+        when(stageEmissions.findByChainId(13L)).thenReturn(Optional.of(CarbonEmission.builder().build()));
+        assertThat(new RegisterChainStageUseCase(chains, batches, users, addresses, suppliers, DtoMappers.ADDRESS, DtoMappers.CHAIN, stageEmissions)
                 .execute(9L, 11L, request, null, null).chainId()).isEqualTo(13L);
         assertThat(new ListChainStagesByBatchUseCase(chains, DtoMappers.CHAIN).execute(9L)).hasSize(1);
         assertThat(new RankSuppliersBySustainabilityUseCase(suppliers, certifications, reports,

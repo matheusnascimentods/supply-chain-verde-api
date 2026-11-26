@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.domain.enums.BatchStatus;
 import br.com.anhembi.supplychainverde.application.dto.address.AddressRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainResponseDTO;
+import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.entity.Address;
 import br.com.anhembi.supplychainverde.domain.entity.Batch;
@@ -16,6 +17,7 @@ import br.com.anhembi.supplychainverde.domain.enums.CompanyType;
 import br.com.anhembi.supplychainverde.domain.exception.InvalidStageTransitionException;
 import br.com.anhembi.supplychainverde.domain.repository.AddressRepository;
 import br.com.anhembi.supplychainverde.domain.repository.BatchRepository;
+import br.com.anhembi.supplychainverde.domain.repository.CarbonEmissionRepository;
 import br.com.anhembi.supplychainverde.domain.repository.CompanyRepository;
 import br.com.anhembi.supplychainverde.application.mapper.AddressDtoMapper;
 import br.com.anhembi.supplychainverde.domain.repository.ChainRepository;
@@ -39,6 +41,7 @@ public class RegisterChainStageUseCase {
     private final CompanyRepository companyRepository;
     private final AddressDtoMapper addressMapper;
     private final ChainDtoMapper mapper;
+    private final CarbonEmissionRepository carbonEmissionRepository;
 
     public ChainResponseDTO execute(Long batchId, Long responsibleUserId, ChainRequestDTO request,
                                     Long marketId, Long supplierId) {
@@ -66,6 +69,10 @@ public class RegisterChainStageUseCase {
         if (actorSide != null && actorSide != expected.owner()) {
             String owner = expected.owner() == CompanyType.MARKET ? "mercado" : "fornecedor";
             throw new AccessDeniedException("A etapa " + expected + " é registrada pelo " + owner + " do lote.");
+        }
+        // RN-11 (019): a etapa anterior precisa da emissão antes da próxima.
+        if (last != null && carbonEmissionRepository.findByChainId(last.getChainId()).isEmpty()) {
+            throw new ConflictException("Calcule a emissão da etapa " + last.getStageType() + " antes de registrar a próxima.");
         }
         User responsibleUser = userRepository.findById(responsibleUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário responsável não encontrado: " + responsibleUserId));

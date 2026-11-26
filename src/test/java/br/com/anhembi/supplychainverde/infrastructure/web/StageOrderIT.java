@@ -68,6 +68,9 @@ class StageOrderIT {
         postStage("PRODUCTION", 201);
         postStage("PROCESSING", 400);
         postStage("PRODUCTION", 400);
+        // RN-11 (019): a STORAGE espera a emissão da PRODUCTION.
+        postStage("STORAGE", 409);
+        calculateEmissionOfLastStage();
         postStage("STORAGE", 201);
 
         // A etapa anterior termina quando a próxima começa; a última continua aberta.
@@ -112,6 +115,18 @@ class StageOrderIT {
         if (expectedStatus == 400) {
             result.andExpect(jsonPath("$.message").value(containsString("Transição de etapa inválida")));
         }
+        if (expectedStatus == 409) {
+            result.andExpect(jsonPath("$.message").value("Calcule a emissão da etapa PRODUCTION antes de registrar a próxima."));
+        }
+    }
+
+    private void calculateEmissionOfLastStage() throws Exception {
+        long chainId = jdbcTemplate.queryForObject("SELECT MAX(id) FROM chain WHERE batch_id = ?", Long.class, batchId);
+        mockMvc.perform(post("/api/v1/stages/{id}/emission", chainId)
+                        .with(authentication(asSupplier()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"calculationMethod\":\"GHG_PROTOCOL\",\"energySource\":\"ELECTRICITY\",\"consumption\":100}"))
+                .andExpect(status().isCreated());
     }
 
     private long insertStage(String stageType) {
