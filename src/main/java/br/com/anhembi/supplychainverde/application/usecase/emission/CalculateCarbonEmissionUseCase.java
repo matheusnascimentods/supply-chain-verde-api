@@ -3,6 +3,7 @@ package br.com.anhembi.supplychainverde.application.usecase.emission;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionResponseDTO;
+import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.domain.entity.CarbonEmission;
 import br.com.anhembi.supplychainverde.domain.entity.Chain;
@@ -33,6 +34,9 @@ public class CalculateCarbonEmissionUseCase {
         Chain chain = chainRepository.findById(chainId)
                 .orElseThrow(() -> new IllegalArgumentException("Etapa não encontrada: " + chainId));
         if (!chain.getBatch().isWithin(marketId, supplierId)) throw new AccessDeniedException("Lote de outra companhia.");
+        if (carbonEmissionRepository.findByChainId(chainId).isPresent()) {
+            throw new ConflictException("A emissão da etapa " + chainId + " já foi calculada.");
+        }
         Transport transport = transportRepository.findByChainId(chainId).orElse(null);
         BigDecimal distance = transport != null ? transport.getDistance() : BigDecimal.ZERO;
         BigDecimal emissionFactorValue = new BigDecimal("0.15");

@@ -14,6 +14,7 @@ import br.com.anhembi.supplychainverde.application.dto.report.ReportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.transport.TransportRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
+import br.com.anhembi.supplychainverde.application.exception.ConflictException;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.BatchStagesReader;
@@ -141,6 +142,7 @@ class ApplicationUseCasesTest {
         when(chains.findById(6L)).thenReturn(Optional.of(chain));
         when(transports.save(any())).thenReturn(transport);
         when(transports.findByChainId(6L)).thenReturn(Optional.of(transport));
+        when(emissions.findByChainId(6L)).thenReturn(Optional.empty());
         when(emissions.save(any())).thenReturn(emission);
         when(emissions.findByBatchId(9L)).thenReturn(List.of(emission));
 
@@ -151,6 +153,27 @@ class ApplicationUseCasesTest {
                 .isEqualByComparingTo(new BigDecimal("15.00"));
         assertThat(new GetBatchCarbonFootprintUseCase(emissions, DtoMappers.CARBON_EMISSION).execute(9L).totalCo2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
+    }
+
+    @Test
+    void shouldRejectDuplicateCarbonEmission() {
+        CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
+        ChainRepository chains = mock(ChainRepository.class);
+        TransportRepository transports = mock(TransportRepository.class);
+        Chain chain = Chain.builder()
+                .chainId(42L)
+                .batch(Batch.builder().batchId(9L).marketId(40L).build())
+                .build();
+        CarbonEmission existing = CarbonEmission.builder().emissionId(8L).chain(chain).build();
+
+        when(chains.findById(42L)).thenReturn(Optional.of(chain));
+        when(emissions.findByChainId(42L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> new CalculateCarbonEmissionUseCase(emissions, chains, transports, DtoMappers.CARBON_EMISSION)
+                .execute(42L, new CarbonEmissionRequestDTO(42L, CalculationMethod.IPCC), 40L, null))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("A emissão da etapa 42 já foi calculada.");
+        verify(emissions, never()).save(any());
     }
 
     @Test

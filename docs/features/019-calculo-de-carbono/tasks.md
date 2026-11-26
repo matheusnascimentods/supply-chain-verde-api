@@ -17,8 +17,8 @@ Ordem entre os repositórios: **API Task 1 → API Task 2 → API Task 3 → web
 
 Não depende de nada.
 
-- [ ] `CalculateCarbonEmissionUseCase` (+ teste): 409 na segunda emissão (plan §1)
-- [ ] `GetBatchCarbonFootprintUseCase` (+ teste): usar o `CarbonFootprintCalculator`
+- [x] `CalculateCarbonEmissionUseCase` (+ teste): 409 na segunda emissão (plan §1)
+- [x] `GetBatchCarbonFootprintUseCase` (+ teste): usar o `CarbonFootprintCalculator`
 - [ ] `supply-chain-verde.md` (fora do repositório): tirar o `SustainabilityScoreCalculator`
 
 **Arquivos (~4):** `CalculateCarbonEmissionUseCase`, `GetBatchCarbonFootprintUseCase`, testes.
