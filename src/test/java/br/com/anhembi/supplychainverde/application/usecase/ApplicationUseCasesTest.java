@@ -138,7 +138,7 @@ class ApplicationUseCasesTest {
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
         Chain chain = Chain.builder().chainId(6L).batch(Batch.builder().batchId(9L).marketId(40L).build()).build();
         Transport transport = Transport.builder().transportId(7L).chain(chain).distance(new BigDecimal("100")).transportMode(TransportMode.ROAD).fuelType(FuelType.DIESEL).build();
-        CarbonEmission emission = CarbonEmission.builder().emissionId(8L).chain(chain).emissionFactor(new br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor(new BigDecimal("0.15"))).co2Kg(new BigDecimal("15.00")).calculationMethod(CalculationMethod.IPCC).build();
+        CarbonEmission emission = CarbonEmission.builder().emissionId(8L).chain(chain).emissionFactor(new br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor(new BigDecimal("0.15"))).co2Kg(new BigDecimal("15.00")).calculationMethod(CalculationMethod.GHG_PROTOCOL).build();
         when(chains.findById(6L)).thenReturn(Optional.of(chain));
         when(transports.save(any())).thenReturn(transport);
         when(transports.findByChainId(6L)).thenReturn(Optional.of(transport));
@@ -149,7 +149,7 @@ class ApplicationUseCasesTest {
         TransportRequestDTO transportRequest = new TransportRequestDTO(6L, TransportMode.ROAD, new BigDecimal("100"), FuelType.DIESEL, new BigDecimal("20"));
         assertThat(new RegisterTransportUseCase(transports, chains, DtoMappers.TRANSPORT).execute(transportRequest, 40L, null).transportId()).isEqualTo(7L);
         assertThat(new CalculateCarbonEmissionUseCase(emissions, chains, transports, DtoMappers.CARBON_EMISSION)
-                .execute(6L, new CarbonEmissionRequestDTO(6L, CalculationMethod.IPCC), 40L, null).co2Kg())
+                .execute(6L, new CarbonEmissionRequestDTO(6L, CalculationMethod.GHG_PROTOCOL), 40L, null).co2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
         assertThat(new GetBatchCarbonFootprintUseCase(emissions, DtoMappers.CARBON_EMISSION).execute(9L).totalCo2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
@@ -170,7 +170,7 @@ class ApplicationUseCasesTest {
         when(emissions.findByChainId(42L)).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> new CalculateCarbonEmissionUseCase(emissions, chains, transports, DtoMappers.CARBON_EMISSION)
-                .execute(42L, new CarbonEmissionRequestDTO(42L, CalculationMethod.IPCC), 40L, null))
+                .execute(42L, new CarbonEmissionRequestDTO(42L, CalculationMethod.GHG_PROTOCOL), 40L, null))
                 .isInstanceOf(ConflictException.class)
                 .hasMessage("A emissão da etapa 42 já foi calculada.");
         verify(emissions, never()).save(any());

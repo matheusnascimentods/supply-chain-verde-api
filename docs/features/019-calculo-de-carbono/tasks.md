@@ -29,11 +29,11 @@ Não depende de nada.
 
 Não depende de nada. Precisa ir para produção antes da web Task 1.
 
-- [ ] `V22__fatores_de_emissao.sql`: a tabela e os 18 fatores, o `GRANT SELECT`, o legado para `GHG_PROTOCOL`, o enum novo, as colunas `cargo_weight_kg`, `energy_source` e `consumption`, o peso dos transportes antigos e as triggers de auditoria recriadas (plan §2). Conferir as consultas no compose antes de commitar
-- [ ] `CalculationMethod` sem `IPCC` e `EMEP_EEA`, e o enum novo `EnergySource`
-- [ ] `CarbonEmission` e `CarbonEmissionJpaEntity`: os três campos novos
-- [ ] Testes que usam `IPCC` ou `EMEP_EEA`: `ViewsAndProceduresIT`, `ApplicationUseCasesTest`, `ProductControllerIT` e `BatchLifecycleIT`
-- [ ] As asserções de migration do plan §7 (`V22`) no `ViewsAndProceduresIT`
+- [x] `V22__fatores_de_emissao.sql`: a tabela e os 18 fatores, o `GRANT SELECT`, o legado para `GHG_PROTOCOL`, o enum novo, as colunas `cargo_weight_kg`, `energy_source` e `consumption`, o peso dos transportes antigos e as triggers de auditoria recriadas (plan §2). Conferir as consultas no compose antes de commitar
+- [x] `CalculationMethod` sem `IPCC` e `EMEP_EEA`, e o enum novo `EnergySource`
+- [x] `CarbonEmission` e `CarbonEmissionJpaEntity`: os três campos novos
+- [x] Testes que usam `IPCC` ou `EMEP_EEA`: `ViewsAndProceduresIT`, `ApplicationUseCasesTest`, `ProductControllerIT` e `BatchLifecycleIT`
+- [x] As asserções de migration do plan §7 (`V22`) no `ViewsAndProceduresIT`
 
 Se passar de 10 arquivos, a `V22` e as asserções de migration vão num commit próprio da mesma branch.
 

@@ -66,6 +66,40 @@ class ViewsAndProceduresIT {
                 supplierId);
     }
 
+    @Test
+    void v22RemapsLegacyMethodsAndPreservesEmissionData() {
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM carbon_emission WHERE calculation_method IN ('IPCC', 'EMEP_EEA')",
+                Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM emission_factor", Integer.class)).isEqualTo(18);
+
+        assertThat(jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM carbon_emission ce
+                JOIN chain c ON c.id = ce.chain_id
+                JOIN batch b ON b.id = c.batch_id
+                JOIN product p ON p.id = b.product_id
+                WHERE c.stage_type = 'TRANSPORT'
+                  AND p.unit IN ('KG', 'TON')
+                  AND ce.cargo_weight_kg IS NULL
+                """,
+                Integer.class)).isZero();
+        // RN-17: as 70 emissões IPCC/EMEP_EEA do seed foram remapeadas e auditadas, e nenhum UPDATE mexeu no co2_kg.
+        assertThat(jdbcTemplate.queryForMap(
+                """
+                SELECT COUNT(*) AS remapped, COALESCE(SUM(JSON_CONTAINS_PATH(after_data, 'one', '$.co2_kg')), 0) AS co2_changed
+                FROM audit_log
+                WHERE affected_table = 'carbon_emission' AND action = 'UPDATE'
+                  AND JSON_UNQUOTE(JSON_EXTRACT(before_data, '$.calculation_method')) IN ('IPCC', 'EMEP_EEA')
+                """))
+                .satisfies(row -> {
+                    assertThat(((Number) row.get("remapped")).intValue()).isEqualTo(70);
+                    assertThat(((Number) row.get("co2_changed")).intValue()).isZero();
+                });
+    }
+
     // Dois lotes do mesmo produto: 2 lotes, 1 produto. O relatório grava o retrato e a auditoria tem o autor.
     @Test
     void reportProcedureStoresTotalsOfThePeriod() throws Exception {
@@ -161,7 +195,7 @@ class ViewsAndProceduresIT {
                         + "VALUES (?, (SELECT c.address_id FROM company c JOIN batch b ON b.supplier_id = c.id WHERE b.id = ?), ?, 'PRODUCTION', NOW())",
                 batchId, batchId, userId);
         jdbcTemplate.update(
-                "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'IPCC')",
+                "INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'GHG_PROTOCOL')",
                 chainId, co2Kg);
     }
 

@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.domain.entity;
 
 import br.com.anhembi.supplychainverde.domain.enums.CalculationMethod;
+import br.com.anhembi.supplychainverde.domain.enums.EnergySource;
 import br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor;
 import lombok.*;
 
@@ -18,5 +19,8 @@ public class CarbonEmission {
     private EmissionFactor emissionFactor;
     private BigDecimal co2Kg;
     private CalculationMethod calculationMethod;
+    private BigDecimal cargoWeightKg;
+    private EnergySource energySource;
+    private BigDecimal consumption;
     private LocalDate calculatedAt;
 }

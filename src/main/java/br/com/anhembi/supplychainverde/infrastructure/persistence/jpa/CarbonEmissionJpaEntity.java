@@ -1,6 +1,7 @@
 package br.com.anhembi.supplychainverde.infrastructure.persistence.jpa;
 
 import br.com.anhembi.supplychainverde.domain.enums.CalculationMethod;
+import br.com.anhembi.supplychainverde.domain.enums.EnergySource;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -33,6 +34,16 @@ public class CarbonEmissionJpaEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "calculation_method", nullable = false)
     private CalculationMethod calculationMethod;
+
+    @Column(name = "cargo_weight_kg", precision = 19, scale = 4)
+    private BigDecimal cargoWeightKg;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "energy_source")
+    private EnergySource energySource;
+
+    @Column(name = "consumption", precision = 19, scale = 4)
+    private BigDecimal consumption;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

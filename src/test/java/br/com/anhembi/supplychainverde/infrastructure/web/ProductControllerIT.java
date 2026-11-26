@@ -192,7 +192,7 @@ class ProductControllerIT {
                     INSERT INTO chain (batch_id, destination_address_id, responsible_user_id, stage_type, started_at)
                     VALUES (?, (SELECT c.address_id FROM company c JOIN batch b ON b.supplier_id = c.id WHERE b.id = ?), (SELECT MIN(id) FROM users), 'PRODUCTION', NOW())
                     """, batchId, batchId);
-            jdbcTemplate.update("INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'IPCC')",
+            jdbcTemplate.update("INSERT INTO carbon_emission (chain_id, emission_factor, co2_kg, calculation_method) VALUES (?, 1, ?, 'GHG_PROTOCOL')",
                     chainId, co2Kg);
         }
     }
