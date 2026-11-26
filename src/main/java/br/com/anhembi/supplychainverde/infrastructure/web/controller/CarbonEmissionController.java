@@ -18,6 +18,13 @@ import org.springframework.web.bind.annotation.*;
 public class CarbonEmissionController {
     private final CalculateCarbonEmissionUseCase calculate;
     private final GetBatchCarbonFootprintUseCase footprint;
+    private final ListEmissionFactorsUseCase listEmissionFactors;
+
+    @GetMapping("/emission-factors")
+    @Operation(summary = "Listar fatores de emissão", description = "Lista os fatores publicados disponíveis para cálculo por metodologia e atividade.")
+    public java.util.List<EmissionFactorResponseDTO> emissionFactors() {
+        return listEmissionFactors.execute();
+    }
 
     @PostMapping("/stages/{chainId}/emission")
     @ResponseStatus(HttpStatus.CREATED)

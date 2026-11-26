@@ -45,10 +45,10 @@ Se passar de 10 arquivos, a `V22` e as asserções de migration vão num commit 
 
 Depende da Task 2.
 
-- [ ] `EmissionFactorRepository` (domínio), `EmissionFactorJpaEntity`, `EmissionFactorJpaRepository` e `EmissionFactorRepositoryImpl` (plan §3)
-- [ ] `ListEmissionFactorsUseCase` e `EmissionFactorResponseDTO`
-- [ ] `CarbonEmissionController`: `GET /emission-factors`, com o `@Operation`
-- [ ] Testes: `EmissionFactorsIT`
+- [x] `EmissionFactorRepository` (domínio), `EmissionFactorJpaEntity`, `EmissionFactorJpaRepository` e `EmissionFactorRepositoryImpl` (plan §3)
+- [x] `ListEmissionFactorsUseCase` e `EmissionFactorResponseDTO`
+- [x] `CarbonEmissionController`: `GET /emission-factors`, com o `@Operation`
+- [x] Testes: `EmissionFactorsIT`
 
 **Arquivos (~8):** os 4 de persistência, o use case, o DTO, o controller e o IT.
 
