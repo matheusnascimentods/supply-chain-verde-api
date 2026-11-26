@@ -2,7 +2,7 @@
 
 > Os requisitos estão em [`spec.md`](spec.md) e a arquitetura em [`plan.md`](plan.md).
 
-**Status:** planejada.
+**Status:** em andamento (Tasks 1 a 5 implementadas).
 
 Cada task mexe em **no máximo 10 arquivos** (os testes contam) e deixa o `./mvnw verify` verde. As dependências "web Task N" apontam para `supply-chain-verde-web/docs/features/018-calculo-de-carbono/tasks.md`.
 
@@ -19,7 +19,7 @@ Não depende de nada.
 
 - [x] `CalculateCarbonEmissionUseCase` (+ teste): 409 na segunda emissão (plan §1)
 - [x] `GetBatchCarbonFootprintUseCase` (+ teste): usar o `CarbonFootprintCalculator`
-- [ ] `supply-chain-verde.md` (fora do repositório): tirar o `SustainabilityScoreCalculator`
+- [x] `supply-chain-verde.md` (fora do repositório): tirar o `SustainabilityScoreCalculator`
 
 **Arquivos (~4):** `CalculateCarbonEmissionUseCase`, `GetBatchCarbonFootprintUseCase`, testes.
 
@@ -72,8 +72,8 @@ Depende da Task 3 e da web Task 1 em produção.
 
 Depende da Task 4 e da web Task 3 em produção.
 
-- [ ] `RegisterChainStageUseCase` (+ teste): 409 com a etapa anterior sem emissão (plan §5)
-- [ ] Os ITs que registram etapas seguidas: o helper `registerStageWithEmission`
+- [x] `RegisterChainStageUseCase` (+ teste): 409 com a etapa anterior sem emissão (plan §5)
+- [x] Os ITs que registram etapas seguidas: o helper `registerStageWithEmission`
 
 **Arquivos (~6):** o use case, o teste e os ITs apontados pelo `./mvnw verify`.
 
