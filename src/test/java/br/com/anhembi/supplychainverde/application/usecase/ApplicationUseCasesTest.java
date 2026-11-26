@@ -6,6 +6,7 @@ import br.com.anhembi.supplychainverde.application.dto.auth.LoginRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.auth.LoginResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.batch.BatchRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionRequestDTO;
+import br.com.anhembi.supplychainverde.application.dto.carbonemission.CarbonEmissionResponseDTO;
 import br.com.anhembi.supplychainverde.application.dto.certification.CertificationRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.certification.UpdateCertificationStatusRequestDTO;
 import br.com.anhembi.supplychainverde.application.dto.chain.ChainRequestDTO;
@@ -15,6 +16,7 @@ import br.com.anhembi.supplychainverde.application.dto.transport.TransportReques
 import br.com.anhembi.supplychainverde.application.dto.user.UpdateUserRoleRequestDTO;
 import br.com.anhembi.supplychainverde.application.exception.UnauthorizedActionException;
 import br.com.anhembi.supplychainverde.application.exception.ConflictException;
+import br.com.anhembi.supplychainverde.application.exception.ValidationException;
 import br.com.anhembi.supplychainverde.application.usecase.audit.ListAuditLogsUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.GetBatchTraceabilityUseCase;
 import br.com.anhembi.supplychainverde.application.usecase.batch.BatchStagesReader;
@@ -136,23 +138,159 @@ class ApplicationUseCasesTest {
         TransportRepository transports = mock(TransportRepository.class);
         ChainRepository chains = mock(ChainRepository.class);
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
-        Chain chain = Chain.builder().chainId(6L).batch(Batch.builder().batchId(9L).marketId(40L).build()).build();
+        EmissionFactorRepository factors = mock(EmissionFactorRepository.class);
+        Chain chain = Chain.builder()
+                .chainId(6L)
+                .stageType(StageType.TRANSPORT)
+                .batch(Batch.builder()
+                        .batchId(9L)
+                        .marketId(40L)
+                        .quantity(new BigDecimal("1672.8000"))
+                        .product(Product.builder().unit(ProductUnit.KG).build())
+                        .build())
+                .build();
         Transport transport = Transport.builder().transportId(7L).chain(chain).distance(new BigDecimal("100")).transportMode(TransportMode.ROAD).fuelType(FuelType.DIESEL).build();
         CarbonEmission emission = CarbonEmission.builder().emissionId(8L).chain(chain).emissionFactor(new br.com.anhembi.supplychainverde.domain.valueobject.EmissionFactor(new BigDecimal("0.15"))).co2Kg(new BigDecimal("15.00")).calculationMethod(CalculationMethod.GHG_PROTOCOL).build();
         when(chains.findById(6L)).thenReturn(Optional.of(chain));
         when(transports.save(any())).thenReturn(transport);
         when(transports.findByChainId(6L)).thenReturn(Optional.of(transport));
+        when(factors.findTransport(CalculationMethod.GHG_PROTOCOL, TransportMode.ROAD, FuelType.DIESEL))
+                .thenReturn(Optional.of(new EmissionFactorRepository.Entry(
+                        CalculationMethod.GHG_PROTOCOL, TransportMode.ROAD, FuelType.DIESEL, null,
+                        new BigDecimal("0.08967"), "kgCO2e/tkm", "teste", 2026)));
         when(emissions.findByChainId(6L)).thenReturn(Optional.empty());
         when(emissions.save(any())).thenReturn(emission);
         when(emissions.findByBatchId(9L)).thenReturn(List.of(emission));
 
         TransportRequestDTO transportRequest = new TransportRequestDTO(6L, TransportMode.ROAD, new BigDecimal("100"), FuelType.DIESEL, new BigDecimal("20"));
         assertThat(new RegisterTransportUseCase(transports, chains, DtoMappers.TRANSPORT).execute(transportRequest, 40L, null).transportId()).isEqualTo(7L);
-        assertThat(new CalculateCarbonEmissionUseCase(emissions, chains, transports, DtoMappers.CARBON_EMISSION)
-                .execute(6L, new CarbonEmissionRequestDTO(6L, CalculationMethod.GHG_PROTOCOL), 40L, null).co2Kg())
+        assertThat(new CalculateCarbonEmissionUseCase(emissions, chains, transports, factors, DtoMappers.CARBON_EMISSION)
+                .execute(6L, new CarbonEmissionRequestDTO(CalculationMethod.GHG_PROTOCOL, null, null, null), 40L, null).co2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
         assertThat(new GetBatchCarbonFootprintUseCase(emissions, DtoMappers.CARBON_EMISSION).execute(9L).totalCo2Kg())
                 .isEqualByComparingTo(new BigDecimal("15.00"));
+    }
+
+    @Test
+    void shouldCalculateFixedStageEmissionFromConsumption() {
+        CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
+        ChainRepository chains = mock(ChainRepository.class);
+        TransportRepository transports = mock(TransportRepository.class);
+        EmissionFactorRepository factors = mock(EmissionFactorRepository.class);
+        Chain chain = Chain.builder()
+                .chainId(10L)
+                .stageType(StageType.PRODUCTION)
+                .batch(Batch.builder().batchId(9L).marketId(40L).build())
+                .build();
+
+        when(chains.findById(10L)).thenReturn(Optional.of(chain));
+        when(emissions.findByChainId(10L)).thenReturn(Optional.empty());
+        when(factors.findEnergy(CalculationMethod.GHG_PROTOCOL, EnergySource.ELECTRICITY))
+                .thenReturn(Optional.of(new EmissionFactorRepository.Entry(
+                        CalculationMethod.GHG_PROTOCOL, null, null, EnergySource.ELECTRICITY,
+                        new BigDecimal("0.04610"), "kgCO2/kWh", "MCTI", 2025)));
+        when(emissions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CarbonEmissionResponseDTO response = new CalculateCarbonEmissionUseCase(
+                emissions, chains, transports, factors, DtoMappers.CARBON_EMISSION)
+                .execute(10L, new CarbonEmissionRequestDTO(
+                        CalculationMethod.GHG_PROTOCOL, null, EnergySource.ELECTRICITY, new BigDecimal("100")),
+                        40L, null);
+
+        assertThat(response.co2Kg()).isEqualByComparingTo("4.6100");
+        assertThat(response.energySource()).isEqualTo(EnergySource.ELECTRICITY);
+        assertThat(response.consumption()).isEqualByComparingTo("100");
+    }
+
+    @Test
+    void shouldRejectUnitBatchWithoutCargoWeight() {
+        CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
+        ChainRepository chains = mock(ChainRepository.class);
+        TransportRepository transports = mock(TransportRepository.class);
+        EmissionFactorRepository factors = mock(EmissionFactorRepository.class);
+        Chain chain = Chain.builder()
+                .chainId(11L)
+                .stageType(StageType.TRANSPORT)
+                .batch(Batch.builder()
+                        .batchId(9L)
+                        .marketId(40L)
+                        .quantity(new BigDecimal("500"))
+                        .product(Product.builder().unit(ProductUnit.UNIT).build())
+                        .build())
+                .build();
+        Transport transport = Transport.builder()
+                .distance(new BigDecimal("500"))
+                .transportMode(TransportMode.ROAD)
+                .fuelType(FuelType.DIESEL)
+                .build();
+
+        when(chains.findById(11L)).thenReturn(Optional.of(chain));
+        when(emissions.findByChainId(11L)).thenReturn(Optional.empty());
+        when(transports.findByChainId(11L)).thenReturn(Optional.of(transport));
+
+        assertThatThrownBy(() -> new CalculateCarbonEmissionUseCase(
+                        emissions, chains, transports, factors, DtoMappers.CARBON_EMISSION)
+                .execute(11L, new CarbonEmissionRequestDTO(
+                        CalculationMethod.DEFRA, null, null, null), 40L, null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Peso da carga é obrigatório e maior que zero.");
+    }
+
+    @Test
+    void shouldRejectMissingTransportFactorCombination() {
+        CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
+        ChainRepository chains = mock(ChainRepository.class);
+        TransportRepository transports = mock(TransportRepository.class);
+        EmissionFactorRepository factors = mock(EmissionFactorRepository.class);
+        Chain chain = Chain.builder()
+                .chainId(12L)
+                .stageType(StageType.TRANSPORT)
+                .batch(Batch.builder()
+                        .batchId(9L)
+                        .marketId(40L)
+                        .quantity(new BigDecimal("2"))
+                        .product(Product.builder().unit(ProductUnit.TON).build())
+                        .build())
+                .build();
+        Transport transport = Transport.builder()
+                .distance(new BigDecimal("500"))
+                .transportMode(TransportMode.AIR)
+                .fuelType(FuelType.DIESEL)
+                .build();
+
+        when(chains.findById(12L)).thenReturn(Optional.of(chain));
+        when(emissions.findByChainId(12L)).thenReturn(Optional.empty());
+        when(transports.findByChainId(12L)).thenReturn(Optional.of(transport));
+        when(factors.findTransport(CalculationMethod.DEFRA, TransportMode.AIR, FuelType.DIESEL))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> new CalculateCarbonEmissionUseCase(
+                        emissions, chains, transports, factors, DtoMappers.CARBON_EMISSION)
+                .execute(12L, new CarbonEmissionRequestDTO(
+                        CalculationMethod.DEFRA, null, null, null), 40L, null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("A metodologia DEFRA não tem fator para Aéreo + Diesel.");
+    }
+
+    @Test
+    void shouldRejectTransportRegistrationOnFixedStage() {
+        TransportRepository transports = mock(TransportRepository.class);
+        ChainRepository chains = mock(ChainRepository.class);
+        Chain chain = Chain.builder()
+                .chainId(13L)
+                .stageType(StageType.STORAGE)
+                .batch(Batch.builder().batchId(9L).marketId(40L).build())
+                .build();
+        when(chains.findById(13L)).thenReturn(Optional.of(chain));
+
+        assertThatThrownBy(() -> new RegisterTransportUseCase(
+                        transports, chains, DtoMappers.TRANSPORT)
+                .execute(new TransportRequestDTO(
+                        13L, TransportMode.ROAD, new BigDecimal("100"), FuelType.DIESEL, new BigDecimal("20")),
+                        40L, null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Transporte só pode ser registrado em Transporte ou Distribuição.");
+        verify(transports, never()).save(any());
     }
 
     @Test
@@ -160,6 +298,7 @@ class ApplicationUseCasesTest {
         CarbonEmissionRepository emissions = mock(CarbonEmissionRepository.class);
         ChainRepository chains = mock(ChainRepository.class);
         TransportRepository transports = mock(TransportRepository.class);
+        EmissionFactorRepository factors = mock(EmissionFactorRepository.class);
         Chain chain = Chain.builder()
                 .chainId(42L)
                 .batch(Batch.builder().batchId(9L).marketId(40L).build())
@@ -169,8 +308,8 @@ class ApplicationUseCasesTest {
         when(chains.findById(42L)).thenReturn(Optional.of(chain));
         when(emissions.findByChainId(42L)).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> new CalculateCarbonEmissionUseCase(emissions, chains, transports, DtoMappers.CARBON_EMISSION)
-                .execute(42L, new CarbonEmissionRequestDTO(42L, CalculationMethod.GHG_PROTOCOL), 40L, null))
+        assertThatThrownBy(() -> new CalculateCarbonEmissionUseCase(emissions, chains, transports, factors, DtoMappers.CARBON_EMISSION)
+                .execute(42L, new CarbonEmissionRequestDTO(CalculationMethod.GHG_PROTOCOL, null, null, null), 40L, null))
                 .isInstanceOf(ConflictException.class)
                 .hasMessage("A emissão da etapa 42 já foi calculada.");
         verify(emissions, never()).save(any());

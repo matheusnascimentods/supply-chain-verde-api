@@ -27,6 +27,9 @@ public class RegisterTransportUseCase {
         Chain chain = chainRepository.findById(request.chainId())
                 .orElseThrow(() -> new IllegalArgumentException("Etapa não encontrada: " + request.chainId()));
         if (!chain.getBatch().isWithin(marketId, supplierId)) throw new AccessDeniedException("Lote de outra companhia.");
+        if (!chain.getStageType().isTransport()) {
+            throw new ValidationException("Transporte só pode ser registrado em Transporte ou Distribuição.");
+        }
 
         Transport transport = mapper.toDomain(request);
         transport.setChain(chain);

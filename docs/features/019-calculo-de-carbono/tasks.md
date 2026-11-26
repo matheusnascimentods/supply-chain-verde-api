@@ -58,11 +58,11 @@ Depende da Task 2.
 
 Depende da Task 3 e da web Task 1 em produção.
 
-- [ ] `StageType.isTransport()`
-- [ ] `CarbonEmissionRequestDTO`, `CarbonEmissionResponseDTO` e `CarbonEmissionDtoMapper`: o dado da atividade
-- [ ] `CalculateCarbonEmissionUseCase` (+ teste): fator da tabela, peso derivado ou informado e consumo (plan §4)
-- [ ] `RegisterTransportUseCase` (+ teste): transporte só em etapa de deslocamento
-- [ ] `CarbonEmissionController`: o `@Operation` com os dois formatos de corpo
+- [x] `StageType.isTransport()`
+- [x] `CarbonEmissionRequestDTO`, `CarbonEmissionResponseDTO` e `CarbonEmissionDtoMapper`: o dado da atividade
+- [x] `CalculateCarbonEmissionUseCase` (+ teste): fator da tabela, peso derivado ou informado e consumo (plan §4)
+- [x] `RegisterTransportUseCase` (+ teste): transporte só em etapa de deslocamento
+- [x] `CarbonEmissionController`: o `@Operation` com os dois formatos de corpo
 
 **Arquivos (~9):** `StageType`, os 2 DTOs, o mapper, os 2 use cases, o controller e 2 testes.
 
