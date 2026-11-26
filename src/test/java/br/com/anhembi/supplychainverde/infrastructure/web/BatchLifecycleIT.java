@@ -151,8 +151,18 @@ class BatchLifecycleIT {
         mockMvc.perform(post("/api/v1/stages/{id}/emission", chainId)
                         .with(as(TestPrincipals.of(supplierUser, "supplier@example.com", "SUPPLIER", SUPPLIER)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"chainId\":" + chainId + ",\"calculationMethod\":\"IPCC\"}"))
+                        .content("{\"chainId\":" + chainId + ",\"calculationMethod\":\"GHG_PROTOCOL\"}"))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void removedCalculationMethodIsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/stages/{id}/emission", 1L)
+                        .with(as(TestPrincipals.of(supplierUser, "supplier@example.com", "SUPPLIER", SUPPLIER)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"chainId\":1,\"calculationMethod\":\"IPCC\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Corpo da requisição inválido."));
     }
 
     @Test
