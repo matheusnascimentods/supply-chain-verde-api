@@ -1,6 +1,8 @@
 # Especificação — Padronização do schema
 
 > Arquitetura em [`plan.md`](plan.md) e execução em [`tasks.md`](tasks.md). Diagrama do schema final em [`schema.puml`](schema.puml).
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Problema
 

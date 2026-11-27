@@ -1,6 +1,8 @@
 # Plano técnico — Padronização do schema
 
 > Requisitos em [`spec.md`](spec.md); passo a passo em [`tasks.md`](tasks.md).
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Migrations
 

@@ -4,7 +4,7 @@
 
 ## Issue
 
-O projeto é acadêmico e a disciplina exige MySQL. A ADR 0001 fixou a auditoria por trigger no PostgreSQL, com o ator em `set_config('app.user_id', ..., true)` e uma função genérica `SECURITY DEFINER`. Outras regras de dados usavam recursos exclusivos do PostgreSQL: busca textual em português, `pg_trgm`, `ENUM`s nomeados, `DISTINCT ON`, procedures com `INOUT` e `pg_cron`. A troca precisa manter as regras no banco sem perder features. Requisitos em [`../features/008-migracao-mysql/spec.md`](../features/008-migracao-mysql/spec.md).
+O projeto é acadêmico e o edital da A3 exige MySQL. A professora tinha liberado o PostgreSQL, mas depois pediu a troca para MySQL. A ADR 0001 fixou a auditoria por trigger no PostgreSQL, com o ator em `set_config('app.user_id', ..., true)` e uma função genérica `SECURITY DEFINER`. Outras regras de dados usavam recursos exclusivos do PostgreSQL: busca textual em português, `pg_trgm`, `ENUM`s nomeados, `DISTINCT ON`, procedures com `INOUT` e `pg_cron`. A troca precisa manter as regras no banco sem perder features. Requisitos em [`../features/008-migracao-mysql/spec.md`](../features/008-migracao-mysql/spec.md).
 
 ## Decision
 

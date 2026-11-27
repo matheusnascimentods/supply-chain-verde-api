@@ -1,6 +1,8 @@
 # plan.md — Supply Chain Verde API
 
 > Tradução técnica do `spec.md`: como construir e manter o backend. A implementação segue Clean Architecture, DDD e separação explícita entre domínio, aplicação e infraestrutura.
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Stack
 

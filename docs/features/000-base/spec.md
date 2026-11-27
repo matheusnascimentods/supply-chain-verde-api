@@ -1,6 +1,8 @@
 # spec.md — Supply Chain Verde API
 
 > Especificação funcional: o que a API oferece e por quê, sem detalhar a implementação técnica. A arquitetura técnica fica no `plan.md` e o acompanhamento de execução no `tasks.md`.
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Contexto
 
