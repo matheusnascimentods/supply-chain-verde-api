@@ -326,7 +326,7 @@ O repositório não guarda um script SQL estático: as migrations são a fonte d
 
 ```bash
 docker compose up -d mysql   # e a API já ter rodado as migrations
-python3 scripts/gerar-sql-entrega.py entrega/
+scripts/gerar-sql-entrega.sh entrega/
 ```
 
 | Arquivo | Conteúdo |
@@ -344,7 +344,7 @@ Para restaurar num MySQL 8.4 limpo, como root: crie as contas com [`docker/mysql
 supply-chain-verde-api/
 ├── docker/mysql/init/          # Cria supply_app e supply_audit (usado pelo compose e pelo Testcontainers)
 ├── docker-compose.yml
-├── scripts/                    # gerar-sql-entrega.py: scripts SQL da entrega, gerados do banco
+├── scripts/                    # gerar-sql-entrega.sh: scripts SQL da entrega, gerados do banco
 ├── docs/
 │   ├── adr/                     # Decisões de arquitetura (lista em Documentação do Projeto)
 │   ├── features/                # Specs SDD por feature (spec, plan, tasks)
