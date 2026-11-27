@@ -125,16 +125,17 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 
 ### 👥 Perfis e multiempresa
 
-Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora do escopo dela retorna 403.
+Os perfis de acesso são da aplicação, e não roles do MySQL. Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora do escopo dela retorna 403. A matriz de permissões por endpoint e as alternativas consideradas estão na [ADR 0008](docs/adr/0008-perfis-de-acesso-na-aplicacao.md).
 
 | Perfil | Companhia | O que faz |
 | :--- | :--- | :--- |
 | `PLATFORM_ADMIN` | Nenhuma | Visão global, sem filtro por companhia; herda as permissões de `ADMIN`. Só nasce por migration ou seed |
 | `ADMIN` | `MARKET` ou `SUPPLIER` | Gerencia os usuários e os dados da própria companhia; numa companhia fornecedora, também pode tudo o que o `SUPPLIER` pode |
 | `MANAGER` | `MARKET` | Pede lotes, registra etapas e gera relatórios |
-| `AUDITOR` | `MARKET` | Consulta lotes, relatórios, certificações e auditoria da companhia |
+| `AUDITOR` | `MARKET` | Consulta lotes, relatórios, certificações e auditoria da companhia, e gera relatórios |
 | `SUPPLIER` | `SUPPLIER` | Cadastra os próprios produtos e certificações, recusa lotes ou inicia a produção |
 
+- **Gestão de perfis**: o `PLATFORM_ADMIN` fica no topo e gerencia os usuários de qualquer companhia; o `ADMIN` gerencia só os da própria. O perfil precisa combinar com o tipo da companhia, e nenhum endpoint atribui `PLATFORM_ADMIN`. Toda troca de perfil ou de situação fica em `audit_log`.
 - **Cadastro**: `POST /api/v1/companies` é público e cria companhia, endereço e o `ADMIN` numa transação; a resposta já traz o token.
 - **Convites**: os demais usuários entram só por convite. O `ADMIN` convida por email com o perfil escolhido, e o convidado abre o link, define nome e senha e já entra logado. O link vale 24h e uma vez.
 - **Assentos**: usuários ativos mais convites ativos nunca passam do `maxUsers` da companhia, ao convidar, aceitar convite e reativar. Desativar um usuário libera o assento na hora. Toda companhia mantém pelo menos um `ADMIN` ativo (409 nos dois casos).
@@ -284,6 +285,8 @@ erDiagram
 
 Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `CHECK` `chk_company_max_users_positive` garante um teto de assentos positivo. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 
+Normalização: o modelo está em 3FN, e as poucas redundâncias são controladas pelo banco (colunas geradas e FKs compostas) ou são registro histórico (fator de emissão e totais do relatório). A verificação tabela por tabela e a evolução pelas migrations estão na [ADR 0007](docs/adr/0007-normalizacao-ate-a-3fn.md).
+
 Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
 Os tipos `company_type`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
@@ -326,7 +329,7 @@ supply-chain-verde-api/
 ├── docker/mysql/init/          # Cria supply_app e supply_audit (usado pelo compose e pelo Testcontainers)
 ├── docker-compose.yml
 ├── docs/
-│   ├── adr/                     # Decisões de arquitetura (ex.: auditoria no banco)
+│   ├── adr/                     # Decisões de arquitetura (lista em Documentação do Projeto)
 │   ├── features/                # Specs SDD por feature (spec, plan, tasks)
 │   └── sql/                     # Consultas de relatório sobre views e procedures
 └── src/
@@ -376,6 +379,19 @@ src/main/java/br/com/anhembi/supplychainverde/
 | [`docs/features/000-base/reference.md`](docs/features/000-base/reference.md) | Entidades, casos de uso, endpoints, DTOs e configuração |
 | [`docs/features/000-base/tasks.md`](docs/features/000-base/tasks.md) | Checklist de implementação e evolução |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | Instruções gerais para o GitHub Copilot |
+
+### Decisões de arquitetura (ADRs)
+
+| ADR | Decisão |
+|---|---|
+| [0001](docs/adr/0001-auditoria-no-postgresql.md) | Auditoria mantida pelo banco, por trigger (escrita na época do PostgreSQL) |
+| [0002](docs/adr/0002-migracao-para-mysql.md) | Migração para MySQL 8.4, a pedido da professora |
+| [0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md) | Tipo de companhia garantido por FK composta |
+| [0004](docs/adr/0004-token-de-convite-opaco-com-hash.md) | Token de convite opaco, guardado só como hash |
+| [0005](docs/adr/0005-deploy-na-aws-com-ssm.md) | Deploy numa EC2 da AWS, atualizada pelo SSM (AWS liberada pela professora no lugar da Oracle Cloud) |
+| [0006](docs/adr/0006-sem-qr-code-plataforma-por-assinatura.md) | QR Code fora do escopo: a plataforma atende mercados e fornecedores assinantes |
+| [0007](docs/adr/0007-normalizacao-ate-a-3fn.md) | Normalização até a 3FN, com redundâncias controladas pelo banco |
+| [0008](docs/adr/0008-perfis-de-acesso-na-aplicacao.md) | Perfis de acesso na aplicação, com o `PLATFORM_ADMIN` no topo |
 
 ### Pipeline de Qualidade
 
