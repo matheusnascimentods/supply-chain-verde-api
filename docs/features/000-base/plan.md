@@ -135,6 +135,6 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 
 - Refresh token.
 - Rate limiting para endpoints públicos.
-- UUID público para evitar enumeração de `batchId`.
+- ~~UUID público para evitar enumeração de `batchId`.~~ Substituída pela [ADR 0006](../../adr/0006-sem-qr-code-plataforma-por-assinatura.md): a correção recomendada é exigir login na rastreabilidade, e não foi implementada por causa do prazo curto da entrega da A3 (risco aceito).
 - Plano formal de segurança, backup e recuperação de desastre.
 - Entregáveis acadêmicos de arquitetura de dados e cronograma.

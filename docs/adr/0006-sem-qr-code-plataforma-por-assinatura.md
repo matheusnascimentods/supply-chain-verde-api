@@ -16,7 +16,7 @@ A rastreabilidade sem login continua como está: `GET /batches/{batchId}/traceab
 
 ## Status
 
-Decidida. Nenhum código removido, porque o QR Code nunca foi implementado.
+Decidida. Nenhum código removido, porque o QR Code nunca foi implementado. A rastreabilidade continua pública, com um risco de exposição de dados aceito por prazo (Implications).
 
 ## Group
 
@@ -35,7 +35,7 @@ Produto e escopo.
 
 1. **Gerar o QR Code na tela do lote.** Rejeitada: atende um usuário que o produto não tem mais.
 2. **Tirar o QR Code do escopo e manter a página pública por link.** Escolhida.
-3. **Tirar também a página e os endpoints públicos.** Fica em aberto: eles não atrapalham e servem para a demonstração.
+3. **Exigir login na rastreabilidade, com o filtro por companhia das demais rotas.** É a correção recomendada para o risco descrito em Implications. **Não foi implementada por causa do prazo curto da entrega da A3**: a rota continua pública, e o risco fica aceito e registrado.
 
 ## Argument
 
@@ -44,7 +44,9 @@ Um QR Code na embalagem só faz sentido se o consumidor final for usuário da pl
 ## Implications
 
 - O perfil "Público" (consumidor) sai da spec base. A rastreabilidade sem login fica registrada como acesso por link.
-- O lote público continua identificado pelo id numérico, então dá para enumerar lotes trocando o número na URL. Isso era aceitável para um QR Code e continua igual por link. Um UUID público segue como decisão em aberto no [`plan.md`](../features/000-base/plan.md) da base.
+- **Risco conhecido e aceito: a rastreabilidade pública expõe dados de todas as companhias.** Sem login, `GET /batches/{id}/traceability` devolve fornecedor, produto, quantidade, os endereços completos de cada etapa, o nome do funcionário responsável, o transporte e as emissões. Como o id do lote é sequencial, basta percorrer `1, 2, 3…` para montar a lista de todos os lotes da plataforma, o que contradiz a regra de que cada companhia só vê os próprios dados (feature 010).
+  - **Correção recomendada:** exigir login nas rotas `/batches/{id}/traceability` e `/batches/{id}/carbon-footprint` (`SecurityConfig`), aplicar o filtro por companhia no caso de uso e tirar a rota `/rastreio/:batchId` do web. Um UUID público só impediria a enumeração: quem tivesse o link continuaria vendo endereços e nomes.
+  - **Não foi implementada por causa do prazo curto da entrega da A3.** Fica como o primeiro item de segurança a corrigir depois da entrega.
 
 ## Related artifacts
 
