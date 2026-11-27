@@ -320,6 +320,22 @@ FROM information_schema.events WHERE event_schema = 'supply_chain_verde';
 
 Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql).
 
+### Scripts SQL da entrega
+
+O repositório não guarda um script SQL estático: as migrations são a fonte de verdade, e um arquivo à parte ficaria desatualizado a cada migration nova. Na entrega, os scripts são gerados do banco migrado:
+
+```bash
+docker compose up -d mysql   # e a API já ter rodado as migrations
+python3 scripts/gerar-sql-entrega.py entrega/
+```
+
+| Arquivo | Conteúdo |
+|---|---|
+| `supply_chain_verde.sql` | Estrutura, sem dados: banco, tabelas em ordem de dependência das FKs, funções e procedures, views, triggers de auditoria e event, em seções comentadas |
+| `grants.sql` | Privilégios das contas `supply_app` e `supply_audit`, sem senhas ([ADR 0008](docs/adr/0008-perfis-de-acesso-na-aplicacao.md)) |
+
+Para restaurar num MySQL 8.4 limpo, como root: crie as contas com [`docker/mysql/init/01-users.sh`](docker/mysql/init/01-users.sh), execute `supply_chain_verde.sql` e depois `grants.sql`. A conta `supply_audit` precisa existir antes da primeira escrita, porque é o `DEFINER` das triggers.
+
 ---
 
 ## 📁 Estrutura do Projeto
@@ -328,6 +344,7 @@ Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.s
 supply-chain-verde-api/
 ├── docker/mysql/init/          # Cria supply_app e supply_audit (usado pelo compose e pelo Testcontainers)
 ├── docker-compose.yml
+├── scripts/                    # gerar-sql-entrega.py: scripts SQL da entrega, gerados do banco
 ├── docs/
 │   ├── adr/                     # Decisões de arquitetura (lista em Documentação do Projeto)
 │   ├── features/                # Specs SDD por feature (spec, plan, tasks)
