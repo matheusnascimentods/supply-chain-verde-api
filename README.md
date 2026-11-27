@@ -16,7 +16,7 @@ A **Supply Chain Verde API** é um projeto acadêmico da disciplina **Banco de D
 sequenceDiagram
     autonumber
     actor User as Operador / Fornecedor
-    actor Auditor as Auditor / Consumidor
+    actor Auditor as Auditor / Link público
     participant API as API (Controller)
     participant UC as Application (Use Case)
     participant Domain as Domain Services
@@ -31,7 +31,7 @@ sequenceDiagram
     DB-->>DB: Triggers gravam eventos e snapshots atomicamente
     API-->>User: 201 Created (Dados da Etapa e Pegada de Carbono)
 
-    Auditor->>API: GET /api/v1/batches/{batchId}/traceability (QR Code)
+    Auditor->>API: GET /api/v1/batches/{batchId}/traceability (link público)
     API->>UC: GetBatchTraceabilityUseCase.execute(batchId)
     UC->>DB: Consultar Jornada Completa + Certificações do Fornecedor
     DB-->>UC: Dados Consolidados
@@ -45,7 +45,7 @@ Cadeias de suprimento modernas enfrentam graves desafios de governança e susten
 - **Baixa Rastreabilidade**: Origem fragmentada de insumos e matérias-primas sem histórico contínuo da jornada do produto.
 - **Greenwashing & Falta de Auditoria**: Certificações ambientais dispersas em PDFs sem verificação automática de validade ou expiração.
 - **Cálculos de Carbono Inconsistentes**: Falta de padronização nas métricas de emissão de CO₂ e inexistência de registro do fator de emissão no momento do transporte.
-- **Opacidade para o Consumidor**: Dificuldade do consumidor final em auditar a procedência socioambiental do produto na gôndola.
+- **Opacidade entre Mercado e Fornecedor**: O mercado que compra um lote não consegue auditar a procedência socioambiental e as emissões de cada etapa da produção.
 
 ---
 
@@ -63,7 +63,7 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 - **Clean Architecture Pura**: Camada de domínio agnóstica a frameworks e bibliotecas externas.
 - **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSON; consulte a [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e a [ADR 0002](docs/adr/0002-migracao-para-mysql.md) para como ele é garantido no MySQL.
 - **Imutabilidade Histórica de Emissões**: Mudanças em tabelas de referência de emissão não afetam registros históricos passados, garantindo conformidade com normas ESG.
-- **Rastreabilidade Pública via QR Code**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
+- **Rastreabilidade Pública por link**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
 - **Configuração Sem Arquivos `.env`**: Configuração centralizada em `application.properties` utilizando placeholders flexíveis (`${VAR:default}`), pronta para rodar localmente ou em contêineres sem necessidade de arquivos `.env`.
 
 ---
@@ -677,7 +677,7 @@ A captura é responsabilidade do banco, não de um interceptor Java. Triggers es
 | `POST` | `/api/v1/batches` | Pedido de lote com `productId`, `supplierId` e `quantity`; o produto precisa ser do fornecedor (400). Nasce `PENDING` | `MANAGER`, `ADMIN` de mercado |
 | `PATCH` | `/api/v1/batches/{batchId}/reject` | Recusa com `reason` obrigatório; fora de `PENDING` → 409 | Fornecedor do lote |
 | `GET` | `/api/v1/batches?page=0&size=20&supplierId=4&status=PENDING` | Lotes do mercado ou do fornecedor, paginados (`page` zero-based; `size` padrão 20, máximo 100), com etapa atual e timeline | `ADMIN`, `MANAGER`, `AUDITOR`, `SUPPLIER` |
-| `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (QR Code) | **Público** |
+| `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (link público) | **Público** |
 
 Cada item da página traz `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `marketId`, `marketName`, `status`, `rejectionReason`, `quantity` e `producedAt` (nulo enquanto `PENDING`), além de `currentStage` (`StageType` da etapa mais recente ou `null`) e `stages` (array cronológico, vazio quando não há etapas). Cada etapa segue o contrato de `ChainResponseDTO`, com `originAddress`, `destinationAddress`, `transport` e `emission` anuláveis. O enriquecimento busca os dados relacionados em lote após a paginação, sem uma consulta por lote.
 
