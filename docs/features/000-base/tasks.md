@@ -1,6 +1,8 @@
 # tasks.md — Supply Chain Verde API
 
 > Checklist derivado do `plan.md`, ordenado pelas dependências da Clean Architecture. Marque `[x]` conforme a implementação evoluir.
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## Fase 0 — Bootstrap e ambiente
 

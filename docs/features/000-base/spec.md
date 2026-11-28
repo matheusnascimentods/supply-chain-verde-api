@@ -1,18 +1,20 @@
 # spec.md — Supply Chain Verde API
 
 > Especificação funcional: o que a API oferece e por quê, sem detalhar a implementação técnica. A arquitetura técnica fica no `plan.md` e o acompanhamento de execução no `tasks.md`.
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Contexto
 
 A Supply Chain Verde API oferece rastreabilidade de lotes, mensuração de emissões de CO₂ e governança ambiental para cadeias de suprimento sustentáveis. O sistema registra fornecedores, produtos, lotes e as etapas percorridas até o varejo, mantendo certificações e uma trilha de auditoria.
 
-O backend serve o frontend web e também disponibiliza consultas públicas para consumidores que acessam a jornada de um lote por QR Code.
+O backend serve o frontend web e também disponibiliza consultas públicas, por link, da jornada de um lote. O acesso por QR Code saiu do escopo ([ADR 0006](../../adr/0006-sem-qr-code-plataforma-por-assinatura.md)).
 
 ## 2. Perfis de usuário
 
 | Perfil | Quem é | Acesso |
 |---|---|---|
-| Público | Consumidor ou auditor externo consultando um QR Code | Rastreabilidade e pegada de carbono públicas |
+| Público | Quem recebe o link de um lote, sem login | Rastreabilidade e pegada de carbono públicas |
 | `admin` | Administrador do sistema | Gestão completa |
 | `manager` | Gestor da cadeia | Fornecedores, produtos, etapas e relatórios |
 | `auditor` | Auditor ambiental ou de conformidade | Certificações, relatórios e auditoria |
@@ -152,7 +154,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[QR Code com batchId] --> B[GET /batches/{id}/traceability]
+    A[Link com batchId] --> B[GET /batches/{id}/traceability]
     B --> C{Lote existe?}
     C -->|sim| D[Jornada + etapas + CO2]
     C -->|não| E[Erro HTTP padronizado]

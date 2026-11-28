@@ -1,6 +1,8 @@
 # Especificação — Views e procedures
 
 > Arquitetura em [`plan.md`](plan.md) e execução em [`tasks.md`](tasks.md). Atende ao entregável #4 da A3 (views, stored procedures e consultas para relatórios em SQL).
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Problema
 
@@ -56,7 +58,7 @@ Levar para o banco, como views e procedures, os cálculos que alimentam relatór
 | RF-04 | O `pg_cron` chama `CALL sp_expire_certifications()` todo dia às 03:00 UTC (00:00 em São Paulo). A expiração não depende da API estar no ar. |
 | RF-06 | O agendamento fica numa migration separada da procedure: se um ambiente não tiver `pg_cron`, a procedure continua existindo e pode ser chamada de outro jeito. |
 | RF-05 | `docs/sql/consultas-relatorio.sql` reúne consultas de exemplo sobre as views, prontas para a apresentação da A3. |
-| RNF-01 | PostgreSQL. O edital pede MySQL, mas a professora liberou o PostgreSQL para este projeto; não há porte para MySQL. |
+| RNF-01 | ~~PostgreSQL. O edital pede MySQL, mas a professora liberou o PostgreSQL para este projeto; não há porte para MySQL.~~ **Substituído pela [feature 008](../008-migracao-mysql/spec.md):** a professora pediu depois o MySQL, e views, procedures e o agendamento (`EVENT` no lugar do `pg_cron`) foram portados para o MySQL 8.4. |
 | RNF-02 | O ranking resolve score e CO₂ de todos os fornecedores da página em uma consulta, sem consulta por fornecedor. |
 
 ## 7. Fora de escopo

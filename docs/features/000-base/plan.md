@@ -1,6 +1,8 @@
 # plan.md — Supply Chain Verde API
 
 > Tradução técnica do `spec.md`: como construir e manter o backend. A implementação segue Clean Architecture, DDD e separação explícita entre domínio, aplicação e infraestrutura.
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 ## 1. Stack
 
@@ -133,6 +135,6 @@ DTOs são records imutáveis. Mappers DTO/domínio são interfaces MapStruct ger
 
 - Refresh token.
 - Rate limiting para endpoints públicos.
-- UUID público para evitar enumeração de `batchId`.
+- ~~UUID público para evitar enumeração de `batchId`.~~ Substituída pela [ADR 0006](../../adr/0006-sem-qr-code-plataforma-por-assinatura.md): a correção recomendada é exigir login na rastreabilidade, e não foi implementada por causa do prazo curto da entrega da A3 (risco aceito).
 - Plano formal de segurança, backup e recuperação de desastre.
 - Entregáveis acadêmicos de arquitetura de dados e cronograma.

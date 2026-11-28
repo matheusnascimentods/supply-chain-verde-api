@@ -1,6 +1,8 @@
 # Tarefas — Views e procedures
 
 > Requisitos em [`spec.md`](spec.md); arquitetura em [`plan.md`](plan.md). Cada task é um branch/PR para `main`, em sequência.
+>
+> **Nota histórica:** escrito quando o banco era PostgreSQL. A pedido da professora, o banco passou a ser MySQL 8.4, exigido pelo edital da A3: a troca está na [feature 008](../008-migracao-mysql/spec.md) e na [ADR 0002](../../adr/0002-migracao-para-mysql.md). As menções a PostgreSQL abaixo descrevem a implementação da época.
 
 **Status:** concluído na branch `feat/views-procedures`. Depende da [padronização do schema](../005-padronizacao-schema/tasks.md): as procedures já nascem com `id` como PK e a numeração começa na `V36`.
 

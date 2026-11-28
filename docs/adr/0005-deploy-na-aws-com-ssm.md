@@ -8,6 +8,8 @@ O [plano de deploy](../features/012-deploy/plan.md) define três containers (Cad
 
 A conta escolhida é uma conta AWS no plano gratuito, com US$ 100 de créditos iniciais (mais US$ 20 por atividade concluída) e validade de 6 meses. Ela usa a experiência simplificada de *projects* da AWS, que esconde parte dos recursos do console. O orçamento precisa caber nos créditos.
 
+O edital da A3 pede a solução publicada na Oracle Cloud (OCI), mas a professora liberou o uso de outros provedores de nuvem. Com isso, a AWS é uma opção válida para a entrega.
+
 ## Decision
 
 1. **Uma instância EC2 `t3.small` com Ubuntu 24.04**, rodando o mesmo compose do desenvolvimento. O MySQL roda num container dentro dela, sem RDS.
@@ -98,6 +100,7 @@ Infraestrutura, entrega e segurança.
 
 ## Constraints
 
+- **Provedor:** o edital exige a Oracle Cloud, e a AWS só vale porque a professora liberou outros provedores. O MySQL continua obrigatório.
 - **Orçamento:** os créditos precisam cobrir os 6 meses. Um budget mensal de US$ 25 avisa por e-mail em 85% e 100% do gasto real e em 100% do previsto. A opção *Credits* fica desmarcada, para o budget medir o custo real e não o valor já abatido.
 - **Banco gerenciado fora:** a [spec do deploy](../features/012-deploy/spec.md) deixa o RDS de fora. As migrations criam triggers com `DEFINER` de outro usuário e um `EVENT` ([ADR 0002](0002-migracao-para-mysql.md)), o que serviços gerenciados costumam restringir.
 - **OIDC bloqueado:** na experiência de *projects*, *IAM → Identity providers* exige "advanced features". Ativá-las é irreversível, exige upgrade para o plano pago e remove o limite de gasto.

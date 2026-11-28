@@ -16,7 +16,7 @@ A **Supply Chain Verde API** é um projeto acadêmico da disciplina **Banco de D
 sequenceDiagram
     autonumber
     actor User as Operador / Fornecedor
-    actor Auditor as Auditor / Consumidor
+    actor Auditor as Auditor / Link público
     participant API as API (Controller)
     participant UC as Application (Use Case)
     participant Domain as Domain Services
@@ -31,7 +31,7 @@ sequenceDiagram
     DB-->>DB: Triggers gravam eventos e snapshots atomicamente
     API-->>User: 201 Created (Dados da Etapa e Pegada de Carbono)
 
-    Auditor->>API: GET /api/v1/batches/{batchId}/traceability (QR Code)
+    Auditor->>API: GET /api/v1/batches/{batchId}/traceability (link público)
     API->>UC: GetBatchTraceabilityUseCase.execute(batchId)
     UC->>DB: Consultar Jornada Completa + Certificações do Fornecedor
     DB-->>UC: Dados Consolidados
@@ -45,7 +45,7 @@ Cadeias de suprimento modernas enfrentam graves desafios de governança e susten
 - **Baixa Rastreabilidade**: Origem fragmentada de insumos e matérias-primas sem histórico contínuo da jornada do produto.
 - **Greenwashing & Falta de Auditoria**: Certificações ambientais dispersas em PDFs sem verificação automática de validade ou expiração.
 - **Cálculos de Carbono Inconsistentes**: Falta de padronização nas métricas de emissão de CO₂ e inexistência de registro do fator de emissão no momento do transporte.
-- **Opacidade para o Consumidor**: Dificuldade do consumidor final em auditar a procedência socioambiental do produto na gôndola.
+- **Opacidade entre Mercado e Fornecedor**: O mercado que compra um lote não consegue auditar a procedência socioambiental e as emissões de cada etapa da produção.
 
 ---
 
@@ -63,7 +63,7 @@ A API Supply Chain Verde centraliza e orquestra a cadeia de suprimentos sustent�
 - **Clean Architecture Pura**: Camada de domínio agnóstica a frameworks e bibliotecas externas.
 - **Auditoria mantida pelo banco**: a aplicação não insere linhas de auditoria. Triggers armazenam a operação, entidade afetada e snapshots sanitizados em JSON; consulte a [ADR 0001](docs/adr/0001-auditoria-no-postgresql.md) para o contrato e a [ADR 0002](docs/adr/0002-migracao-para-mysql.md) para como ele é garantido no MySQL.
 - **Imutabilidade Histórica de Emissões**: Mudanças em tabelas de referência de emissão não afetam registros históricos passados, garantindo conformidade com normas ESG.
-- **Rastreabilidade Pública via QR Code**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
+- **Rastreabilidade Pública por link**: Endpoint aberto e otimizado para consulta da árvore genealógica e pegada de carbono do lote.
 - **Configuração Sem Arquivos `.env`**: Configuração centralizada em `application.properties` utilizando placeholders flexíveis (`${VAR:default}`), pronta para rodar localmente ou em contêineres sem necessidade de arquivos `.env`.
 
 ---
@@ -125,16 +125,17 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 
 ### 👥 Perfis e multiempresa
 
-Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora do escopo dela retorna 403.
+Os perfis de acesso são da aplicação, e não roles do MySQL. Toda leitura é filtrada pela companhia do usuário logado, e toda escrita fora do escopo dela retorna 403. A matriz de permissões por endpoint e as alternativas consideradas estão na [ADR 0008](docs/adr/0008-perfis-de-acesso-na-aplicacao.md).
 
 | Perfil | Companhia | O que faz |
 | :--- | :--- | :--- |
 | `PLATFORM_ADMIN` | Nenhuma | Visão global, sem filtro por companhia; herda as permissões de `ADMIN`. Só nasce por migration ou seed |
 | `ADMIN` | `MARKET` ou `SUPPLIER` | Gerencia os usuários e os dados da própria companhia; numa companhia fornecedora, também pode tudo o que o `SUPPLIER` pode |
 | `MANAGER` | `MARKET` | Pede lotes, registra etapas e gera relatórios |
-| `AUDITOR` | `MARKET` | Consulta lotes, relatórios, certificações e auditoria da companhia |
+| `AUDITOR` | `MARKET` | Consulta lotes, relatórios, certificações e auditoria da companhia, e gera relatórios |
 | `SUPPLIER` | `SUPPLIER` | Cadastra os próprios produtos e certificações, recusa lotes ou inicia a produção |
 
+- **Gestão de perfis**: o `PLATFORM_ADMIN` fica no topo e gerencia os usuários de qualquer companhia; o `ADMIN` gerencia só os da própria. O perfil precisa combinar com o tipo da companhia, e nenhum endpoint atribui `PLATFORM_ADMIN`. Toda troca de perfil ou de situação fica em `audit_log`.
 - **Cadastro**: `POST /api/v1/companies` é público e cria companhia, endereço e o `ADMIN` numa transação; a resposta já traz o token.
 - **Convites**: os demais usuários entram só por convite. O `ADMIN` convida por email com o perfil escolhido, e o convidado abre o link, define nome e senha e já entra logado. O link vale 24h e uma vez.
 - **Assentos**: usuários ativos mais convites ativos nunca passam do `maxUsers` da companhia, ao convidar, aceitar convite e reativar. Desativar um usuário libera o assento na hora. Toda companhia mantém pelo menos um `ADMIN` ativo (409 nos dois casos).
@@ -284,6 +285,8 @@ erDiagram
 
 Integridade por tipo de companhia: as FKs para fornecedor e mercado são compostas com uma coluna gerada constante (`supplier_id, supplier_type → company (id, type)`), então uma companhia do tipo errado não satisfaz a FK. `batch (product_id, supplier_id)` aponta para `product (id, supplier_id)`, garantindo que o produto é do fornecedor do lote. O `CHECK` `chk_company_max_users_positive` garante um teto de assentos positivo. As colunas `*_type` foram omitidas do diagrama. Veja a [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 
+Normalização: o modelo está em 3FN, e as poucas redundâncias são controladas pelo banco (colunas geradas e FKs compostas) ou são registro histórico (fator de emissão e totais do relatório). A verificação tabela por tabela e a evolução pelas migrations estão na [ADR 0007](docs/adr/0007-normalizacao-ate-a-3fn.md).
+
 Integridade da cadeia: `chain` aceita as etapas só na ordem `PRODUCTION → STORAGE → PROCESSING → TRANSPORT → DISTRIBUTION → RETAIL`. A coluna gerada `previous_stage_type` aponta, por uma FK composta para a própria tabela (`fk_chain_previous_stage`), para a etapa anterior do mesmo lote, e `uq_chain_batch_stage` impede repetir etapa. Sem trigger: tudo é declarativo.
 
 Os tipos `company_type`, `batch_status`, `user_role`, `certification_status`, `product_category`, `product_unit`, `stage_type`, `transport_mode`, `fuel_type`, `calculation_method` e `audit_action` são colunas `ENUM(...)` do MySQL, com os valores dos enums do domínio.
@@ -317,6 +320,22 @@ FROM information_schema.events WHERE event_schema = 'supply_chain_verde';
 
 Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql).
 
+### Scripts SQL da entrega
+
+O repositório não guarda um script SQL estático: as migrations são a fonte de verdade, e um arquivo à parte ficaria desatualizado a cada migration nova. Na entrega, os scripts são gerados do banco migrado:
+
+```bash
+docker compose up -d mysql   # e a API já ter rodado as migrations
+scripts/gerar-sql-entrega.sh entrega/
+```
+
+| Arquivo | Conteúdo |
+|---|---|
+| `supply_chain_verde.sql` | Estrutura, sem dados: banco, tabelas em ordem de dependência das FKs, funções e procedures, views, triggers de auditoria e event, em seções comentadas |
+| `grants.sql` | Privilégios das contas `supply_app` e `supply_audit`, sem senhas ([ADR 0008](docs/adr/0008-perfis-de-acesso-na-aplicacao.md)) |
+
+Para restaurar num MySQL 8.4 limpo, como root: crie as contas com [`docker/mysql/init/01-users.sh`](docker/mysql/init/01-users.sh), execute `supply_chain_verde.sql` e depois `grants.sql`. A conta `supply_audit` precisa existir antes da primeira escrita, porque é o `DEFINER` das triggers.
+
 ---
 
 ## 📁 Estrutura do Projeto
@@ -325,8 +344,9 @@ Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.s
 supply-chain-verde-api/
 ├── docker/mysql/init/          # Cria supply_app e supply_audit (usado pelo compose e pelo Testcontainers)
 ├── docker-compose.yml
+├── scripts/                    # gerar-sql-entrega.sh: scripts SQL da entrega, gerados do banco
 ├── docs/
-│   ├── adr/                     # Decisões de arquitetura (ex.: auditoria no banco)
+│   ├── adr/                     # Decisões de arquitetura (lista em Documentação do Projeto)
 │   ├── features/                # Specs SDD por feature (spec, plan, tasks)
 │   └── sql/                     # Consultas de relatório sobre views e procedures
 └── src/
@@ -376,6 +396,19 @@ src/main/java/br/com/anhembi/supplychainverde/
 | [`docs/features/000-base/reference.md`](docs/features/000-base/reference.md) | Entidades, casos de uso, endpoints, DTOs e configuração |
 | [`docs/features/000-base/tasks.md`](docs/features/000-base/tasks.md) | Checklist de implementação e evolução |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | Instruções gerais para o GitHub Copilot |
+
+### Decisões de arquitetura (ADRs)
+
+| ADR | Decisão |
+|---|---|
+| [0001](docs/adr/0001-auditoria-no-postgresql.md) | Auditoria mantida pelo banco, por trigger (escrita na época do PostgreSQL) |
+| [0002](docs/adr/0002-migracao-para-mysql.md) | Migração para MySQL 8.4, a pedido da professora |
+| [0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md) | Tipo de companhia garantido por FK composta |
+| [0004](docs/adr/0004-token-de-convite-opaco-com-hash.md) | Token de convite opaco, guardado só como hash |
+| [0005](docs/adr/0005-deploy-na-aws-com-ssm.md) | Deploy numa EC2 da AWS, atualizada pelo SSM (AWS liberada pela professora no lugar da Oracle Cloud) |
+| [0006](docs/adr/0006-sem-qr-code-plataforma-por-assinatura.md) | QR Code fora do escopo: a plataforma atende mercados e fornecedores assinantes |
+| [0007](docs/adr/0007-normalizacao-ate-a-3fn.md) | Normalização até a 3FN, com redundâncias controladas pelo banco |
+| [0008](docs/adr/0008-perfis-de-acesso-na-aplicacao.md) | Perfis de acesso na aplicação, com o `PLATFORM_ADMIN` no topo |
 
 ### Pipeline de Qualidade
 
@@ -677,7 +710,7 @@ A captura é responsabilidade do banco, não de um interceptor Java. Triggers es
 | `POST` | `/api/v1/batches` | Pedido de lote com `productId`, `supplierId` e `quantity`; o produto precisa ser do fornecedor (400). Nasce `PENDING` | `MANAGER`, `ADMIN` de mercado |
 | `PATCH` | `/api/v1/batches/{batchId}/reject` | Recusa com `reason` obrigatório; fora de `PENDING` → 409 | Fornecedor do lote |
 | `GET` | `/api/v1/batches?page=0&size=20&supplierId=4&status=PENDING` | Lotes do mercado ou do fornecedor, paginados (`page` zero-based; `size` padrão 20, máximo 100), com etapa atual e timeline | `ADMIN`, `MANAGER`, `AUDITOR`, `SUPPLIER` |
-| `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (QR Code) | **Público** |
+| `GET` | `/api/v1/batches/{batchId}/traceability` | Jornada completa do lote (link público) | **Público** |
 
 Cada item da página traz `batchId`, `productId`, `productName`, `supplierId`, `supplierName`, `marketId`, `marketName`, `status`, `rejectionReason`, `quantity` e `producedAt` (nulo enquanto `PENDING`), além de `currentStage` (`StageType` da etapa mais recente ou `null`) e `stages` (array cronológico, vazio quando não há etapas). Cada etapa segue o contrato de `ChainResponseDTO`, com `originAddress`, `destinationAddress`, `transport` e `emission` anuláveis. O enriquecimento busca os dados relacionados em lote após a paginação, sem uma consulta por lote.
 
