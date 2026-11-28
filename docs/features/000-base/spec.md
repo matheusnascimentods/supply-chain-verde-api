@@ -131,7 +131,7 @@ O desenho e suas consequências operacionais estão registrados em [`adr/0001-au
 - `sp_generate_sustainability_report` grava o relatório como retrato do momento da geração: CO₂ total, nº de lotes e nº de produtos do período. Dados lançados depois exigem gerar um novo relatório.
 - `sp_expire_certifications` marca como `EXPIRED` as certificações `ACTIVE` vencidas; o `pg_cron` a executa todo dia às 03:00 UTC, e a auditoria registra a mudança com `user_id` nulo.
 - Não se cadastra certificação já vencida, e certificação vencida não volta para `ACTIVE` (400).
-- Detalhes em [`006-views-procedures`](../006-views-procedures/spec.md); consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](../../sql/consultas-relatorio.sql).
+- Detalhes em [`006-views-procedures`](../006-views-procedures/spec.md); consultas de exemplo em [`docs/sql/queries/reports`](../../sql/queries/reports/top-fornecedores-agricolas.sql).
 
 ## 6. Fluxos principais
 

@@ -66,7 +66,7 @@ Infra e dependências, ainda sem migrations.
 - [x] `docs/adr/0002-migracao-para-mysql.md`: substitui o contrato transacional da ADR 0001 (ator por sessão + limpeza, DEFINER no lugar de role, busca sem stemming)
 - [x] ADR 0001: status "substituída parcialmente pela 0002"
 - [x] README: badge, stack, como subir, variáveis, seções de auditoria, `pg_cron` e ENUM
-- [x] `docs/sql/consultas-relatorio.sql` em sintaxe MySQL
+- [x] Consultas de relatório em `docs/sql/queries/reports/`, em sintaxe MySQL
 - [x] Marcar o status desta feature como concluído
 
 **Pronto:** `grep -ri postgres` só encontra o histórico (ADR 0001, specs 000–007).

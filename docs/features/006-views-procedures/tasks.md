@@ -40,7 +40,7 @@
 
 ## Task 5 — `docs/sql-report-queries`
 
-- [x] `docs/sql/consultas-relatorio.sql` com as consultas do plan
+- [x] `docs/sql/queries/reports/` com as consultas do plan, separadas por arquivo
 - [x] Citar views e procedures no `docs/features/000-base/spec.md` e no README
 
 **Pronto:** relatório gerado pela API com `totalCo2Kg` diferente de zero para um fornecedor com emissões no período, e ranking sem consulta por fornecedor.
