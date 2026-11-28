@@ -179,7 +179,7 @@ O `pg_cron` não vem nas imagens oficiais do Postgres e precisa ser carregado na
 
 ## 5. Consultas para a apresentação
 
-`docs/sql/consultas-relatorio.sql`, só leitura, por exemplo:
+`docs/sql/queries/reports/`, só leitura, por exemplo:
 
 ```sql
 -- Top 5 fornecedores com menor CO₂ por kg de produtos agrícolas

@@ -106,7 +106,7 @@ infrastructure  ← Spring Boot, Hibernate/JPA, Controllers REST, Migrations Fly
 - A camada `domain` permanece sem dependência de Spring/JPA; as integrações concretas ficam nas camadas externas.
 - **Fase 6 — Security concluída**: autenticação JWT stateless, hash BCrypt, filtro de autenticação e autorização por perfil.
 - **Auditoria — implementação atual**: captura por triggers MySQL na migration V5, com DEFINER próprio e grants por tabela ([ADR 0002](docs/adr/0002-migracao-para-mysql.md)).
-- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada por um `EVENT` do MySQL (V3–V4). Ordem obrigatória das etapas garantida por constraints (V1). Consultas de exemplo em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
+- **Views e procedures (A3)**: views de emissão, sustentabilidade e etapa atual; procedures `sp_generate_sustainability_report` e `sp_expire_certifications`, esta agendada por um `EVENT` do MySQL (V3–V4). Ordem obrigatória das etapas garantida por constraints (V1). Scripts SQL organizados em [`docs/sql`](docs/sql/README.md); desenho em [`docs/features/006-views-procedures`](docs/features/006-views-procedures/spec.md).
 - **Fase 8 — Testes concluída**: testes unitários, testes de casos de uso e integração com Testcontainers.
 - **Multiempresa (feature 010)**: mercados e fornecedores se cadastram sozinhos com um plano, cada companhia só vê os próprios dados e o mercado pede lotes ao fornecedor (V7–V9). Especificação em [`docs/features/010-empresas-planos`](docs/features/010-empresas-planos/spec.md); integridade por tipo de companhia na [ADR 0003](docs/adr/0003-tipo-de-companhia-por-fk-composta.md).
 - **Convites (feature 011)**: o `ADMIN` convida usuários por email (Twilio SendGrid), e o convidado aceita pelo link e entra logado; o `POST /users` deixou de existir (V12). Especificação em [`docs/features/011-convites`](docs/features/011-convites/spec.md); token do link na [ADR 0004](docs/adr/0004-token-de-convite-opaco-com-hash.md).
@@ -318,7 +318,7 @@ SELECT event_name, interval_value, interval_field, starts, last_executed, status
 FROM information_schema.events WHERE event_schema = 'supply_chain_verde';
 ```
 
-Mais consultas prontas para a apresentação em [`docs/sql/consultas-relatorio.sql`](docs/sql/consultas-relatorio.sql).
+Consultas prontas para a apresentação em [`docs/sql/queries/reports`](docs/sql/queries/reports/top-fornecedores-agricolas.sql); consultas SQL nativas da API em [`docs/sql/queries/api`](docs/sql/queries/api/company-find-by-search.sql).
 
 ### Scripts SQL da entrega
 

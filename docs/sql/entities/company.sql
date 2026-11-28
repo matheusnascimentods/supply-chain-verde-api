@@ -1,0 +1,21 @@
+CREATE TABLE company (
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(180) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+    cnpj       CHAR(14) NOT NULL,
+    address_id BIGINT NOT NULL,
+    phone      VARCHAR(30) NULL,
+    email      VARCHAR(180) NOT NULL,
+    type       ENUM('MARKET', 'SUPPLIER') COLLATE utf8mb4_0900_as_ci NOT NULL,
+    max_users  INT NOT NULL DEFAULT 10,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT uq_company_cnpj UNIQUE (cnpj),
+    CONSTRAINT uq_company_id_type UNIQUE (id, type),
+    CONSTRAINT chk_company_max_users_positive CHECK (max_users > 0),
+    CONSTRAINT fk_company_address FOREIGN KEY (address_id) REFERENCES address (id),
+    INDEX idx_company_address_id (address_id),
+    INDEX idx_company_name (name),
+    INDEX idx_company_type (type),
+    FULLTEXT INDEX ft_company_name (name),
+    FULLTEXT INDEX ft_company_cnpj (cnpj)
+);

@@ -1,0 +1,20 @@
+CREATE TABLE carbon_emission (
+    id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chain_id           BIGINT NOT NULL,
+    emission_factor    DECIMAL(19,8) NOT NULL,
+    co2_kg             DECIMAL(19,4) NOT NULL,
+    calculation_method ENUM('DEFRA', 'GHG_PROTOCOL') COLLATE utf8mb4_0900_as_ci NOT NULL,
+    cargo_weight_kg    DECIMAL(19,4) NULL,
+    energy_source      ENUM('ELECTRICITY', 'DIESEL', 'LPG', 'NATURAL_GAS') COLLATE utf8mb4_0900_as_ci NULL,
+    consumption        DECIMAL(19,4) NULL,
+    created_at         DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at         DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT carbon_emission_chain_id_key UNIQUE (chain_id),
+    CONSTRAINT chk_carbon_emission_co2_non_negative CHECK (co2_kg >= 0),
+    CONSTRAINT chk_carbon_emission_factor_non_negative CHECK (emission_factor >= 0),
+    CONSTRAINT chk_carbon_emission_cargo_weight_positive CHECK (cargo_weight_kg IS NULL OR cargo_weight_kg > 0),
+    CONSTRAINT chk_carbon_emission_consumption_non_negative CHECK (consumption IS NULL OR consumption >= 0),
+    CONSTRAINT fk_carbon_emission_chain FOREIGN KEY (chain_id) REFERENCES chain (id),
+    INDEX idx_carbon_emission_calculated_at (created_at),
+    INDEX idx_carbon_emission_calculation_method (calculation_method)
+);
